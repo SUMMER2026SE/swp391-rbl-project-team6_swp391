@@ -8,7 +8,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "homework_submissions")
+@Table(name = "homework_submissions", indexes = {
+    @Index(name = "idx_hwsub_homework_id", columnList = "homework_id"),
+    @Index(name = "idx_hwsub_student_id", columnList = "student_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

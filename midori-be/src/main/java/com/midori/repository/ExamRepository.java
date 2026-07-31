@@ -42,4 +42,6 @@ public interface ExamRepository extends JpaRepository<Exam, UUID> {
 
     @Query("SELECT e.assignedClass.id, COUNT(e) FROM Exam e WHERE e.status = com.midori.entity.ExamStatus.PUBLISHED AND e.assignedClass.id IS NOT NULL GROUP BY e.assignedClass.id")
     List<Object[]> countUpcomingExamsPerClass();
+
+    long countByAssignedClassIdAndStatus(UUID classId, ExamStatus status);
 }

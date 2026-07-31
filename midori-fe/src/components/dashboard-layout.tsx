@@ -248,6 +248,7 @@ export function DashboardLayout({
     queryKey: ["studentJoinedClassesDashboard"],
     queryFn: () => classesApi.getJoinedClasses(),
     enabled: role === "student" && !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   const hasAssignedLevel = role === "student" && dbClasses && dbClasses.length > 0;

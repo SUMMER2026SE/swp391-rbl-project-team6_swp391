@@ -166,11 +166,21 @@ public class TeacherQuestionController {
 
     @GetMapping("/lessons")
     public ResponseEntity<ApiResponse<List<com.midori.entity.QuestionBankLesson>>> getLessons(
-            @RequestParam String level,
+            @RequestParam(required = false) String level,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<com.midori.entity.QuestionBankLesson> lessons = isAdmin(userDetails)
-                ? questionBankLessonService.findLessonsByLevel(level)
-                : questionBankLessonService.findActiveLessonsByLevel(level);
+        
+        List<com.midori.entity.QuestionBankLesson> lessons;
+        
+        if (level == null || level.trim().isEmpty()) {
+            lessons = isAdmin(userDetails)
+                    ? questionBankLessonService.findAllLessons()
+                    : questionBankLessonService.findAllActiveLessons();
+        } else {
+            lessons = isAdmin(userDetails)
+                    ? questionBankLessonService.findLessonsByLevel(level)
+                    : questionBankLessonService.findActiveLessonsByLevel(level);
+        }
+        
         return ResponseEntity.ok(ApiResponse.success(lessons));
     }
 

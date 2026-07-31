@@ -51,36 +51,57 @@ public class ClassController {
     public ResponseEntity<ApiResponse<List<ClassResponse>>> getAllClasses(
             @RequestParam(required = false) String status,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<ClassEntity> allEntities = classService.getAllClasses(status);
+        
+        ClassEntity.ClassStatus classStatus = ClassEntity.ClassStatus.ACTIVE;
+        if (status != null && !"ACTIVE".equalsIgnoreCase(status)) {
+            try {
+                classStatus = ClassEntity.ClassStatus.valueOf(status.toUpperCase());
+            } catch (Exception e) {
+                // fallback to ACTIVE
+            }
+        }
 
-        // Perform exactly 3 aggregated GROUP BY queries to get all counts
-        Map<UUID, Long> studentCounts = userRepository.countStudentsPerClass().stream()
-                .filter(arr -> arr[0] != null)
-                .collect(Collectors.toMap(
-                        arr -> (UUID) arr[0],
-                        arr -> (Long) arr[1],
-                        (v1, v2) -> v1
-                ));
+        List<Object[]> statsList;
+        if ("TEACHER".equals(userDetails.getRole())) {
+            statsList = classRepository.findActiveClassesWithStatsByTeacherId(userDetails.getId(), classStatus);
+        } else {
+            statsList = classRepository.findActiveClassesWithStats(classStatus);
+        }
 
-        Map<UUID, Long> homeworkCounts = homeworkRepository.countActiveHomeworkPerClass().stream()
-                .filter(arr -> arr[0] != null)
-                .collect(Collectors.toMap(
-                        arr -> (UUID) arr[0],
-                        arr -> (Long) arr[1],
-                        (v1, v2) -> v1
-                ));
+        List<ClassResponse> classes = statsList.stream()
+                .map(arr -> {
+                    ClassEntity classEntity = (ClassEntity) arr[0];
+                    long studentCount = (Long) arr[1];
+                    long homeworkCount = (Long) arr[2];
+                    long examCount = (Long) arr[3];
 
-        Map<UUID, Long> examCounts = examRepository.countUpcomingExamsPerClass().stream()
-                .filter(arr -> arr[0] != null)
-                .collect(Collectors.toMap(
-                        arr -> (UUID) arr[0],
-                        arr -> (Long) arr[1],
-                        (v1, v2) -> v1
-                ));
+                    String teacherName = null;
+                    if (classEntity.getTeacher() != null) {
+                        if (classEntity.getTeacher().getProfile() != null
+                                && classEntity.getTeacher().getProfile().getDisplayName() != null) {
+                            teacherName = classEntity.getTeacher().getProfile().getDisplayName();
+                        } else {
+                            teacherName = classEntity.getTeacher().getEmail();
+                        }
+                    }
 
-        List<ClassResponse> classes = allEntities.stream()
-                .filter(c -> !"TEACHER".equals(userDetails.getRole()) || (c.getTeacher() != null && c.getTeacher().getId().equals(userDetails.getId())))
-                .map(c -> mapToClassResponse(c, studentCounts, homeworkCounts, examCounts))
+                    return ClassResponse.builder()
+                            .id(classEntity.getId())
+                            .name(classEntity.getName())
+                            .level(classEntity.getLevel())
+                            .maxStudents(classEntity.getMaxStudents())
+                            .description(classEntity.getDescription())
+                            .classCode(classEntity.getClassCode())
+                            .status(classEntity.getStatus())
+                            .teacherId(classEntity.getTeacher() != null ? classEntity.getTeacher().getId() : null)
+                            .teacherName(teacherName)
+                            .studentCount((int) studentCount)
+                            .homeworkCount((int) homeworkCount)
+                            .upcomingExamCount((int) examCount)
+                            .createdAt(classEntity.getCreatedAt())
+                            .updatedAt(classEntity.getUpdatedAt())
+                            .build();
+                })
                 .toList();
 
         return ResponseEntity.ok(ApiResponse.success(classes));
@@ -116,16 +137,14 @@ public class ClassController {
             throw new com.midori.exception.UnauthorizedException("You are not authorized to view this class");
         }
         
-        // Single detail fetch fallback maps
-        Map<UUID, Long> studentCounts = userRepository.countStudentsPerClass().stream()
-                .filter(arr -> arr[0] != null)
-                .collect(Collectors.toMap(arr -> (UUID) arr[0], arr -> (Long) arr[1], (v1, v2) -> v1));
-        Map<UUID, Long> homeworkCounts = homeworkRepository.countActiveHomeworkPerClass().stream()
-                .filter(arr -> arr[0] != null)
-                .collect(Collectors.toMap(arr -> (UUID) arr[0], arr -> (Long) arr[1], (v1, v2) -> v1));
-        Map<UUID, Long> examCounts = examRepository.countUpcomingExamsPerClass().stream()
-                .filter(arr -> arr[0] != null)
-                .collect(Collectors.toMap(arr -> (UUID) arr[0], arr -> (Long) arr[1], (v1, v2) -> v1));
+        // Single detail fetch fallback maps (optimized to query requested class only)
+        long studentCount = userRepository.countStudentsByClassId(id);
+        long homeworkCount = homeworkRepository.countByAssignedClassIdAndStatusNot(id, com.midori.entity.Homework.HomeworkStatus.CLOSED);
+        long examCount = examRepository.countByAssignedClassIdAndStatus(id, com.midori.entity.ExamStatus.PUBLISHED);
+
+        Map<UUID, Long> studentCounts = Map.of(id, studentCount);
+        Map<UUID, Long> homeworkCounts = Map.of(id, homeworkCount);
+        Map<UUID, Long> examCounts = Map.of(id, examCount);
 
         return ResponseEntity.ok(ApiResponse.success(mapToClassResponse(classEntity, studentCounts, homeworkCounts, examCounts)));
     }

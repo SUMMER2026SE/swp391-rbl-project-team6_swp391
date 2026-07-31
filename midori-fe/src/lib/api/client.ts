@@ -33,6 +33,8 @@ function buildHeaders(isFormData = false): HeadersInit {
 }
 
 class ApiError extends Error {
+  public readonly isApiError = true;
+
   constructor(
     message: string,
     public status: number,
@@ -41,6 +43,14 @@ class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+export function isApiError(error: unknown): error is ApiError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as any).isApiError === true
+  );
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -59,6 +69,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     }
   }
 
+  const tokenBeforeRequest = getToken();
   const res = await fetch(url, options);
 
   let json: ApiResponse<T>;
@@ -96,8 +107,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new ApiError(json.message ?? "An unexpected error occurred.", res.status, false);
   }
 
-  if (!res.ok && res.status === 401) {
-    removeToken();
+  // Auto-redirect on 401 for non-auth endpoints only
+  const isAuthEndpoint = path.startsWith("/auth/");
+  if (!res.ok && res.status === 401 && !isAuthEndpoint) {
+    if (getToken() === tokenBeforeRequest) {
+      removeToken();
+    }
     const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
     if (!isLoginPage && typeof window !== "undefined") {
       window.location.href = "/login";

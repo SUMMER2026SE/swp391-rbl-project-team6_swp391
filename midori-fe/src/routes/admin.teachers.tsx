@@ -40,7 +40,7 @@ import {
   FileImage,
 } from "lucide-react";
 import { adminApi, type AdminClassResponse } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import type { AdminTeacherResponse, AdminTeacherCertificateResponse } from "@/lib/api/admin";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1467,7 +1467,7 @@ function TeachersPage() {
       setPendingTeachers(mapped);
     } catch (err) {
       const message =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -1512,7 +1512,7 @@ function TeachersPage() {
       setAllClasses(classes);
     } catch (err) {
       const message =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -1567,7 +1567,7 @@ function TeachersPage() {
         // Re-fetch to restore truth on failure.
         await fetchPendingTeachers();
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -1594,7 +1594,7 @@ function TeachersPage() {
       } catch (err) {
         await fetchPendingTeachers();
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -1627,7 +1627,7 @@ function TeachersPage() {
         await fetchListTeachers();
       } catch (err) {
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -1650,7 +1650,7 @@ function TeachersPage() {
         await fetchListTeachers();
       } catch (err) {
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -1673,7 +1673,7 @@ function TeachersPage() {
         await fetchListTeachers();
       } catch (err) {
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message

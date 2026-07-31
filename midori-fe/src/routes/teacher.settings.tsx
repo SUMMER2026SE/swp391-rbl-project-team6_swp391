@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 type SettingsTab = "account" | "notifications" | "appearance" | "security";
 
@@ -697,7 +697,7 @@ function TeacherSettingsPage() {
                         setPwConfirm("");
                         setTimeout(() => setPwSuccess(false), 4000);
                       } catch (err) {
-                        if (err instanceof ApiError) {
+                        if (isApiError(err)) {
                           setPwError(err.message);
                         } else {
                           setPwError("Failed to change password.");

@@ -24,7 +24,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
 import { useAuth, isAvatar } from "@/lib/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
@@ -160,7 +160,7 @@ function AdminProfilePage() {
         // Don't set error - show UI with fallback data
         console.warn("Profile API unavailable, showing local user data:", err);
       } else {
-        if (err instanceof ApiError) {
+        if (isApiError(err)) {
           setLoadError(err.message);
         } else {
           setLoadError("Failed to load profile.");
@@ -202,7 +202,7 @@ function AdminProfilePage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setSaveError(err.message);
       } else {
         setSaveError("Failed to save profile.");
@@ -768,7 +768,7 @@ function AdminProfilePage() {
                       setPwConfirm("");
                       setTimeout(() => setPwSuccess(false), 4000);
                     } catch (err) {
-                      if (err instanceof ApiError) {
+                      if (isApiError(err)) {
                         setPwError(err.message);
                       } else {
                         setPwError("Failed to change password.");

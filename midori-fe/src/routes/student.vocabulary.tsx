@@ -29,7 +29,7 @@ import {
   type VocabularyLessonDetailResponse,
 } from "@/lib/api/studentVocabulary";
 import { studentProgressApi, type ContentType } from "@/lib/api/studentProgress";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { QuizletFlashcardModal } from "@/components/student/QuizletFlashcardModal";
 import { mockClasses } from "@/mock/classes";
 import { studentAccessibleLevels } from "./student.classes";
@@ -375,7 +375,7 @@ function VocabularyPage() {
       const detail = await studentVocabularyApi.getPublishedLessonDetail(lessonId);
       setLessonDetail(detail);
     } catch (err) {
-      setDetailError(err instanceof ApiError ? err.message : "Failed to load lesson details");
+      setDetailError(isApiError(err) ? err.message : "Failed to load lesson details");
     } finally {
       setDetailLoading(false);
     }
@@ -405,7 +405,7 @@ function VocabularyPage() {
       ).sort();
       setAllTopics(topics);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load lessons");
+      setError(isApiError(err) ? err.message : "Failed to load lessons");
     } finally {
       setLoading(false);
     }

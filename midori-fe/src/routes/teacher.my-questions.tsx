@@ -41,6 +41,7 @@ import { homeworkApi, HomeworkResponse } from "@/lib/api/homework";
 import { examsApi, ExamResponse } from "@/lib/api/exams";
 import { classesApi } from "@/lib/api/classes";
 import { authApi } from "@/lib/api/auth";
+import { useAuth } from "@/lib/auth";
 import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -120,10 +121,7 @@ function MyQuestionsPage() {
   const [previewType, setPreviewType] = useState<"homework" | "exam" | null>(null);
 
   // Queries
-  const { data: user } = useQuery({
-    queryKey: ["authMe"],
-    queryFn: () => authApi.getMe(),
-  });
+  const { user } = useAuth();
 
   const { data: classes = [], isLoading: classesLoading } = useQuery({
     queryKey: ["teacherAllClasses"],
@@ -144,34 +142,18 @@ function MyQuestionsPage() {
     enabled: !!user?.id,
   });
 
-  // Fetch lessons to map lesson names
-  const { data: n5Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N5"],
-    queryFn: () => teacherQuestionsApi.getLessons("N5").then((res) => res),
-  });
-  const { data: n4Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N4"],
-    queryFn: () => teacherQuestionsApi.getLessons("N4").then((res) => res),
-  });
-  const { data: n3Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N3"],
-    queryFn: () => teacherQuestionsApi.getLessons("N3").then((res) => res),
-  });
-  const { data: n2Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N2"],
-    queryFn: () => teacherQuestionsApi.getLessons("N2").then((res) => res),
-  });
-  const { data: n1Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N1"],
-    queryFn: () => teacherQuestionsApi.getLessons("N1").then((res) => res),
+  // Fetch all lessons at once
+  const { data: allLessons = [] } = useQuery({
+    queryKey: ["questionBankLessons", "ALL"],
+    queryFn: () => teacherQuestionsApi.getLessons().then((res) => res),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   const lessonsMap = useMemo(() => {
     const map = new Map<number, string>();
-    const all = [...n5Lessons, ...n4Lessons, ...n3Lessons, ...n2Lessons, ...n1Lessons];
-    all.forEach((l) => map.set(l.id, l.lessonName));
+    allLessons.forEach((l) => map.set(l.id, l.lessonName));
     return map;
-  }, [n5Lessons, n4Lessons, n3Lessons, n2Lessons, n1Lessons]);
+  }, [allLessons]);
 
   const classMap = useMemo(() => {
     const map = new Map<string, { name: string; level: string }>();
@@ -374,7 +356,11 @@ function MyQuestionsPage() {
         if (!groups[level][lessonName][skill]) {
           groups[level][lessonName][skill] = [];
         }
-        groups[level][lessonName][skill].push(hw);
+        // Deduplicate by title
+        const arr = groups[level][lessonName][skill];
+        if (!arr.some((existing) => existing.title === hw.title)) {
+          arr.push(hw);
+        }
       }
     });
 
@@ -401,7 +387,11 @@ function MyQuestionsPage() {
         if (!groups[level]) {
           groups[level] = [];
         }
-        groups[level].push(ex);
+        // Deduplicate by title
+        const arr = groups[level];
+        if (!arr.some((existing) => existing.title === ex.title)) {
+          arr.push(ex);
+        }
       }
     });
 

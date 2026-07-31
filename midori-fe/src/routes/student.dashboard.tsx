@@ -20,7 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { studentProgressApi } from "@/lib/api/studentProgress";
 import { classesApi, type ClassResponse } from "@/lib/api/classes";
 import { homeworkApi, type HomeworkResponse } from "@/lib/api/homework";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/student/dashboard")({ component: StudentDashboard });
 
@@ -168,6 +168,7 @@ function StudentDashboard() {
   } = useQuery({
     queryKey: ["studentJoinedClassesDashboard"],
     queryFn: () => classesApi.getJoinedClasses(),
+    staleTime: 5 * 60 * 1000,
   });
 
   // Homework — drives Assignment Summary + Upcoming Deadlines.
@@ -179,6 +180,7 @@ function StudentDashboard() {
   } = useQuery({
     queryKey: ["studentHomeworksDashboard"],
     queryFn: () => homeworkApi.getStudentHomeworks(),
+    staleTime: 5 * 60 * 1000,
   });
 
   // Streak value (only ever comes from the real backend response).
@@ -336,7 +338,7 @@ function StudentDashboard() {
             <LoadingDots />
           ) : classesError ? (
             <ErrorBanner
-              message={classesError instanceof ApiError ? classesError.message : "Failed to load classes."}
+              message={isApiError(classesError) ? classesError.message : "Failed to load classes."}
               onRetry={() => refetchClasses()}
             />
           ) : joinedClasses.length === 0 ? (
@@ -408,7 +410,7 @@ function StudentDashboard() {
           ) : summaryError ? (
             <ErrorBanner
               message={
-                summaryError instanceof ApiError
+                isApiError(summaryError)
                   ? summaryError.message
                   : "Failed to load assignments."
               }
@@ -469,7 +471,7 @@ function StudentDashboard() {
           ) : summaryError ? (
             <ErrorBanner
               message={
-                summaryError instanceof ApiError
+                isApiError(summaryError)
                   ? summaryError.message
                   : "Failed to load deadlines."
               }

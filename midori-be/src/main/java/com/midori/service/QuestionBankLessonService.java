@@ -7,6 +7,8 @@ import java.util.List;
 public interface QuestionBankLessonService {
     List<QuestionBankLesson> findLessonsByLevel(String level);
     List<QuestionBankLesson> findActiveLessonsByLevel(String level);
+    List<QuestionBankLesson> findAllLessons();
+    List<QuestionBankLesson> findAllActiveLessons();
     QuestionBankLesson createLesson(QuestionBankLesson lesson);
     QuestionBankLesson updateLesson(Integer id, String lessonName, Integer lessonNumber, String status);
     void deleteLesson(Integer id);

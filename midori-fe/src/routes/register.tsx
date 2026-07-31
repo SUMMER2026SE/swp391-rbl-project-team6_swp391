@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-r
 import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
 import { useState, useRef } from "react";
 import { Eye, EyeOff, Upload, X, FileText, Image as ImageIcon, File, Check } from "lucide-react";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
 import { useAuth, getDashboardPath } from "@/lib/auth";
 import type { RegisterRequest } from "@/lib/api/types";
@@ -251,7 +251,7 @@ function RegisterPage() {
         state: buildVerifyOtpState(selectedRole, form.email),
       });
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         const msg = err.message.toLowerCase();
         if (
           msg.includes("email") &&
@@ -280,7 +280,7 @@ function RegisterPage() {
       const u = await loginWithGoogle(credential, selectedRole);
       nav({ to: redirect || getDashboardPath(u), replace: true });
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setErr(err.message);
       } else {
         setErr("Google sign-in failed. Please try again.");

@@ -94,8 +94,8 @@ export const teacherQuestionsApi = {
   getQuestionById: (id: string) => api.get<TeacherQuestionResponse>(`/teacher/questions/${id}`),
 
   // Lessons
-  getLessons: (level: string) =>
-    api.get<QuestionBankLessonResponse[]>(`/teacher/questions/lessons?level=${level}`),
+  getLessons: (level?: string) =>
+    api.get<QuestionBankLessonResponse[]>(level ? `/teacher/questions/lessons?level=${level}` : `/teacher/questions/lessons`),
   createLesson: (lesson: Omit<QuestionBankLessonResponse, "id" | "createdAt">) =>
     api.post<QuestionBankLessonResponse>("/teacher/questions/lessons", lesson),
   updateLesson: (id: number, lessonName: string, lessonNumber?: number, status?: string) =>

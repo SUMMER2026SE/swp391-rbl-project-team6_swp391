@@ -20,4 +20,7 @@ public interface ClassMembershipRepository extends JpaRepository<ClassMembership
 
     @Query("SELECT cm FROM ClassMembership cm ORDER BY cm.joinedAt DESC")
     java.util.List<ClassMembership> findRecentEnrollments(org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT cm FROM ClassMembership cm WHERE cm.classEntity.id = :classId")
+    java.util.List<ClassMembership> findByClassId(@Param("classId") UUID classId);
 }

@@ -88,6 +88,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT c.id, COUNT(u) FROM User u JOIN u.assignedClasses c GROUP BY c.id")
     List<Object[]> countStudentsPerClass();
 
+    @Query("SELECT COUNT(u) FROM User u JOIN u.assignedClasses c WHERE c.id = :classId")
+    long countStudentsByClassId(@Param("classId") UUID classId);
+
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.profile WHERE u.role = :role ORDER BY u.createdAt DESC")
     List<User> findRecentUsersByRole(@Param("role") Role role, Pageable pageable);
 }

@@ -3,7 +3,7 @@ import { AuthShell, Field, PrimaryBtn } from "@/components/auth-shell";
 import { useState } from "react";
 import { ArrowLeft, MailCheck } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/forgot-password")({
   component: ForgotPasswordPage,
@@ -23,7 +23,7 @@ function ForgotPasswordPage() {
       await authApi.forgotPassword({ email });
       setSent(true);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setErr(err.message);
       } else {
         setErr("Something went wrong. Please try again.");

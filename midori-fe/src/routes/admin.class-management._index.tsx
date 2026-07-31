@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { adminApi, type AdminClassResponse } from "@/lib/api/admin";
 import { classesApi } from "@/lib/api/classes";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 function StatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; color: string; bg: string }> = {
@@ -99,7 +99,7 @@ function ClassManagementPage() {
       setClasses(data);
     } catch (err) {
       const message =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -196,7 +196,7 @@ function ClassManagementPage() {
         prev.map((c) => (c.id === archiveClass.id ? { ...c, status: "ACTIVE" } : c)),
       );
       const message =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -231,7 +231,7 @@ function ClassManagementPage() {
         prev.map((c) => (c.id === restoreClass.id ? { ...c, status: "ARCHIVED" } : c)),
       );
       const message =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message

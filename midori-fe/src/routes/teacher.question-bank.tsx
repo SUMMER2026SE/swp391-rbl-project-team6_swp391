@@ -83,33 +83,18 @@ function QuestionBank() {
     return mapped;
   }, [rawQuestions]);
 
-  const { data: n5Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N5"],
-    queryFn: () => teacherQuestionsApi.getLessons("N5").then((res) => res),
-  });
-  const { data: n4Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N4"],
-    queryFn: () => teacherQuestionsApi.getLessons("N4").then((res) => res),
-  });
-  const { data: n3Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N3"],
-    queryFn: () => teacherQuestionsApi.getLessons("N3").then((res) => res),
-  });
-  const { data: n2Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N2"],
-    queryFn: () => teacherQuestionsApi.getLessons("N2").then((res) => res),
-  });
-  const { data: n1Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N1"],
-    queryFn: () => teacherQuestionsApi.getLessons("N1").then((res) => res),
+  // Consolidated Lessons request during startup
+  const { data: allLessons = [] } = useQuery({
+    queryKey: ["questionBankLessons", "ALL"],
+    queryFn: () => teacherQuestionsApi.getLessons().then((res) => res),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   const lessonsMap = useMemo(() => {
     const map = new Map<number, string>();
-    const all = [...n5Lessons, ...n4Lessons, ...n3Lessons, ...n2Lessons, ...n1Lessons];
-    all.forEach((l) => map.set(l.id, l.lessonName));
+    allLessons.forEach((l) => map.set(l.id, l.lessonName));
     return map;
-  }, [n5Lessons, n4Lessons, n3Lessons, n2Lessons, n1Lessons]);
+  }, [allLessons]);
 
   // Dynamically group questions into virtual Topics to match the existing UI hierarchy
   const topicsWithLessons = useMemo(() => {

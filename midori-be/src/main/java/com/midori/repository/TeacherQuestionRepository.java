@@ -64,4 +64,38 @@ public interface TeacherQuestionRepository extends JpaRepository<TeacherQuestion
         @org.springframework.data.repository.query.Param("topicId") String topicId
     );
     List<TeacherQuestion> findByLessonId(Integer lessonId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT new com.midori.dto.questiondto.QuestionBankGeneratorLessonResponse(" +
+            "q.lesson.id, " +
+            "CONCAT('Lesson ', CAST(q.lesson.lessonNumber AS string), ': ', q.lesson.lessonName), " +
+            "q.level, " +
+            "CAST(SUM(CASE WHEN q.difficulty = 'EASY' THEN 1 ELSE 0 END) AS int), " +
+            "CAST(SUM(CASE WHEN q.difficulty = 'MEDIUM' THEN 1 ELSE 0 END) AS int), " +
+            "CAST(SUM(CASE WHEN q.difficulty = 'HARD' THEN 1 ELSE 0 END) AS int), " +
+            "CAST(COUNT(q) AS int)) " +
+            "FROM TeacherQuestion q " +
+            "WHERE q.level = :level " +
+            "AND (UPPER(q.skill) IN :skills OR UPPER(q.questionType) IN :skills) " +
+            "AND q.status = 'ACTIVE' " +
+            "AND q.lesson IS NOT NULL AND q.lesson.status = 'ACTIVE' " +
+            "GROUP BY q.lesson.id, q.lesson.lessonNumber, q.lesson.lessonName, q.level " +
+            "ORDER BY q.lesson.id")
+    List<com.midori.dto.questiondto.QuestionBankGeneratorLessonResponse> findLessonSummaries(
+        @org.springframework.data.repository.query.Param("level") String level,
+        @org.springframework.data.repository.query.Param("skills") List<String> skills
+    );
+
+    @org.springframework.data.jpa.repository.Query("SELECT q.id as id, q.difficulty as difficulty FROM TeacherQuestion q " +
+            "WHERE q.level = :level " +
+            "AND (UPPER(q.skill) IN :skills OR UPPER(q.questionType) IN :skills) " +
+            "AND q.status = 'ACTIVE' " +
+            "AND q.lesson IS NOT NULL AND q.lesson.id IN :lessonIds " +
+            "AND q.lesson.status = 'ACTIVE'")
+    List<com.midori.dto.questiondto.QuestionIdDifficulty> findCandidateProjections(
+        @org.springframework.data.repository.query.Param("level") String level,
+        @org.springframework.data.repository.query.Param("skills") List<String> skills,
+        @org.springframework.data.repository.query.Param("lessonIds") List<Integer> lessonIds
+    );
+
+    List<TeacherQuestion> findByIdIn(List<UUID> ids);
 }

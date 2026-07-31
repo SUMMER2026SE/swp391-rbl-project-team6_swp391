@@ -4,7 +4,7 @@
 // and rendered as "—" in the UI.
 
 import { adminApi, type AdminClassResponse, type AdminRecentActivity } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 export type RecentActivityKind = AdminRecentActivity["type"];
 
@@ -140,7 +140,7 @@ export async function loadDashboardData(): Promise<DashboardOutcome> {
       },
     };
   } catch (err) {
-    if (err instanceof ApiError) return { ok: false, error: err.message };
+    if (isApiError(err)) return { ok: false, error: err.message };
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Unable to load dashboard data",

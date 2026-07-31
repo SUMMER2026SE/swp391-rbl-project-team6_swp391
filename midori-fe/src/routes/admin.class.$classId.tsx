@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminApi, type AdminClassResponse, type AdminClassStudentResponse } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import type { HomeworkResponse } from "@/lib/api/homework";
 
 // The "Assignments" tab was removed — homework/exam data is still loaded
@@ -276,7 +276,7 @@ function ClassWorkspacePage() {
       setClassData(data);
     } catch (err) {
       const msg =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -296,7 +296,7 @@ function ClassWorkspacePage() {
       setStudents(data);
     } catch (err) {
       const msg =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -318,7 +318,7 @@ function ClassWorkspacePage() {
       setHomeworks(data);
     } catch (err) {
       const msg =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message

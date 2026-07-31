@@ -393,7 +393,11 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         }
 
         List<UserLearningProgress> progressList = progressRepository.findAllByUserIdOrdered(studentId);
-        for (UserLearningProgress progress : progressList) {
+        List<UserLearningProgress> limitedProgressList = progressList.stream()
+                .filter(p -> p.getUpdatedAt() != null)
+                .limit(5)
+                .collect(Collectors.toList());
+        for (UserLearningProgress progress : limitedProgressList) {
             if (progress.getUpdatedAt() != null) {
                 String timestamp = progress.getUpdatedAt().toString();
                 if (progress.getUpdatedAt().atZone(ZoneOffset.UTC).toLocalDate().equals(LocalDate.now(ZoneOffset.UTC))) {

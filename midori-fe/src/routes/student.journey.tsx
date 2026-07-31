@@ -22,23 +22,67 @@ export const Route = createFileRoute("/student/journey")({
   loaderDeps: ({ search: { level } }) => ({ level }),
   component: JourneyLayout,
   loader: async ({ deps: { level } }) => {
-    const classes = await classesApi.getJoinedClasses("ACTIVE").catch(() => []);
-    const availableLevels = Array.from(new Set(classes.map((cls) => cls.level))).sort();
-
+    let classes: any[] = [];
     let selectedLevel = level;
-    if (!selectedLevel || !availableLevels.includes(selectedLevel)) {
+    let lessons: any[] = [];
+    let vocabLessons: any[] = [];
+    let grammarLessons: any[] = [];
+    let readingLessons: any[] = [];
+    let listeningLessons: any[] = [];
+
+    if (level) {
+      const results = await Promise.all([
+        classesApi.getJoinedClasses("ACTIVE").catch(() => []),
+        lessonsApi.getLessonsByLevel(level).catch(() => []),
+        studentVocabularyApi.getVocabularyLessons({ level }).catch(() => []),
+        studentGrammarApi.getGrammarLessons({ level }).catch(() => [] as GrammarLessonResponse[]),
+        studentReadingApi.getReadingLessons({ level }).catch(() => []),
+        studentListeningApi.getListeningLessons({ level }).catch(() => []),
+      ]);
+      classes = results[0];
+      lessons = results[1];
+      vocabLessons = results[2];
+      grammarLessons = results[3];
+      readingLessons = results[4];
+      listeningLessons = results[5];
+    } else {
+      classes = await classesApi.getJoinedClasses("ACTIVE").catch(() => []);
+      const availableLevels = Array.from(new Set(classes.map((cls) => cls.level))).sort();
       selectedLevel = availableLevels[0] || "N5";
-    }
 
-    const lessons = await lessonsApi.getLessonsByLevel(selectedLevel).catch(() => []);
-
-    const [vocabLessons, grammarLessons, readingLessons, listeningLessons] =
-      await Promise.all([
+      const results = await Promise.all([
+        lessonsApi.getLessonsByLevel(selectedLevel).catch(() => []),
         studentVocabularyApi.getVocabularyLessons({ level: selectedLevel }).catch(() => []),
         studentGrammarApi.getGrammarLessons({ level: selectedLevel }).catch(() => [] as GrammarLessonResponse[]),
         studentReadingApi.getReadingLessons({ level: selectedLevel }).catch(() => []),
         studentListeningApi.getListeningLessons({ level: selectedLevel }).catch(() => []),
       ]);
+      lessons = results[0];
+      vocabLessons = results[1];
+      grammarLessons = results[2];
+      readingLessons = results[3];
+      listeningLessons = results[4];
+    }
+
+    const availableLevels = Array.from(new Set(classes.map((cls) => cls.level))).sort();
+    if (!level || !availableLevels.includes(selectedLevel)) {
+      const targetLevel = availableLevels[0] || "N5";
+      if (targetLevel !== selectedLevel) {
+        selectedLevel = targetLevel;
+        const results = await Promise.all([
+          lessonsApi.getLessonsByLevel(selectedLevel).catch(() => []),
+          studentVocabularyApi.getVocabularyLessons({ level: selectedLevel }).catch(() => []),
+          studentGrammarApi.getGrammarLessons({ level: selectedLevel }).catch(() => [] as GrammarLessonResponse[]),
+          studentReadingApi.getReadingLessons({ level: selectedLevel }).catch(() => []),
+          studentListeningApi.getListeningLessons({ level: selectedLevel }).catch(() => []),
+        ]);
+        lessons = results[0];
+        vocabLessons = results[1];
+        grammarLessons = results[2];
+        readingLessons = results[3];
+        listeningLessons = results[4];
+      }
+    }
 
     const vocabLessonIds = new Set(
       vocabLessons

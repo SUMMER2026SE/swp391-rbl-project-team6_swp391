@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouterState } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getNotifications,
@@ -87,6 +88,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pushStatus, setPushStatus] = useState<NotificationSocketStatus>("idle");
+  const queryClient = useQueryClient();
+
+  const { data: qData, refetch } = useQuery({
+    queryKey: ["notifications-list"],
+    queryFn: () => getNotifications(),
+    enabled: !!api.getToken(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (qData) {
+      setNotifications(qData.notifications.map(mapToNotification));
+      setUnreadCount(qData.unreadCount);
+    }
+  }, [qData]);
 
   // Push notification subscription
   const pushNotification = usePushNotification();
@@ -130,15 +146,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const data: NotificationListResponse = await getNotifications();
-      setNotifications(data.notifications.map(mapToNotification));
-      setUnreadCount(data.unreadCount);
+      const res = await refetch();
+      if (res.data) {
+        setNotifications(res.data.notifications.map(mapToNotification));
+        setUnreadCount(res.data.unreadCount);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load notifications");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refetch]);
 
   /**
    * Idempotently merge a push payload into the local state.
@@ -203,6 +221,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
       const payload = frame.payload as NotificationPushPayload;
       const wasInserted = applyPush(payload);
+      queryClient.invalidateQueries({ queryKey: ["notifications-list"] });
       if (wasInserted && !isOnInboxRoute) {
         toast(payload.title, {
           description: payload.content || undefined,
