@@ -232,11 +232,10 @@ function FlashcardsPage() {
       if (e.code === "Space") {
         e.preventDefault();
         handleFlip();
-      } else if (["Digit1", "Digit2", "Digit3", "Numpad1", "Numpad2", "Numpad3"].includes(e.code)) {
+      } else if (["Digit1", "Digit2", "Numpad1", "Numpad2"].includes(e.code)) {
         const key = e.code.replace("Digit", "").replace("Numpad", "");
         if (key === "1") handleAssess("AGAIN");
-        else if (key === "2") handleAssess("HARD");
-        else if (key === "3") handleAssess("MASTERED");
+        else if (key === "2") handleAssess("MASTERED");
       } else if (e.code === "ArrowLeft" && currentIndex > 0 && !isFlipped) {
         setCurrentIndex((prev) => prev - 1);
       } else if (e.code === "ArrowRight" && currentIndex < cards.length - 1 && isFlipped) {
@@ -417,70 +416,22 @@ function FlashcardsPage() {
                         <Sparkles className="w-3.5 h-3.5 opacity-60" />
                       </button>
 
-                      <button
-                        onClick={() => setRange("review")}
-                        className={cn(
-                          "p-3 rounded-2xl border text-left text-xs font-bold transition flex items-center justify-between cursor-pointer",
-                          range === "review"
-                            ? "border-primary bg-primary/5 text-primary"
-                            : "border-slate-200 dark:border-white/8 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                        )}
-                      >
-                        Từ cần ôn tập lại
-                        <RefreshCw className="w-3.5 h-3.5 opacity-60" />
-                      </button>
-
-                      <button
-                        onClick={() => setRange("difficult")}
-                        className={cn(
-                          "p-3 rounded-2xl border text-left text-xs font-bold transition flex items-center justify-between cursor-pointer",
-                          range === "difficult"
-                            ? "border-primary bg-primary/5 text-primary"
-                            : "border-slate-200 dark:border-white/8 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                        )}
-                      >
-                        Từ đánh dấu khó
-                        <AlertCircle className="w-3.5 h-3.5 opacity-60" />
-                      </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Số lượng thẻ */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Số lượng thẻ</label>
-                      <div className="flex bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 gap-1">
-                        {([10, 20, 30, "all"] as const).map((num) => (
-                          <button
-                            key={num}
-                            onClick={() => setLimitCount(num)}
-                            className={cn(
-                              "flex-1 py-2 text-center text-xs font-bold rounded-xl transition cursor-pointer",
-                              limitCount === num
-                                ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm"
-                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
-                            )}
-                          >
-                            {num === "all" ? "Tất cả" : num}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Thứ tự học */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Thứ tự hiển thị</label>
-                      <select
-                        value={sortOrder}
-                        onChange={(e) => setSortOrder(e.target.value as any)}
-                        className="w-full bg-slate-100 dark:bg-slate-800 border-0 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-white focus:ring-2 focus:ring-primary"
-                      >
-                        <option value="random">Ngẫu nhiên</option>
-                        <option value="newest">Mới lưu trước</option>
-                        <option value="oldest">Cũ nhất trước</option>
-                        <option value="need_review">Từ cần ôn trước</option>
-                      </select>
-                    </div>
+                  {/* Thứ tự học */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Thứ tự hiển thị</label>
+                    <select
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value as any)}
+                      className="w-full bg-slate-100 dark:bg-slate-800 border-0 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-white focus:ring-2 focus:ring-primary cursor-pointer"
+                    >
+                      <option value="random">Ngẫu nhiên</option>
+                      <option value="newest">Mới lưu trước</option>
+                      <option value="oldest">Cũ nhất trước</option>
+                      <option value="need_review">Từ cần ôn trước</option>
+                    </select>
                   </div>
 
                   {/* Mặt trước thẻ */}
@@ -749,7 +700,7 @@ function FlashcardsPage() {
           {/* Assessment & Study Actions */}
           <div className="flex flex-col gap-4 shrink-0">
             {/* Spaced repetition buttons */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 disabled={submittingProgress !== null}
                 onClick={() => handleAssess("AGAIN")}
@@ -761,20 +712,11 @@ function FlashcardsPage() {
 
               <button
                 disabled={submittingProgress !== null}
-                onClick={() => handleAssess("HARD")}
-                className="flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition cursor-pointer gap-1 shadow-sm border-amber-200 dark:border-amber-500/30 bg-white dark:bg-slate-950 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 active:scale-95"
-              >
-                <span className="text-xs font-black">Khó</span>
-                <span className="text-[9px] font-bold opacity-60">Phím 2</span>
-              </button>
-
-              <button
-                disabled={submittingProgress !== null}
                 onClick={() => handleAssess("MASTERED")}
                 className="flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition cursor-pointer gap-1 shadow-sm border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-slate-950 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 active:scale-95"
               >
                 <span className="text-xs font-black">Đã thuộc</span>
-                <span className="text-[9px] font-bold opacity-60">Phím 3</span>
+                <span className="text-[9px] font-bold opacity-60">Phím 2</span>
               </button>
             </div>
 
@@ -786,9 +728,9 @@ function FlashcardsPage() {
                   setIsFlipped(false);
                   setCurrentIndex((prev) => prev - 1);
                 }}
-                className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                className="flex items-center gap-1.5 text-sm font-black text-primary dark:text-cyan-400 hover:text-primary/80 dark:hover:text-cyan-300 hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 stroke-[3]" />
                 Thẻ trước
               </button>
               
@@ -807,10 +749,10 @@ function FlashcardsPage() {
                   setIsFlipped(false);
                   setCurrentIndex((prev) => prev + 1);
                 }}
-                className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                className="flex items-center gap-1.5 text-sm font-black text-primary dark:text-cyan-400 hover:text-primary/80 dark:hover:text-cyan-300 hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
               >
                 Thẻ tiếp
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 stroke-[3]" />
               </button>
             </div>
           </div>
@@ -885,15 +827,7 @@ function FlashcardsPage() {
                     {completionStats.good + completionStats.mastered} từ
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    Khó:
-                  </span>
-                  <span className="text-slate-800 dark:text-white font-black">
-                    {completionStats.hard} từ
-                  </span>
-                </div>
+
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -950,7 +884,7 @@ function FlashcardsPage() {
 
             <button
               onClick={() => setStep("setup")}
-              className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-indigo-200 hover:bg-slate-50 dark:hover:bg-white/5 transition cursor-pointer"
+              className="px-5 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-500/10 text-xs font-bold text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 active:scale-95 transition cursor-pointer"
             >
               Về trang thiết lập
             </button>
@@ -958,7 +892,7 @@ function FlashcardsPage() {
             {sourceVideoId && (
               <Link
                 to={`/student/shadowing/video/${sourceVideoId}`}
-                className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-indigo-200 hover:bg-slate-50 dark:hover:bg-white/5 transition"
+                className="inline-flex items-center justify-center px-5 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-500/10 text-xs font-bold text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 active:scale-95 transition"
               >
                 Quay lại video Shadowing
               </Link>

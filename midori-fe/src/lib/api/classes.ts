@@ -79,6 +79,10 @@ export const classesApi = {
     return api.get<any[]>(`/student/classes/${classId}/exams`);
   },
 
+  getStudentClassExams(): Promise<any[]> {
+    return api.get<any[]>("/student/classes/exams");
+  },
+
   getClassLessons(classId: string): Promise<any[]> {
     return api.get<any[]>(`/student/classes/${classId}/lessons`);
   },
@@ -92,12 +96,8 @@ export const classesApi = {
     return api.put<ClassResponse>(`/teacher/classes/${id}`, data);
   },
 
-  archiveClass(id: string): Promise<ClassResponse> {
-    return api.patch<ClassResponse>(`/classes/${id}/archive`);
-  },
-
-  restoreClass(id: string): Promise<ClassResponse> {
-    return api.patch<ClassResponse>(`/classes/${id}/restore`);
+  deleteClass(id: string): Promise<void> {
+    return api.delete<void>(`/classes/${id}`);
   },
 
   getClassStudents(id: string): Promise<StudentClassResponse[]> {

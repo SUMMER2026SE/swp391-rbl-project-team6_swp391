@@ -26,6 +26,7 @@ public class ClassStatusEvent {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private ClassEntity classEntity;
 
     @Enumerated(EnumType.STRING)

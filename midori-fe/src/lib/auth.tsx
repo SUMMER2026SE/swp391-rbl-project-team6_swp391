@@ -154,22 +154,11 @@ function mergeUser(storedUser: User | null, apiUser: User): User {
 async function hydrateWithProfile(baseUser: User): Promise<User> {
   let user = { ...baseUser };
   try {
-    const [profile, classes] = await Promise.all([
-      profileApi.getMyProfile().catch(() => null),
-      user.role === "student" ? classesApi.getJoinedClasses().catch(() => []) : Promise.resolve([])
-    ]);
-
-    if (profile) {
-      const profileAvatar = isAvatar(profile.avatarUrl) ? profile.avatarUrl : null;
-      const profileName = isAvatar(profile.displayName) ? profile.displayName : null;
-      user = {
-        ...user,
-        name: profileName ?? user.name,
-        avatar: profileAvatar ?? user.avatar ?? null,
-      };
-    }
-
-    if (user.role === "student" && classes) {
+    // Always fetch joined classes for students on reload to ensure 
+    // their class state (added or removed) is up to date with the backend.
+    const needsClassId = user.role === "student";
+    if (needsClassId) {
+      const classes = await classesApi.getJoinedClasses().catch(() => []);
       if (classes.length > 0) {
         user.classId = classes[0].id;
       } else {
@@ -180,6 +169,7 @@ async function hydrateWithProfile(baseUser: User): Promise<User> {
 
   return user;
 }
+
 
 export function rolePath(role: FrontendRole) {
   return role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/admin";
@@ -244,11 +234,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const { data: qUser, isSuccess, isError } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: async ({ signal }) => {
+    queryFn: async () => {
       const currentToken = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
       if (!currentToken) return null;
       try {
-        const userResponse = await authApi.getMe({ signal });
+        const userResponse = await authApi.getMe();
         const storedRaw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
         const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
         const apiUser = userResponseToUser(userResponse);
@@ -259,9 +249,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return hydrated;
       } catch (err: any) {
-        if (err.name === "AbortError") {
-          throw err;
-        }
         api.removeToken();
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
@@ -272,6 +259,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
     retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   useEffect(() => {

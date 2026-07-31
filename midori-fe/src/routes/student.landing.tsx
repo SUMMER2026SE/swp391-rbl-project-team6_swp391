@@ -17,8 +17,10 @@ function StudentLandingRoute() {
     data: dbClasses = [],
     refetch: refetchClasses,
   } = useQuery({
-    queryKey: ["studentJoinedClassesLanding"],
+    queryKey: ["studentJoinedClassesDashboard"],
     queryFn: () => classesApi.getJoinedClasses(),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const handleRefresh = async () => {

@@ -24,6 +24,7 @@ public class LessonController {
 
     private final LessonService lessonService;
     private final ClassService classService;
+    private final com.midori.service.LearningAccessService learningAccessService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<LessonResponse>>> getAllLessons(
@@ -34,9 +35,7 @@ public class LessonController {
         
         if (isStudent) {
             if (level != null && !level.isBlank()) {
-                if (!classService.isStudentEnrolledInLevel(userDetails.getId(), level)) {
-                    throw new com.midori.exception.AccessDeniedException("You are not enrolled in a class for level " + level);
-                }
+                learningAccessService.checkAccess(userDetails.getId(), level);
             }
         }
 
@@ -48,12 +47,17 @@ public class LessonController {
         }
 
         if (isStudent && (level == null || level.isBlank())) {
-            Set<String> activeLevels = classService.getStudentActiveLevels(userDetails.getId());
+            Set<String> activeLevels = learningAccessService.getStudentActiveLevels(userDetails.getId());
             lessons = lessons.stream()
                     .filter(lesson -> lesson.getLevel() != null && activeLevels.contains(lesson.getLevel()))
                     .toList();
         }
 
-        return ResponseEntity.ok(ApiResponse.success(lessons));
+        ApiResponse<List<LessonResponse>> response = ApiResponse.success(lessons);
+        if (isStudent && level != null && !level.isBlank()) {
+            response.setMetadata(learningAccessService.getAccessMetadata(userDetails.getId(), level));
+        }
+
+        return ResponseEntity.ok(response);
     }
 }

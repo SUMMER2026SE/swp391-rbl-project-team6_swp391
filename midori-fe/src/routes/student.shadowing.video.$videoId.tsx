@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -118,10 +119,22 @@ function VideoLearningPage() {
   const videoId = params.videoId;
   const navigate = useNavigate();
 
-  const [rawVideo, setRawVideo] = useState<any>(null);
-  const [transcript, setTranscript] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: rawVideo, isLoading: isVideoLoading, error: videoError, refetch: refetchVideo } = useQuery({
+    queryKey: ["shadowing-video", videoId],
+    queryFn: () => studentShadowingApi.getVideo(videoId),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: transcript, isLoading: isTranscriptLoading, error: transcriptError, refetch: refetchTranscript } = useQuery({
+    queryKey: ["shadowing-transcript", videoId],
+    queryFn: () => studentShadowingApi.getTranscript(videoId),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const isLoading = isVideoLoading || isTranscriptLoading;
+  const error = (videoError as any)?.message || (transcriptError as any)?.message || null;
 
   // Layout and display states
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
@@ -187,7 +200,7 @@ function VideoLearningPage() {
     if (isGlobalWordSaved(vocabWord, vocabReading)) {
       globalRemoveWord(vocabWord, vocabReading);
     } else {
-      globalSaveWord({ word: vocabWord, reading: vocabReading, meaning: vocabMeaning, savedAt: new Date().toISOString() });
+      globalSaveWord({ word: vocabWord, reading: vocabReading, meaning: vocabMeaning });
     }
   }, [isGlobalWordSaved, globalSaveWord, globalRemoveWord]);
 
@@ -205,37 +218,7 @@ function VideoLearningPage() {
   const speedMenuRef = useRef<HTMLDivElement>(null);
   const activeSentenceRef = useRef<HTMLDivElement>(null);
 
-  const loadVideoAndTranscript = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [videoResult, transcriptResult] = await Promise.allSettled([
-        studentShadowingApi.getVideo(videoId),
-        studentShadowingApi.getTranscript(videoId),
-      ]);
 
-      if (videoResult.status === "rejected") {
-        const message = (videoResult.reason as any)?.message || "Không thể tải thông tin video.";
-        setError(message);
-        return;
-      }
-
-      const v = videoResult.value;
-      const t = transcriptResult.status === "fulfilled" ? transcriptResult.value : null;
-
-      setRawVideo(v);
-      setTranscript(t);
-    } catch (err: any) {
-      const message = err?.message || "Không thể tải thông tin video.";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [videoId]);
-
-  useEffect(() => {
-    loadVideoAndTranscript();
-  }, [loadVideoAndTranscript]);
 
   useEffect(() => {
     if (!selectedSegment) return;
@@ -327,7 +310,7 @@ function VideoLearningPage() {
       id: rawVideo.id,
       title: rawVideo.title,
       description: rawVideo.description || "",
-      videoUrl: rawVideo.videoUrl,
+      videoUrl: rawVideo.videoUrl || undefined,
       thumbnail: rawVideo.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=225&fit=crop",
       duration: rawVideo.duration || 0,
       jlptLevel: rawVideo.jlptLevel || "N5",
@@ -507,10 +490,9 @@ function VideoLearningPage() {
   };
 
   const handleRetry = useCallback(() => {
-    setError(null);
-    setIsLoading(true);
-    loadVideoAndTranscript();
-  }, [loadVideoAndTranscript]);
+    refetchVideo();
+    refetchTranscript();
+  }, [refetchVideo, refetchTranscript]);
 
   if (isLoading) {
     return (

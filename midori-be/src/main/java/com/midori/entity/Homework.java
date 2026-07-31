@@ -23,6 +23,7 @@ public class Homework {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private ClassEntity assignedClass;
 
     @Column(name = "lesson_id", length = 50)

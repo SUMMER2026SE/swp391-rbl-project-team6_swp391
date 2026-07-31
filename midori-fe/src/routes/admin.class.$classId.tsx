@@ -571,7 +571,7 @@ function ClassWorkspacePage() {
             nearest integer to keep the UI stable. */}
         <TabsContent value="progress" className="mt-5 space-y-5">
           {/* Stats Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-card border border-border rounded-xl p-4">
               <p className="text-xs text-muted-col mb-1 flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" /> Total Students
@@ -595,30 +595,7 @@ function ClassWorkspacePage() {
                 {homeworks.reduce((sum, h) => sum + (h.submissionCount || 0), 0)}
               </p>
             </div>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <p className="text-xs text-muted-col mb-1 flex items-center gap-1.5">
-                <BarChart3 className="w-3.5 h-3.5" /> Avg Score
-              </p>
-              <p className="text-2xl font-bold text-foreground">
-                {(() => {
-                  const scored = homeworks
-                    .map((h) => h.averageScore)
-                    .filter((s): s is number => typeof s === "number");
-                  if (scored.length === 0) {
-                    return <span className="text-base text-muted-col">—</span>;
-                  }
-                  const overall = scored.reduce((a, b) => a + b, 0) / scored.length;
-                  return (
-                    <>
-                      {overall.toFixed(1)}
-                      <span className="text-base text-muted-col ml-1">
-                        /{homeworks[0]?.maxScore ?? 10}
-                      </span>
-                    </>
-                  );
-                })()}
-              </p>
-            </div>
+
           </div>
 
           {/* Loading State */}

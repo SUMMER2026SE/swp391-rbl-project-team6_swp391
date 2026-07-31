@@ -10,9 +10,118 @@ export const Route = createFileRoute("/student/classes/$classId")({
   component: ClassDetailPage,
 });
 
+function ClassDetailSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* Hero Header Section Skeleton */}
+      <div className="rounded-3xl bg-slate-100 dark:bg-slate-800 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4 w-full">
+          <div className="w-9 h-9 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+          <div className="space-y-2 flex-1">
+            <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-md w-1/3" />
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-md w-1/4" />
+          </div>
+        </div>
+        <div className="flex gap-4 w-full md:w-auto">
+          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl w-24" />
+          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl w-24" />
+          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded-xl w-24" />
+        </div>
+      </div>
+      {/* Assignments list skeleton */}
+      <div className="space-y-4">
+        <div className="h-10 bg-slate-100 dark:bg-slate-800 rounded-xl w-full" />
+        <div className="h-24 bg-slate-100 dark:bg-slate-800 rounded-xl w-full" />
+        <div className="h-24 bg-slate-100 dark:bg-slate-800 rounded-xl w-full" />
+      </div>
+    </div>
+  );
+}
+
 function ClassDetailPage() {
   const { classId } = Route.useParams();
-  const { classInfo } = useClassDetail(classId);
+  const { classInfo, isLoading, error } = useClassDetail(classId);
+
+  if (isLoading) {
+    return <ClassDetailSkeleton />;
+  }
+
+  if (error) {
+    const errorStatus = (error as any)?.status;
+
+    if (errorStatus === 403) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/student/classes"
+              className="p-2 rounded-xl border border-slate-200/70 bg-white/70 shadow-sm text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-white/10 transition-all"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-xl font-extrabold font-display">Access Denied</h1>
+          </div>
+          <Card className="p-8 text-center max-w-lg mx-auto">
+            <p className="text-sm text-muted-foreground">You do not have permission to access this class.</p>
+            <Link
+              to="/student/classes"
+              className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+            >
+              Back to Classes
+            </Link>
+          </Card>
+        </div>
+      );
+    }
+
+    if (errorStatus === 404) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/student/classes"
+              className="p-2 rounded-xl border border-slate-200/70 bg-white/70 shadow-sm text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-white/10 transition-all"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-xl font-extrabold font-display">Class Not Found</h1>
+          </div>
+          <Card className="p-8 text-center max-w-lg mx-auto">
+            <p className="text-sm text-muted-foreground">The requested class could not be found.</p>
+            <Link
+              to="/student/classes"
+              className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+            >
+              Back to Classes
+            </Link>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/student/classes"
+            className="p-2 rounded-xl border border-slate-200/70 bg-white/70 shadow-sm text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-white/10 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 className="text-xl font-extrabold font-display">Error Loading Class</h1>
+        </div>
+        <Card className="p-8 text-center max-w-lg mx-auto">
+          <p className="text-sm text-muted-foreground">An error occurred while loading class information.</p>
+          <Link
+            to="/student/classes"
+            className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+          >
+            Back to Classes
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   if (!classInfo) {
     return (

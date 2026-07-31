@@ -147,8 +147,8 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           if (doingAssignment) doingAssignment.status = "Submitted";
           setDoingAssignment(null);
           if (submitted) setReviewingAssignment(submitted);
-          void queryClient.invalidateQueries({ queryKey: ["classExams", classInfo.id] });
-          void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
+          void queryClient.invalidateQueries({ queryKey: ["student-class-exams", classInfo.id] });
+          void queryClient.invalidateQueries({ queryKey: ["student-class-homeworks", classInfo.id] });
         }}
       />
     );

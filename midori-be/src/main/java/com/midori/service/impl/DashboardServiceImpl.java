@@ -47,39 +47,28 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public AdminDashboardSummaryResponse getSummary() {
-        List<Object[]> userStatsList = userRepository.getDashboardStats();
-        Object[] userStats = userStatsList.isEmpty() ? new Object[]{0L, 0L, 0L, 0L, 0L} : userStatsList.get(0);
-        long totalUsers = userStats[0] != null ? ((Number) userStats[0]).longValue() : 0L;
-        long totalTeachers = userStats[1] != null ? ((Number) userStats[1]).longValue() : 0L;
-        long totalStudents = userStats[2] != null ? ((Number) userStats[2]).longValue() : 0L;
-        long totalActiveUsers = userStats[3] != null ? ((Number) userStats[3]).longValue() : 0L;
-        long pendingTeachers = userStats[4] != null ? ((Number) userStats[4]).longValue() : 0L;
-
-        List<Object[]> grammarStatsList = grammarRepository.getDashboardStats();
-        Object[] grammarStats = grammarStatsList.isEmpty() ? new Object[]{0L, 0L, 0L} : grammarStatsList.get(0);
-        long totalGrammar = grammarStats[0] != null ? ((Number) grammarStats[0]).longValue() : 0L;
-        long pendingGrammar = grammarStats[1] != null ? ((Number) grammarStats[1]).longValue() : 0L;
-        long approvedGrammar = grammarStats[2] != null ? ((Number) grammarStats[2]).longValue() : 0L;
-
-        List<Object[]> flashcardStatsList = flashcardSetRepository.getDashboardStats();
-        Object[] flashcardStats = flashcardStatsList.isEmpty() ? new Object[]{0L, 0L, 0L} : flashcardStatsList.get(0);
-        long totalFlashcardSets = flashcardStats[0] != null ? ((Number) flashcardStats[0]).longValue() : 0L;
-        long pendingFlashcardSets = flashcardStats[1] != null ? ((Number) flashcardStats[1]).longValue() : 0L;
-        long approvedFlashcardSets = flashcardStats[2] != null ? ((Number) flashcardStats[2]).longValue() : 0L;
-
-        List<Object[]> listeningStatsList = listeningLessonRepository.getDashboardStats();
-        Object[] listeningStats = listeningStatsList.isEmpty() ? new Object[]{0L, 0L, 0L} : listeningStatsList.get(0);
-        long totalListeningLessons = listeningStats[0] != null ? ((Number) listeningStats[0]).longValue() : 0L;
-        long inactiveListeningLessons = listeningStats[1] != null ? ((Number) listeningStats[1]).longValue() : 0L;
-        long activeListeningLessons = listeningStats[2] != null ? ((Number) listeningStats[2]).longValue() : 0L;
-
-        List<Object[]> vocabStatsList = vocabularyLessonRepository.getDashboardStats();
-        Object[] vocabStats = vocabStatsList.isEmpty() ? new Object[]{0L, 0L} : vocabStatsList.get(0);
-        long totalVocabularyLessons = vocabStats[0] != null ? ((Number) vocabStats[0]).longValue() : 0L;
-        long publishedVocabularyLessons = vocabStats[1] != null ? ((Number) vocabStats[1]).longValue() : 0L;
+        List<Object[]> statsList = userRepository.getCombinedDashboardStats();
+        Object[] stats = statsList.isEmpty() ? new Object[17] : statsList.get(0);
+        
+        long totalUsers = stats[0] != null ? ((Number) stats[0]).longValue() : 0L;
+        long totalTeachers = stats[1] != null ? ((Number) stats[1]).longValue() : 0L;
+        long totalStudents = stats[2] != null ? ((Number) stats[2]).longValue() : 0L;
+        long totalActiveUsers = stats[3] != null ? ((Number) stats[3]).longValue() : 0L;
+        long pendingTeachers = stats[4] != null ? ((Number) stats[4]).longValue() : 0L;
+        long totalGrammar = stats[5] != null ? ((Number) stats[5]).longValue() : 0L;
+        long pendingGrammar = stats[6] != null ? ((Number) stats[6]).longValue() : 0L;
+        long approvedGrammar = stats[7] != null ? ((Number) stats[7]).longValue() : 0L;
+        long totalFlashcardSets = stats[8] != null ? ((Number) stats[8]).longValue() : 0L;
+        long pendingFlashcardSets = stats[9] != null ? ((Number) stats[9]).longValue() : 0L;
+        long approvedFlashcardSets = stats[10] != null ? ((Number) stats[10]).longValue() : 0L;
+        long totalListeningLessons = stats[11] != null ? ((Number) stats[11]).longValue() : 0L;
+        long inactiveListeningLessons = stats[12] != null ? ((Number) stats[12]).longValue() : 0L;
+        long activeListeningLessons = stats[13] != null ? ((Number) stats[13]).longValue() : 0L;
+        long totalVocabularyLessons = stats[14] != null ? ((Number) stats[14]).longValue() : 0L;
+        long publishedVocabularyLessons = stats[15] != null ? ((Number) stats[15]).longValue() : 0L;
+        long totalProgressRecords = stats[16] != null ? ((Number) stats[16]).longValue() : 0L;
 
         long pendingContent = pendingGrammar + pendingFlashcardSets + inactiveListeningLessons;
-        long totalProgressRecords = userLearningProgressRepository.count();
 
         return AdminDashboardSummaryResponse.builder()
                 .totalUsers(totalUsers)

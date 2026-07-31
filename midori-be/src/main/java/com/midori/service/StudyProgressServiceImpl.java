@@ -475,20 +475,47 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     @Override
     @Transactional(readOnly = true)
     public ProgressStatsResponse getProgressStats(UUID userId) {
-        long learnedWords = progressRepository.countLearnedByUserId(userId);
-        long masteredWords = progressRepository.countMasteredByUserId(userId);
-        long favoriteWords = progressRepository.countFavoriteByUserId(userId);
-        long completedLessons = progressRepository.countCompletedByUserId(userId);
+        List<Object[]> groupedCounts = progressRepository.getProgressCountsGroupedByContentType(userId);
+        
+        long learnedWords = 0;
+        long masteredWords = 0;
+        long favoriteWords = 0;
+        long completedLessons = 0;
 
-        long vocabularyLearned = progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.VOCABULARY);
-        long vocabularyMastered = progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.VOCABULARY);
-        long vocabularyCompleted = progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.VOCABULARY);
-        long vocabularyFavorite = progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.VOCABULARY);
+        long vocabularyLearned = 0;
+        long vocabularyMastered = 0;
+        long vocabularyCompleted = 0;
+        long vocabularyFavorite = 0;
 
-        long grammarLearned = progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.GRAMMAR);
-        long grammarMastered = progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.GRAMMAR);
-        long grammarCompleted = progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.GRAMMAR);
-        long grammarFavorite = progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.GRAMMAR);
+        long grammarLearned = 0;
+        long grammarMastered = 0;
+        long grammarCompleted = 0;
+        long grammarFavorite = 0;
+
+        for (Object[] row : groupedCounts) {
+            ContentType type = (ContentType) row[0];
+            long learned = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            long mastered = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            long completed = row[3] != null ? ((Number) row[3]).longValue() : 0L;
+            long favorite = row[4] != null ? ((Number) row[4]).longValue() : 0L;
+
+            learnedWords += learned;
+            masteredWords += mastered;
+            favoriteWords += favorite;
+            completedLessons += completed;
+
+            if (type == ContentType.VOCABULARY) {
+                vocabularyLearned = learned;
+                vocabularyMastered = mastered;
+                vocabularyCompleted = completed;
+                vocabularyFavorite = favorite;
+            } else if (type == ContentType.GRAMMAR) {
+                grammarLearned = learned;
+                grammarMastered = mastered;
+                grammarCompleted = completed;
+                grammarFavorite = favorite;
+            }
+        }
 
         int overallPercent = 0;
         long totalItems = learnedWords;
