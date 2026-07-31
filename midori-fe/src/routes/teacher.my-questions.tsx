@@ -37,6 +37,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/lib/auth";
 import { homeworkApi, HomeworkResponse } from "@/lib/api/homework";
 import { examsApi, ExamResponse } from "@/lib/api/exams";
 import { classesApi } from "@/lib/api/classes";
@@ -120,10 +121,7 @@ function MyQuestionsPage() {
   const [previewType, setPreviewType] = useState<"homework" | "exam" | null>(null);
 
   // Queries
-  const { data: user } = useQuery({
-    queryKey: ["authMe"],
-    queryFn: () => authApi.getMe(),
-  });
+  const { user } = useAuth();
 
   const { data: classes = [], isLoading: classesLoading } = useQuery({
     queryKey: ["teacherAllClasses"],

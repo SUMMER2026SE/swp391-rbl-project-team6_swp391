@@ -32,17 +32,17 @@ export const studentVocabularyApi = {
     if (params?.search) searchParams.set("search", params.search);
     const qs = searchParams.toString();
     const lessons = await api.get<VocabularyLessonResponse[]>(
-      `/vocabulary/lessons${qs ? `?${qs}` : ""}`,
+      `/student/vocabulary${qs ? `?${qs}` : ""}`,
     );
     return lessons.map(normalizeLesson);
   },
 
   /**
-   * GET /api/vocabulary/lessons/{lessonId}
+   * GET /api/student/vocabulary/{lessonId}
    * Returns published lesson detail including its words list.
    */
   getPublishedLessonDetail: async (lessonId: string) => {
-    const lesson = await api.get<VocabularyLessonDetailResponse>(`/vocabulary/lessons/${lessonId}`);
+    const lesson = await api.get<VocabularyLessonDetailResponse>(`/student/vocabulary/${lessonId}`);
     return normalizeLessonDetail(lesson);
   },
 };

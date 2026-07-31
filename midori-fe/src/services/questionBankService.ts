@@ -106,9 +106,9 @@ export function useQuestionBank(level: JLPTLevel) {
     isError: isErrorQuestions,
     error: errorQuestions,
   } = useQuery({
-    queryKey: ["questionBankQuestions"],
+    queryKey: ["questionBankQuestions", level],
     queryFn: async () => {
-      const response = await teacherQuestionsApi.getQuestions();
+      const response = await teacherQuestionsApi.getQuestions(level);
       return response;
     },
   });

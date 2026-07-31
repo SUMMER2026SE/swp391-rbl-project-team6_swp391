@@ -35,6 +35,8 @@ export function useSavedWords(videoId?: string) {
         return [];
       }
     },
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const saveMutation = useMutation({

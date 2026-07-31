@@ -12,7 +12,7 @@ export const Route = createFileRoute("/teacher/classes/$classId/progress")({
   component: TeacherClassProgressPage,
 });
 
-export function TeacherClassProgressPage() {
+function TeacherClassProgressPage() {
   const { classId } = useParams({ strict: false });
 
   const { data: classDetail, isLoading: isLoadingClass } = useQuery({

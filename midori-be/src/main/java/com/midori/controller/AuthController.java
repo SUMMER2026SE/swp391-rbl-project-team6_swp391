@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class AuthController {
 
     private final AuthService authService;
@@ -40,7 +41,9 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(value = "fe_req_id", required = false) String feReqId) {
+        log.info("[BE AUTH GETME] Handled /me request. FE Request ID: {}, Email: {}", feReqId, userDetails != null ? userDetails.getEmail() : "null");
         UserResponse user = authService.getCurrentUser(userDetails.getEmail());
         return ResponseEntity.ok(ApiResponse.success(user));
     }

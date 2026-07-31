@@ -43,12 +43,13 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, init?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const isFormData = body instanceof FormData;
   const options: RequestInit = {
     method,
     headers: buildHeaders(isFormData),
+    ...init,
   };
 
   if (body !== undefined) {
@@ -109,24 +110,24 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 export const api = {
-  get<T>(path: string): Promise<T> {
-    return request<T>("GET", path);
+  get<T>(path: string, init?: RequestInit): Promise<T> {
+    return request<T>("GET", path, undefined, init);
   },
 
-  post<T>(path: string, body?: unknown): Promise<T> {
-    return request<T>("POST", path, body);
+  post<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
+    return request<T>("POST", path, body, init);
   },
 
-  put<T>(path: string, body?: unknown): Promise<T> {
-    return request<T>("PUT", path, body);
+  put<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
+    return request<T>("PUT", path, body, init);
   },
 
-  patch<T>(path: string, body?: unknown): Promise<T> {
-    return request<T>("PATCH", path, body);
+  patch<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
+    return request<T>("PATCH", path, body, init);
   },
 
-  delete<T>(path: string): Promise<T> {
-    return request<T>("DELETE", path);
+  delete<T>(path: string, init?: RequestInit): Promise<T> {
+    return request<T>("DELETE", path, undefined, init);
   },
 
   /**

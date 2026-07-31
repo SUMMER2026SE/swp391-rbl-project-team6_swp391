@@ -44,6 +44,7 @@ function Dashboard() {
   } = useQuery({
     queryKey: ["teacherClassesDashboard"],
     queryFn: () => classesApi.getAllClasses(),
+    enabled: typeof window !== "undefined",
   });
 
   const {
@@ -54,6 +55,7 @@ function Dashboard() {
   } = useQuery({
     queryKey: ["teacherHomeworksDashboard"],
     queryFn: () => homeworkApi.getTeacherHomeworks(),
+    enabled: typeof window !== "undefined",
   });
 
   const {
@@ -64,6 +66,7 @@ function Dashboard() {
   } = useQuery({
     queryKey: ["teacherNotificationsDashboard"],
     queryFn: () => getLiveNotifications(),
+    enabled: typeof window !== "undefined",
   });
 
   const classes = useMemo(() => {

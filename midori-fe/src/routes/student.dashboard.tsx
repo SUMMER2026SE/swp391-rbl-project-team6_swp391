@@ -157,6 +157,7 @@ function StudentDashboard() {
     queryKey: ["progress-stats"],
     queryFn: () => studentProgressApi.getProgressStats(),
     staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Joined classes — drives the left column.
@@ -168,6 +169,8 @@ function StudentDashboard() {
   } = useQuery({
     queryKey: ["studentJoinedClassesDashboard"],
     queryFn: () => classesApi.getJoinedClasses(),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Homework — drives Assignment Summary + Upcoming Deadlines.
@@ -179,6 +182,8 @@ function StudentDashboard() {
   } = useQuery({
     queryKey: ["studentHomeworksDashboard"],
     queryFn: () => homeworkApi.getStudentHomeworks(),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Streak value (only ever comes from the real backend response).

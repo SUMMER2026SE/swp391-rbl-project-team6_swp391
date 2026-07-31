@@ -13,7 +13,7 @@ import java.util.UUID;
 @Repository
 public interface TeacherStatusEventRepository extends JpaRepository<TeacherStatusEvent, UUID> {
 
-    @Query("SELECT e FROM TeacherStatusEvent e LEFT JOIN FETCH e.teacher LEFT JOIN FETCH e.performedBy ORDER BY e.createdAt DESC")
+    @Query("SELECT e FROM TeacherStatusEvent e LEFT JOIN FETCH e.teacher t LEFT JOIN FETCH t.profile LEFT JOIN FETCH e.performedBy pb LEFT JOIN FETCH pb.profile ORDER BY e.createdAt DESC")
     List<TeacherStatusEvent> findRecentEvents(Pageable pageable);
 
     @Query("SELECT e FROM TeacherStatusEvent e LEFT JOIN FETCH e.teacher LEFT JOIN FETCH e.performedBy WHERE e.teacher.id = :teacherId ORDER BY e.createdAt DESC")

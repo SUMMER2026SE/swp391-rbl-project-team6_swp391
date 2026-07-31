@@ -18,6 +18,21 @@ public interface TeacherQuestionRepository extends JpaRepository<TeacherQuestion
     List<TeacherQuestion> findByTeacherIdOrStatusActiveOrderByCreatedAtDesc(
         @org.springframework.data.repository.query.Param("teacherId") UUID teacherId
     );
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT q FROM TeacherQuestion q LEFT JOIN FETCH q.teacher LEFT JOIN FETCH q.lesson LEFT JOIN FETCH q.options ORDER BY q.createdAt DESC")
+    List<TeacherQuestion> findAllWithTeacherAndLesson();
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT q FROM TeacherQuestion q LEFT JOIN FETCH q.teacher LEFT JOIN FETCH q.lesson LEFT JOIN FETCH q.options WHERE (q.teacher.id = :teacherId OR q.status = 'ACTIVE') AND (q.lesson IS NULL OR q.lesson.status = 'ACTIVE') ORDER BY q.createdAt DESC")
+    List<TeacherQuestion> findQuestionsForTeacherViewWithTeacherAndLesson(@org.springframework.data.repository.query.Param("teacherId") UUID teacherId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT q FROM TeacherQuestion q LEFT JOIN FETCH q.teacher LEFT JOIN FETCH q.lesson LEFT JOIN FETCH q.options WHERE q.level = :level ORDER BY q.createdAt DESC")
+    List<TeacherQuestion> findByLevelWithTeacherAndLesson(@org.springframework.data.repository.query.Param("level") String level);
+
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT q FROM TeacherQuestion q LEFT JOIN FETCH q.teacher LEFT JOIN FETCH q.lesson LEFT JOIN FETCH q.options WHERE (q.teacher.id = :teacherId OR q.status = 'ACTIVE') AND (q.lesson IS NULL OR q.lesson.status = 'ACTIVE') AND q.level = :level ORDER BY q.createdAt DESC")
+    List<TeacherQuestion> findQuestionsForTeacherViewAndLevelWithTeacherAndLesson(
+        @org.springframework.data.repository.query.Param("teacherId") UUID teacherId,
+        @org.springframework.data.repository.query.Param("level") String level
+    );
     
     @org.springframework.data.jpa.repository.Query("SELECT DISTINCT q FROM TeacherQuestion q LEFT JOIN FETCH q.options WHERE q.status = :status ORDER BY q.createdAt DESC")
     List<TeacherQuestion> findByStatusOrderByCreatedAtDesc(@org.springframework.data.repository.query.Param("status") String status);

@@ -21,6 +21,7 @@ const queryClient = new QueryClient({
         : 2 * 60 * 1000, // 2 minutes in development
       refetchOnWindowFocus: import.meta.env.PROD,
       retry: 1,
+      enabled: typeof window !== "undefined",
     },
     mutations: {
       retry: 0,

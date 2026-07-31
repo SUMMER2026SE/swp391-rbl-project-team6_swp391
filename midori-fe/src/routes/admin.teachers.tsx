@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { adminApi, type AdminClassResponse } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AdminTeacherResponse, AdminTeacherCertificateResponse } from "@/lib/api/admin";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1419,10 +1420,8 @@ function Toast({
 export const Route = createFileRoute("/admin/teachers")({ component: TeachersPage });
 
 function TeachersPage() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"pending" | "list">("pending");
-  const [pendingTeachers, setPendingTeachers] = useState<TeacherApplication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<TeacherApplication | null>(null);
   const [viewingCertificates, setViewingCertificates] = useState<Certificate[]>([]);
@@ -1440,49 +1439,39 @@ function TeachersPage() {
   const [lockTarget, setLockTarget] = useState<TeacherApplication | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<TeacherApplication | null>(null);
 
-  // Teacher List state
-  const [listTeachers, setListTeachers] = useState<TeacherApplication[]>([]);
-  const [listLoading, setListLoading] = useState(false);
-  const [listError, setListError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingStatusFilter, setPendingStatusFilter] = useState<
     "all" | "pending" | "approved" | "rejected"
   >("all");
   const [listStatusFilter, setListStatusFilter] = useState<"all" | "active" | "inactive">("all");
-  // Cached teacher-class list used to derive per-row class/student counts.
-  const [allClasses, setAllClasses] = useState<AdminClassResponse[]>([]);
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2500);
   }, []);
 
-  const fetchPendingTeachers = useCallback(async () => {
-    try {
-      setError(null);
-      setLoading(true);
-      // Only fetch teachers with PENDING_APPROVAL status - these are awaiting admin review.
+  const {
+    data: pendingTeachers = [],
+    isLoading: loading,
+    error: pendingErrorObj,
+  } = useQuery({
+    queryKey: ["admin", "teachers", "pending"],
+    queryFn: async () => {
       const pending = await adminApi.getPendingTeachers();
-      const mapped = pending.map(mapToTeacherApplication);
-      setPendingTeachers(mapped);
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load pending teachers. Please try again.";
-      setError(message);
-      setPendingTeachers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return pending.map(mapToTeacherApplication);
+    },
+    enabled: typeof window !== "undefined" && (tab === "pending" || tab === "list"),
+    staleTime: 5 * 60 * 1000,
+  });
+  const error = pendingErrorObj ? (pendingErrorObj as Error).message : null;
 
-  const fetchListTeachers = useCallback(async () => {
-    setListLoading(true);
-    setListError(null);
-    try {
+  const {
+    data: listData,
+    isLoading: listLoading,
+    error: listErrorObj,
+  } = useQuery({
+    queryKey: ["admin", "teachers", "list", searchQuery, listStatusFilter],
+    queryFn: async () => {
       const params: {
         role: string;
         keyword?: string;
@@ -1496,9 +1485,6 @@ function TeachersPage() {
       };
       const trimmed = searchQuery.trim();
       if (trimmed) params.keyword = trimmed;
-      // "all" = no status filter (null/undefined = all statuses)
-      // "active" = ACTIVE
-      // "inactive" = INACTIVE (SUSPENDED or BANNED, handled by backend)
       if (listStatusFilter === "active") {
         params.status = "ACTIVE";
       } else if (listStatusFilter === "inactive") {
@@ -1508,61 +1494,34 @@ function TeachersPage() {
         adminApi.getAllUsers(params),
         adminApi.getAdminClasses().catch(() => [] as AdminClassResponse[]),
       ]);
-      setListTeachers(page.content.map(mapToTeacherApplication));
-      setAllClasses(classes);
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load teacher list. Please try again.";
-      setListError(message);
-      setListTeachers([]);
-    } finally {
-      setListLoading(false);
-    }
-  }, [searchQuery, listStatusFilter]);
+      return {
+        teachers: page.content.map(mapToTeacherApplication),
+        classes,
+      };
+    },
+    enabled: typeof window !== "undefined" && (tab === "list" || tab === "pending"),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Load pending on mount and on tab switch.
-  useEffect(() => {
-    if (tab === "pending") {
-      fetchPendingTeachers();
-    }
-  }, [tab, fetchPendingTeachers]);
+  const listTeachers = listData?.teachers ?? [];
+  const allClasses = listData?.classes ?? [];
+  const listError = listErrorObj ? (listErrorObj as Error).message : null;
 
-  // Load list whenever list tab is active or its query/filter changes.
-  useEffect(() => {
-    if (tab === "list") {
-      fetchListTeachers();
-    }
-  }, [tab, fetchListTeachers]);
+  const fetchPendingTeachers = () => queryClient.invalidateQueries({ queryKey: ["admin", "teachers", "pending"] });
+  const fetchListTeachers = () => queryClient.invalidateQueries({ queryKey: ["admin", "teachers", "list"] });
 
   const handleApprove = useCallback(
     async (id: string) => {
       setActionLoadingId(id);
-      // Optimistic update — remove the row from the local pending list
-      // so the table + KPIs reflect the new state immediately.
-      setPendingTeachers((prev) => prev.filter((t) => t.id !== id));
       try {
-        const updatedTeacher = await adminApi.approveTeacher(id);
+        await adminApi.approveTeacher(id);
         showToast("Teacher approved successfully!", "success");
         setViewing(null);
         setViewProfileTarget(null);
         setViewProfileCerts([]);
         setApproveTarget(null);
-        // Add approved teacher to listTeachers with ACTIVE status
-        const mappedTeacher = mapToTeacherApplication(updatedTeacher);
-        setListTeachers((prev) => {
-          // Avoid duplicates if teacher was already in list
-          if (prev.some((t) => t.id === id)) {
-            // Update existing entry with new status
-            return prev.map((t) => (t.id === id ? { ...t, status: "active" as TeacherLocalStatus, accountStatus: "ACTIVE" as const } : t));
-          }
-          return [...prev, mappedTeacher];
-        });
-        // Refresh pending list to ensure it's in sync
         await fetchPendingTeachers();
+        await fetchListTeachers();
       } catch (err) {
         // Re-fetch to restore truth on failure.
         await fetchPendingTeachers();
@@ -1583,14 +1542,11 @@ function TeachersPage() {
   const handleReject = useCallback(
     async (id: string, reason: string) => {
       setActionLoadingId(id);
-      // Optimistic update — remove the teacher from the pending list since rejected teachers
-      // should not appear in the approval view anymore.
-      setPendingTeachers((prev) => prev.filter((t) => t.id !== id));
       try {
         await adminApi.rejectTeacher(id, { reason });
         showToast("Teacher application rejected.", "error");
-        // Refresh to ensure server state is in sync
         await fetchPendingTeachers();
+        await fetchListTeachers();
       } catch (err) {
         await fetchPendingTeachers();
         const message =
@@ -1794,7 +1750,7 @@ function TeachersPage() {
                   Approved
                 </p>
                 <p className="font-display font-black text-lg text-primary-col">
-                  {pendingTeachers.filter((t) => t.status === "active").length}
+                  {activeTeachers}
                 </p>
               </div>
             </div>

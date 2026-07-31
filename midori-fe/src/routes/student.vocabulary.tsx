@@ -34,6 +34,7 @@ import { QuizletFlashcardModal } from "@/components/student/QuizletFlashcardModa
 import { mockClasses } from "@/mock/classes";
 import { studentAccessibleLevels } from "./student.classes";
 import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
 type WordStatus = "new" | "learning" | "mastered";
@@ -265,11 +266,24 @@ function VocabularyPage() {
   // Default to first enrolled level or "N5" if enrolled
   const defaultLevel = enrolledLevels.length > 0 ? enrolledLevels[0] : "N5";
 
-  const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
-  const [allLessonsBase, setAllLessonsBase] = useState<VocabularyLessonResponse[]>([]);
-  const [allTopics, setAllTopics] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: allLessonsRaw = [], isLoading: loading, error: queryError, refetch: fetchLessons } = useQuery({
+    queryKey: ["student-vocabulary-lessons"],
+    queryFn: () => studentVocabularyApi.getPublishedLessons(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const allLessonsBase = useMemo(() => {
+    return sortLessonsByNumber(allLessonsRaw);
+  }, [allLessonsRaw]);
+
+  const allTopics = useMemo(() => {
+    return Array.from(
+      new Set(allLessonsBase.map((l) => l.topic).filter(Boolean) as string[]),
+    ).sort();
+  }, [allLessonsBase]);
+
+  const error = queryError ? (queryError as any).message || "Failed to load lessons" : null;
 
   const [selectedLevel, setSelectedLevel] = useState<string>(defaultLevel);
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
@@ -381,42 +395,19 @@ function VocabularyPage() {
     }
   };
 
-  // Fetch published lessons from API
-  const fetchLessons = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const lessonParams = {
-        level: selectedLevel !== "all" ? selectedLevel : undefined,
-        topic: selectedTopic !== "All Topics" ? selectedTopic : undefined,
-        search: appliedSearch.trim() || undefined,
-      };
-
-      const [allData, filteredData] = await Promise.all([
-        studentVocabularyApi.getPublishedLessons(),
-        studentVocabularyApi.getPublishedLessons(lessonParams),
-      ]);
-
-      setAllLessonsBase(sortLessonsByNumber(allData));
-      setLessons(sortLessonsByNumber(filteredData));
-
-      const topics = Array.from(
-        new Set(allData.map((l) => l.topic).filter(Boolean) as string[]),
-      ).sort();
-      setAllTopics(topics);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load lessons");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedLevel, selectedTopic, appliedSearch]);
-
-  useEffect(() => {
-    fetchLessons();
-  }, [fetchLessons]);
-
-  // Filter lessons to only show enrolled levels
-  const filteredLessons = lessons.filter((lesson) => enrolledLevels.includes(lesson.level));
+  // Filter lessons locally to only show enrolled levels, matching selected level, topic, and search
+  const filteredLessons = useMemo(() => {
+    return allLessonsBase.filter((lesson) => {
+      const matchLevel = selectedLevel === "all" ? true : lesson.level === selectedLevel;
+      const matchTopic = selectedTopic === "All Topics" ? true : lesson.topic === selectedTopic;
+      const matchSearch = appliedSearch.trim()
+        ? lesson.title.toLowerCase().includes(appliedSearch.trim().toLowerCase()) ||
+          (lesson.description || "").toLowerCase().includes(appliedSearch.trim().toLowerCase())
+        : true;
+      const isEnrolled = lesson.level ? enrolledLevels.includes(lesson.level as any) : false;
+      return matchLevel && matchTopic && matchSearch && isEnrolled;
+    });
+  }, [allLessonsBase, selectedLevel, selectedTopic, appliedSearch, enrolledLevels]);
 
   // ── Derived: topics available within the selected level ─────────────────────
   const topicsInLevel = useMemo(() => {

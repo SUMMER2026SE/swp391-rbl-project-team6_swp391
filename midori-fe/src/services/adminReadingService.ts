@@ -15,23 +15,24 @@ export const adminReadingKeys = {
 /**
  * Fetch all reading lessons for a given level (with optional filters).
  */
-export function useFetchReadingLessons(level: string) {
+export function useFetchReadingLessons(level: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: adminReadingKeys.lessons(level),
     queryFn: () => adminReadingApi.getAdminReadingLessons({ level }),
     select: (data: import("@/lib/api/reading").ReadingLessonResponse[]) => data,
+    ...options,
   });
 }
 
 /**
  * Fetch a single reading lesson with its questions.
  */
-export function useFetchReadingDetail(id: string) {
+export function useFetchReadingDetail(id: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: adminReadingKeys.detail(id),
     queryFn: () => adminReadingApi.getAdminReadingLesson(id),
     select: (data: import("@/lib/api/reading").ReadingDetailResponse) => data,
-    enabled: !!id,
+    enabled: id ? (options?.enabled ?? true) : false,
   });
 }
 
