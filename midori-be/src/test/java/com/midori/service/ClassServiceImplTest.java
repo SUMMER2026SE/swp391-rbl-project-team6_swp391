@@ -86,4 +86,18 @@ class ClassServiceImplTest {
 
         verify(learningAccessService).grantOrExtendAccess(student, classEntity);
     }
+
+    @Test
+    void deleteClass_deletesClassAndOwnedData_doesNotDeleteAccess() {
+        when(classRepository.findById(classId)).thenReturn(Optional.of(classEntity));
+        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+        when(examRepository.findByAssignedClassId(classId)).thenReturn(java.util.Collections.emptyList());
+        when(homeworkRepository.findByAssignedClassId(classId)).thenReturn(java.util.Collections.emptyList());
+
+        classService.deleteClass(classId, teacherId);
+
+        verify(classRepository).delete(classEntity);
+        // The service should not touch learning access repository during class deletion
+        verify(learningAccessService, org.mockito.Mockito.never()).grantOrExtendAccess(any(), any());
+    }
 }

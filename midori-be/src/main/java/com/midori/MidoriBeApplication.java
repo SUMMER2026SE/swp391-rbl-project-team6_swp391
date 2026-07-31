@@ -12,6 +12,7 @@ public class MidoriBeApplication {
     }
 
     @org.springframework.context.annotation.Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnBean({com.midori.repository.ClassRepository.class})
     public org.springframework.boot.CommandLineRunner deleteArchivedClassesRunner(
             com.midori.repository.ClassRepository classRepository,
             com.midori.repository.UserRepository userRepository,
