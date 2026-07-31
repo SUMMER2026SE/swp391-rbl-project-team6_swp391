@@ -149,11 +149,16 @@ export const AiContentGenerate: React.FC<{
     queryFn: () => classesApi.getSelectableClasses(),
   });
 
-  const { data: lessons = [], isLoading: lessonsLoading } = useQuery({
-    queryKey: ["questionBankLessons", form.level],
-    queryFn: () => teacherQuestionsApi.getLessons(form.level),
-    enabled: !!form.level,
+  const { data: allLessons = [], isLoading: lessonsLoading } = useQuery({
+    queryKey: ["questionBankLessons", "ALL"],
+    queryFn: () => teacherQuestionsApi.getLessons().then((res) => res),
+    staleTime: 1000 * 60 * 60,
   });
+
+  const lessons = useMemo(() => {
+    if (!form.level) return [];
+    return allLessons.filter((l: any) => l.level === form.level.toUpperCase());
+  }, [allLessons, form.level]);
 
   const queryClient = useQueryClient();
 

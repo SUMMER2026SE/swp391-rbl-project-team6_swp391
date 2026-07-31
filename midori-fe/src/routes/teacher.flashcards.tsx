@@ -35,7 +35,7 @@ import {
   type FlashcardCardUpdateRequest,
   type FlashcardSetStatus,
 } from "../lib/api/flashcardMappers";
-import { ApiError } from "../lib/api/client";
+import { ApiError, isApiError } from "../lib/api/client";
 import { RejectReasonBox } from "@/components/reject-reason-box";
 
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
@@ -762,7 +762,7 @@ function TeacherFlashcardsPage() {
       const data = await teacherFlashcardApi.getFlashcardSets();
       setSets(data);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to load flashcard sets.";
+      const msg = isApiError(err) ? err.message : "Failed to load flashcard sets.";
       setSetsError(msg);
       showToast(msg, "error");
     } finally {
@@ -812,7 +812,7 @@ function TeacherFlashcardsPage() {
       // Open edit modal for the new set
       openEditSet(created.id);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to create flashcard set.";
+      const msg = isApiError(err) ? err.message : "Failed to create flashcard set.";
       setAddError(msg);
       showToast(msg, "error");
     } finally {
@@ -835,7 +835,7 @@ function TeacherFlashcardsPage() {
         level: detail.level ?? "N5",
       });
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to load flashcard set.";
+      const msg = isApiError(err) ? err.message : "Failed to load flashcard set.";
       showToast(msg, "error");
       setEditSetId(null);
     } finally {
@@ -889,7 +889,7 @@ function TeacherFlashcardsPage() {
 
       showToast("Flashcard set saved successfully!", "success");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to save flashcard set.";
+      const msg = isApiError(err) ? err.message : "Failed to save flashcard set.";
       setEditError(msg);
       showToast(msg, "error");
     } finally {
@@ -918,7 +918,7 @@ function TeacherFlashcardsPage() {
       setShowAddCard(false);
       showToast("Card added successfully!", "success");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to add card.";
+      const msg = isApiError(err) ? err.message : "Failed to add card.";
       showToast(msg, "error");
     } finally {
       setAddingCard(false);
@@ -970,7 +970,7 @@ function TeacherFlashcardsPage() {
         "success",
       );
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Bulk import failed.";
+      const msg = isApiError(err) ? err.message : "Bulk import failed.";
       showToast(msg, "error");
     } finally {
       setBulkImporting(false);
@@ -1007,7 +1007,7 @@ function TeacherFlashcardsPage() {
       setEditingCard(null);
       showToast("Card updated!", "success");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to update card.";
+      const msg = isApiError(err) ? err.message : "Failed to update card.";
       showToast(msg, "error");
     } finally {
       setSavingCard(false);
@@ -1024,7 +1024,7 @@ function TeacherFlashcardsPage() {
       setDeletingCard(null);
       showToast("Card deleted!", "success");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to delete card.";
+      const msg = isApiError(err) ? err.message : "Failed to delete card.";
       showToast(msg, "error");
     } finally {
       setDeletingCardLoading(false);
@@ -1041,7 +1041,7 @@ function TeacherFlashcardsPage() {
       setDeleting(null);
       showToast("Flashcard set deleted!", "success");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to delete flashcard set.";
+      const msg = isApiError(err) ? err.message : "Failed to delete flashcard set.";
       showToast(msg, "error");
     } finally {
       setDeletingLoading(false);
@@ -1056,7 +1056,7 @@ function TeacherFlashcardsPage() {
       setSets((prev) => prev.map((s) => (s.id === setId ? updated : s)));
       showToast("Flashcard set submitted for review!", "success");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to submit flashcard set.";
+      const msg = isApiError(err) ? err.message : "Failed to submit flashcard set.";
       showToast(msg, "error");
     } finally {
       setSubmitting((prev) => {
@@ -1074,7 +1074,7 @@ function TeacherFlashcardsPage() {
       const detail = await teacherFlashcardApi.getFlashcardSetDetail(setId);
       setViewing(detail);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to load flashcard set.";
+      const msg = isApiError(err) ? err.message : "Failed to load flashcard set.";
       showToast(msg, "error");
     } finally {
       setViewLoading(false);

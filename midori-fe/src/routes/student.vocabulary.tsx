@@ -29,7 +29,7 @@ import {
   type VocabularyLessonDetailResponse,
 } from "@/lib/api/studentVocabulary";
 import { studentProgressApi, type ContentType } from "@/lib/api/studentProgress";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { QuizletFlashcardModal } from "@/components/student/QuizletFlashcardModal";
 import { mockClasses } from "@/mock/classes";
 import { studentAccessibleLevels } from "./student.classes";
@@ -289,6 +289,18 @@ function VocabularyPage() {
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+
+  const lessons = useMemo(() => {
+    return allLessonsBase.filter((lesson) => {
+      const matchesLevel = selectedLevel === "all" || lesson.level === selectedLevel;
+      const matchesTopic = selectedTopic === "All Topics" || lesson.topic === selectedTopic;
+      const matchesSearch =
+        !appliedSearch.trim() ||
+        lesson.title?.toLowerCase().includes(appliedSearch.toLowerCase()) ||
+        lesson.description?.toLowerCase().includes(appliedSearch.toLowerCase());
+      return matchesLevel && matchesTopic && matchesSearch;
+    });
+  }, [allLessonsBase, selectedLevel, selectedTopic, appliedSearch]);
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<(typeof FILTER_TABS)[number]>("All");
   const [topicsOpen, setTopicsOpen] = useState(false);
@@ -389,25 +401,14 @@ function VocabularyPage() {
       const detail = await studentVocabularyApi.getPublishedLessonDetail(lessonId);
       setLessonDetail(detail);
     } catch (err) {
-      setDetailError(err instanceof ApiError ? err.message : "Failed to load lesson details");
+      setDetailError(isApiError(err) ? err.message : "Failed to load lesson details");
     } finally {
       setDetailLoading(false);
     }
   };
 
-  // Filter lessons locally to only show enrolled levels, matching selected level, topic, and search
-  const filteredLessons = useMemo(() => {
-    return allLessonsBase.filter((lesson) => {
-      const matchLevel = selectedLevel === "all" ? true : lesson.level === selectedLevel;
-      const matchTopic = selectedTopic === "All Topics" ? true : lesson.topic === selectedTopic;
-      const matchSearch = appliedSearch.trim()
-        ? lesson.title.toLowerCase().includes(appliedSearch.trim().toLowerCase()) ||
-          (lesson.description || "").toLowerCase().includes(appliedSearch.trim().toLowerCase())
-        : true;
-      const isEnrolled = lesson.level ? enrolledLevels.includes(lesson.level as any) : false;
-      return matchLevel && matchTopic && matchSearch && isEnrolled;
-    });
-  }, [allLessonsBase, selectedLevel, selectedTopic, appliedSearch, enrolledLevels]);
+  // Filter lessons to only show enrolled levels
+  const filteredLessons = lessons.filter((lesson) => enrolledLevels.includes(lesson.level));
 
   // ── Derived: topics available within the selected level ─────────────────────
   const topicsInLevel = useMemo(() => {

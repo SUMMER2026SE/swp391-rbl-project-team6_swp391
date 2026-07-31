@@ -22,6 +22,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.Collections;
+import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -102,7 +107,23 @@ public class HomeworkController {
     public ResponseEntity<ApiResponse<List<HomeworkResponse>>> getTeacherHomeworks(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<Homework> homeworks = homeworkService.findHomeworksByTeacher(userDetails.getId());
-        List<HomeworkResponse> responses = homeworks.stream().map(this::mapToHomeworkResponse).toList();
+        List<UUID> homeworkIds = homeworks.stream().map(Homework::getId).toList();
+        List<HomeworkSubmission> classSubmissions = homeworkIds.isEmpty() ? Collections.emptyList()
+                : homeworkSubmissionRepository.findByHomeworkIdIn(homeworkIds);
+        Map<UUID, List<HomeworkSubmission>> homeworkSubmissionsMap = classSubmissions.stream()
+                .filter(s -> s.getHomework() != null)
+                .collect(Collectors.groupingBy(sub -> sub.getHomework().getId()));
+
+        List<HomeworkResponse> responses = homeworks.stream()
+                .map(hw -> mapToHomeworkResponseOptimized(
+                        hw,
+                        false,
+                        null,
+                        Collections.emptyList(),
+                        homeworkSubmissionsMap.getOrDefault(hw.getId(), Collections.emptyList()),
+                        true
+                ))
+                .toList();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -112,7 +133,23 @@ public class HomeworkController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable UUID classId) {
         List<Homework> homeworks = homeworkService.findHomeworksByClassForTeacher(classId, userDetails.getId());
-        List<HomeworkResponse> responses = homeworks.stream().map(this::mapToHomeworkResponse).toList();
+        List<UUID> homeworkIds = homeworks.stream().map(Homework::getId).toList();
+        List<HomeworkSubmission> classSubmissions = homeworkIds.isEmpty() ? Collections.emptyList()
+                : homeworkSubmissionRepository.findByHomeworkIdIn(homeworkIds);
+        Map<UUID, List<HomeworkSubmission>> homeworkSubmissionsMap = classSubmissions.stream()
+                .filter(s -> s.getHomework() != null)
+                .collect(Collectors.groupingBy(sub -> sub.getHomework().getId()));
+
+        List<HomeworkResponse> responses = homeworks.stream()
+                .map(hw -> mapToHomeworkResponseOptimized(
+                        hw,
+                        false,
+                        null,
+                        Collections.emptyList(),
+                        homeworkSubmissionsMap.getOrDefault(hw.getId(), Collections.emptyList()),
+                        true
+                ))
+                .toList();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -168,7 +205,31 @@ public class HomeworkController {
         for (ClassEntity c : assignedClasses) {
             allHomeworks.addAll(homeworkService.findHomeworkByClass(c.getId()));
         }
-        List<HomeworkResponse> responses = allHomeworks.stream().map(this::mapToHomeworkResponse).toList();
+
+        UUID studentId = userDetails.getId();
+        List<HomeworkSubmission> studentSubmissions = homeworkSubmissionRepository.findByStudentId(studentId);
+        Map<UUID, List<HomeworkSubmission>> studentSubmissionsMap = studentSubmissions.stream()
+                .filter(s -> s.getHomework() != null)
+                .collect(Collectors.groupingBy(sub -> sub.getHomework().getId()));
+
+        List<UUID> homeworkIds = allHomeworks.stream().map(Homework::getId).toList();
+        List<HomeworkSubmission> classSubmissions = homeworkIds.isEmpty() ? Collections.emptyList()
+                : homeworkSubmissionRepository.findByHomeworkIdIn(homeworkIds);
+        Map<UUID, List<HomeworkSubmission>> homeworkSubmissionsMap = classSubmissions.stream()
+                .filter(s -> s.getHomework() != null)
+                .collect(Collectors.groupingBy(sub -> sub.getHomework().getId()));
+
+        List<HomeworkResponse> responses = allHomeworks.stream()
+                .map(hw -> mapToHomeworkResponseOptimized(
+                        hw,
+                        true,
+                        studentId,
+                        studentSubmissionsMap.getOrDefault(hw.getId(), Collections.emptyList()),
+                        homeworkSubmissionsMap.getOrDefault(hw.getId(), Collections.emptyList()),
+                        false
+                ))
+                .toList();
+
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -178,7 +239,31 @@ public class HomeworkController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable UUID classId) {
         List<Homework> homeworks = homeworkService.findHomeworksByClassForStudent(classId, userDetails.getId());
-        List<HomeworkResponse> responses = homeworks.stream().map(this::mapToHomeworkResponse).toList();
+
+        UUID studentId = userDetails.getId();
+        List<HomeworkSubmission> studentSubmissions = homeworkSubmissionRepository.findByStudentId(studentId);
+        Map<UUID, List<HomeworkSubmission>> studentSubmissionsMap = studentSubmissions.stream()
+                .filter(s -> s.getHomework() != null)
+                .collect(Collectors.groupingBy(sub -> sub.getHomework().getId()));
+
+        List<UUID> homeworkIds = homeworks.stream().map(Homework::getId).toList();
+        List<HomeworkSubmission> classSubmissions = homeworkIds.isEmpty() ? Collections.emptyList()
+                : homeworkSubmissionRepository.findByHomeworkIdIn(homeworkIds);
+        Map<UUID, List<HomeworkSubmission>> homeworkSubmissionsMap = classSubmissions.stream()
+                .filter(s -> s.getHomework() != null)
+                .collect(Collectors.groupingBy(sub -> sub.getHomework().getId()));
+
+        List<HomeworkResponse> responses = homeworks.stream()
+                .map(hw -> mapToHomeworkResponseOptimized(
+                        hw,
+                        true,
+                        studentId,
+                        studentSubmissionsMap.getOrDefault(hw.getId(), Collections.emptyList()),
+                        homeworkSubmissionsMap.getOrDefault(hw.getId(), Collections.emptyList()),
+                        false
+                ))
+                .toList();
+
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -272,6 +357,103 @@ public class HomeworkController {
     }
 
     // --- HELPER MAPPERS ---
+
+    private HomeworkResponse mapToHomeworkResponseOptimized(
+            Homework homework,
+            boolean isStudent,
+            UUID studentId,
+            List<HomeworkSubmission> studentSubmissions,
+            List<HomeworkSubmission> allSubmissionsForHw,
+            boolean includeQuestions
+    ) {
+        if (homework == null) return null;
+
+        Integer remainingAttempts = homework.getAttempts();
+        boolean showAnswers = !isStudent;
+        String submissionStatus = "NOT_STARTED";
+        Integer score = null;
+        String feedback = null;
+        java.time.Instant gradedAt = null;
+        java.time.Instant submittedAt = null;
+
+        if (isStudent && studentId != null && studentSubmissions != null && !studentSubmissions.isEmpty()) {
+            long count = studentSubmissions.size();
+            remainingAttempts = Math.max(0, homework.getAttempts() - (int) count);
+
+            // Find the most recently submitted one
+            HomeworkSubmission latestSub = studentSubmissions.stream()
+                    .max(Comparator.comparing(HomeworkSubmission::getSubmittedAt, Comparator.nullsFirst(Comparator.naturalOrder())))
+                    .orElse(null);
+
+            if (latestSub != null) {
+                submissionStatus = latestSub.getStatus().name();
+                score = latestSub.getScore();
+                feedback = latestSub.getFeedback();
+                gradedAt = latestSub.getGradedAt();
+                submittedAt = latestSub.getSubmittedAt();
+                if (latestSub.getStatus() == HomeworkSubmission.SubmissionStatus.GRADED || remainingAttempts <= 0) {
+                    showAnswers = true;
+                }
+            }
+        }
+
+        List<TeacherQuestionResponse> questionResponses = null;
+        if (includeQuestions && homework.getQuestions() != null) {
+            final boolean finalShowAnswers = showAnswers;
+            questionResponses = homework.getQuestions().stream()
+                    .map(q -> {
+                        TeacherQuestionResponse res = mapQuestionToResponse(q);
+                        if (res != null && !finalShowAnswers) {
+                            res.setCorrectAnswerIndex(null);
+                            res.setExplanation(null);
+                        }
+                        return res;
+                    })
+                    .toList();
+        }
+
+        String teacherName = "";
+        if (homework.getAssignedClass() != null && homework.getAssignedClass().getTeacher() != null) {
+            User teacher = homework.getAssignedClass().getTeacher();
+            if (teacher.getProfile() != null && teacher.getProfile().getDisplayName() != null) {
+                teacherName = teacher.getProfile().getDisplayName();
+            } else {
+                teacherName = teacher.getEmail();
+            }
+        }
+
+        long totalSub = allSubmissionsForHw != null ? allSubmissionsForHw.size() : 0L;
+        long ungrSub = allSubmissionsForHw != null
+                ? allSubmissionsForHw.stream().filter(s -> s.getStatus() == com.midori.entity.HomeworkSubmission.SubmissionStatus.SUBMITTED).count()
+                : 0L;
+
+        return HomeworkResponse.builder()
+                .id(homework.getId())
+                .classId(homework.getAssignedClass().getId())
+                .lessonId(homework.getLessonId())
+                .title(homework.getTitle())
+                .instructions(homework.getInstructions())
+                .dueDate(homework.getDueDate())
+                .maxScore(homework.getMaxScore())
+                .attempts(homework.getAttempts())
+                .status(homework.getStatus())
+                .createdAt(homework.getCreatedAt())
+                .updatedAt(homework.getUpdatedAt())
+                .questions(questionResponses)
+                .totalQuestions(includeQuestions ? (homework.getQuestions() != null ? homework.getQuestions().size() : 0) : (homework.getTotalQuestionsCache() != null ? homework.getTotalQuestionsCache() : 0))
+                .submissionCount((int) totalSub)
+                .ungradedCount((int) ungrSub)
+                .timeLimit(homework.getTimeLimit())
+                .teacherName(teacherName)
+                .remainingAttempts(remainingAttempts)
+                .submissionStatus(submissionStatus)
+                .score(score)
+                .feedback(feedback)
+                .gradedAt(gradedAt)
+                .submittedAt(submittedAt)
+                .build();
+    }
+
 
     private HomeworkResponse mapToHomeworkResponse(Homework homework) {
         if (homework == null) return null;

@@ -25,7 +25,7 @@ public interface ClassService {
     List<Object> getClassLessons(UUID studentId, UUID classId);
     List<HomeworkResponse> getClassHomework(UUID studentId, UUID classId);
     List<ExamResponse> getClassExams(UUID studentId, UUID classId);
-    List<ClassResponse> getSelectableClasses(UUID teacherId);
+    List<com.midori.dto.classdto.SelectableClassResponse> getSelectableClasses(UUID teacherId);
     boolean isStudentEnrolledInLevel(UUID studentId, String level);
     java.util.Set<String> getStudentActiveLevels(UUID studentId);
 }

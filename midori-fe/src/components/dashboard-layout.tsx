@@ -245,7 +245,14 @@ export function DashboardLayout({
   const isStudentGuestStudent = role === "student" && !isStudentActive(user);
   const [showLockedDialog, setShowLockedDialog] = useState(false);
 
-  const hasAssignedLevel = role === "student" && !!user?.classId;
+  const { data: dbClasses = [] } = useQuery({
+    queryKey: ["studentJoinedClassesDashboard"],
+    queryFn: () => classesApi.getJoinedClasses(),
+    enabled: role === "student" && !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const hasAssignedLevel = role === "student" && dbClasses && dbClasses.length > 0;
 
   const rawItems = getNav(role, isStudentActiveStudent, hasAssignedLevel);
   const items = rawItems.map((item) => {

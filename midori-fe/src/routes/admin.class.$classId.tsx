@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminApi, type AdminClassResponse, type AdminClassStudentResponse } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import type { HomeworkResponse } from "@/lib/api/homework";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -284,20 +284,50 @@ function ClassWorkspacePage() {
 
   const studentsError = studentsErrorObj ? (studentsErrorObj as Error).message : null;
 
-  // Homeworks data query
-  const {
-    data: homeworks = [],
-    isLoading: homeworksLoading,
-    error: homeworksErrorObj,
-    refetch: fetchHomeworks,
-  } = useQuery({
-    queryKey: ["admin", "class", classId, "homeworks"],
-    queryFn: () => adminApi.getClassHomeworks(classId),
-    enabled: typeof window !== "undefined" && activeTab === "progress",
-    staleTime: 5 * 60 * 1000,
-  });
+  // Homework data state — used by the Progress tab to render per-homework
+  // submitted/total/percentage/average-score. The previous "Assignments"
+  // tab is gone, so we no longer fetch exams.
+  const [homeworks, setHomeworks] = useState<HomeworkResponse[]>([]);
+  const [homeworksLoading, setHomeworksLoading] = useState(false);
+  const [homeworksError, setHomeworksError] = useState<string | null>(null);
 
-  const homeworksError = homeworksErrorObj ? (homeworksErrorObj as Error).message : null;
+  // Fetch homework data — used by the Progress tab. Lazily triggered
+  // when the user opens the Progress tab so the Students tab is not
+  // blocked by the homework query.
+  const fetchHomeworks = useCallback(async () => {
+    setHomeworksLoading(true);
+    setHomeworksError(null);
+    try {
+      const data = await adminApi.getClassHomeworks(classId);
+      setHomeworks(data);
+    } catch (err) {
+      const msg =
+        isApiError(err)
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to load homework.";
+      setHomeworksError(msg);
+    } finally {
+      setHomeworksLoading(false);
+    }
+  }, [classId]);
+
+  // Initial load
+  useEffect(() => {
+    fetchClassData();
+  }, [fetchClassData]);
+
+  // Fetch tab-specific data when tab changes. The Progress tab needs the
+  // homework list (one row per assignment) so we load it lazily the first
+  // time the user opens the tab.
+  useEffect(() => {
+    if (activeTab === "students" && students.length === 0 && !studentsLoading) {
+      fetchStudents();
+    } else if (activeTab === "progress" && homeworks.length === 0 && !homeworksLoading) {
+      fetchHomeworks();
+    }
+  }, [activeTab, fetchStudents, fetchHomeworks, students.length, homeworks.length, studentsLoading, homeworksLoading]);
 
   // Filter students by search
   const filteredStudents = students.filter((student) => {

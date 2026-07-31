@@ -196,35 +196,22 @@ public class TeacherQuestionController {
 
     @GetMapping("/lessons")
     public ResponseEntity<ApiResponse<List<com.midori.entity.QuestionBankLesson>>> getLessons(
-            @RequestParam String level,
+            @RequestParam(required = false) String level,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        long start = System.nanoTime();
         
-        long startUser = System.nanoTime();
-        boolean admin = isAdmin(userDetails);
-        long endUser = System.nanoTime();
-        double userLookupMs = (endUser - startUser) / 1_000_000.0;
+        List<com.midori.entity.QuestionBankLesson> lessons;
         
-        long startRepo = System.nanoTime();
-        List<com.midori.entity.QuestionBankLesson> lessons = admin
-                ? questionBankLessonService.findLessonsByLevel(level)
-                : questionBankLessonService.findActiveLessonsByLevel(level);
-        long endRepo = System.nanoTime();
-        double repositoryMs = (endRepo - startRepo) / 1_000_000.0;
+        if (level == null || level.trim().isEmpty()) {
+            lessons = isAdmin(userDetails)
+                    ? questionBankLessonService.findAllLessons()
+                    : questionBankLessonService.findAllActiveLessons();
+        } else {
+            lessons = isAdmin(userDetails)
+                    ? questionBankLessonService.findLessonsByLevel(level)
+                    : questionBankLessonService.findActiveLessonsByLevel(level);
+        }
         
-        long endTotal = System.nanoTime();
-        double totalMs = (endTotal - start) / 1_000_000.0;
-        
-        System.out.printf("[PROFILING] GET /lessons level=%s: userLookupMs=%.2fms, repositoryMs=%.2fms, totalMs=%.2fms, resultCount=%d\n",
-                level, userLookupMs, repositoryMs, totalMs, lessons.size());
-        
-        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-        headers.add("X-User-Lookup-Time-Ms", String.format("%.2f", userLookupMs));
-        headers.add("X-Repository-Time-Ms", String.format("%.2f", repositoryMs));
-        headers.add("X-Total-Time-Ms", String.format("%.2f", totalMs));
-        headers.add("X-Result-Count", String.valueOf(lessons.size()));
-        
-        return ResponseEntity.ok().headers(headers).body(ApiResponse.success(lessons));
+        return ResponseEntity.ok(ApiResponse.success(lessons));
     }
 
     @PostMapping("/lessons")

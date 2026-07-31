@@ -36,7 +36,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { classesApi, UpdateClassRequest } from "@/lib/api/classes";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { Progress } from "@/components/ui/progress";
 import {
   Table,
@@ -229,7 +229,7 @@ export function InviteStudentsDialog({
       clearInterval(interval);
       setUploading(false);
       setUploadProgress(0);
-      const msg = err instanceof ApiError ? err.message : err.message || "Failed to import students";
+      const msg = isApiError(err) ? err.message : err.message || "Failed to import students";
       toast.error(msg);
     }
   };
@@ -247,7 +247,7 @@ export function InviteStudentsDialog({
         successCount += 1;
       } catch (err) {
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -820,7 +820,7 @@ export function EditClassDialog({ open, onOpenChange, classData }: EditClassDial
     },
     onError: (error) => {
       const message =
-        error instanceof ApiError
+        isApiError(error)
           ? error.message
           : error instanceof Error
             ? error.message

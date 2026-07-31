@@ -26,22 +26,26 @@ type StudentStatusGuardProps = {
  *   <ProtectedContent />
  * </StudentStatusGuard>
  */
+const DEFAULT_PUBLIC_ROUTES = [
+  "/student/landing",
+  "/student/profile",
+  "/student/settings",
+  "/student/settings/theme",
+  "/student/settings/language",
+  "/student/settings/notifications",
+];
+
+import { useMemo } from "react";
+
 export function StudentStatusGuard({ children, role, publicRoutes = [] }: StudentStatusGuardProps) {
   const { loaded, user } = useAuth();
   const nav = useNavigate();
   const routerState = useRouterState();
 
-  // Default public routes for all students
-  const defaultPublicRoutes = [
-    "/student/landing",
-    "/student/profile",
-    "/student/settings",
-    "/student/settings/theme",
-    "/student/settings/language",
-    "/student/settings/notifications",
-  ];
-
-  const allPublicRoutes = [...defaultPublicRoutes, ...publicRoutes];
+  const serializedPublicRoutes = publicRoutes.join(",");
+  const allPublicRoutes = useMemo(() => {
+    return [...DEFAULT_PUBLIC_ROUTES, ...publicRoutes];
+  }, [serializedPublicRoutes]);
 
   useEffect(() => {
     if (!loaded) return;

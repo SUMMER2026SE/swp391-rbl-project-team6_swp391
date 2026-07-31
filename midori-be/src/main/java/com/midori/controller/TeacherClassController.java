@@ -104,9 +104,9 @@ public class TeacherClassController {
     }
 
     @GetMapping("/selectable")
-    public ResponseEntity<ApiResponse<List<ClassResponse>>> getSelectableClasses(
+    public ResponseEntity<ApiResponse<List<com.midori.dto.classdto.SelectableClassResponse>>> getSelectableClasses(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<ClassResponse> response = classService.getSelectableClasses(userDetails.getId());
+        List<com.midori.dto.classdto.SelectableClassResponse> response = classService.getSelectableClasses(userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

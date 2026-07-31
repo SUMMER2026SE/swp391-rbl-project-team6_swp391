@@ -3,7 +3,7 @@ import { AuthShell, Field, PrimaryBtn } from "@/components/auth-shell";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
@@ -52,7 +52,7 @@ function ResetPasswordPage() {
       await authApi.resetPassword({ token, newPassword: password });
       nav({ to: "/reset-success" });
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setErr(err.message);
       } else {
         setErr("Something went wrong. Please try again.");

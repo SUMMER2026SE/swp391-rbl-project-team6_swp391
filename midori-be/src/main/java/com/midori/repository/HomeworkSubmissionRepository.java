@@ -69,4 +69,9 @@ public interface HomeworkSubmissionRepository extends JpaRepository<HomeworkSubm
             "AND hs.homework.assignedClass.id = :classId")
     Instant latestSubmissionAtByStudentAndClass(@Param("studentId") UUID studentId,
                                                 @Param("classId") UUID classId);
+
+    @Query("SELECT hs FROM HomeworkSubmission hs WHERE hs.homework.assignedClass.id = :classId")
+    List<HomeworkSubmission> findByHomeworkAssignedClassId(@Param("classId") UUID classId);
+
+    List<HomeworkSubmission> findByHomeworkIdIn(List<UUID> homeworkIds);
 }

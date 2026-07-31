@@ -9,17 +9,8 @@ import { routeTree } from "./routeTree.gen";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      /**
-       * Disable caching in development for instant HMR updates.
-       * Set to a higher value (e.g., 5 * 60 * 1000) for production to reduce API calls.
-       */
-      staleTime: import.meta.env.PROD 
-        ? 5 * 60 * 1000  // 5 minutes in production
-        : 0,              // Instant refresh in development
-      gcTime: import.meta.env.PROD 
-        ? 10 * 60 * 1000  // 10 minutes garbage collection in production
-        : 2 * 60 * 1000, // 2 minutes in development
-      refetchOnWindowFocus: import.meta.env.PROD,
+      staleTime: 1000 * 60 * 5, // Dữ liệu được coi là mới trong 5 phút, không re-fetch nhảm
+      refetchOnWindowFocus: false, // Tắt tự động fetch khi bấm ra vào tab
       retry: 1,
       enabled: typeof window !== "undefined",
     },

@@ -7,6 +7,7 @@ import { homeworkApi } from "@/lib/api/homework";
 import { TeacherAssignmentsTab } from "@/components/teacher/class-detail/TeacherAssignmentsTab";
 import { Card } from "@/components/page-ui";
 import type { TeacherAssignment } from "@/types/teacher-class";
+import { useClassDetailContext } from "./teacher.classes.$classId";
 
 export const Route = createFileRoute("/teacher/classes/$classId/homework")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -18,33 +19,26 @@ export const Route = createFileRoute("/teacher/classes/$classId/homework")({
 function ClassHomeworkPage() {
   const { classId } = Route.useParams();
   const { q: urlQ } = Route.useSearch();
+  const { classDetail } = useClassDetailContext();
 
-  // Fetch class details (for meta info: name, studentCount, etc.)
-  const {
-    data: classDetail,
-    isLoading: isLoadingClass,
-    isError,
-  } = useQuery({
-    queryKey: ["teacherClassDetail", classId],
-    queryFn: () => classesApi.getClassById(classId),
-    enabled: !!classId,
-  });
-
-  // Fetch actual class students
-  const { data: studentsList = [], isLoading: isLoadingStudents } = useQuery({
+  // Fetch class students — parallel with homework, cached 5 min to avoid re-fetch on tab switch
+  const { data: studentsList = [], isLoading: isLoadingStudents, isError: isErrorStudents } = useQuery({
     queryKey: ["classStudents", classId],
     queryFn: () => classesApi.getClassStudents(classId),
     enabled: !!classId,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch homework for this specific class from the real backend endpoint
-  const { data: homeworkList = [], isLoading: isLoadingHomework } = useQuery({
+  // Fetch homework for this specific class — cached 5 min so navigating away and back is instant
+  const { data: homeworkList = [], isLoading: isLoadingHomework, isError: isErrorHomework } = useQuery({
     queryKey: ["teacherHomeworksByClass", classId],
     queryFn: () => homeworkApi.getHomeworksByClass(classId),
     enabled: !!classId,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const isLoading = isLoadingClass || isLoadingHomework || isLoadingStudents;
+  const isLoading = isLoadingHomework || isLoadingStudents;
+  const isError = isErrorStudents || isErrorHomework;
 
   const classInfo = useMemo(() => {
     if (!classDetail) return undefined;

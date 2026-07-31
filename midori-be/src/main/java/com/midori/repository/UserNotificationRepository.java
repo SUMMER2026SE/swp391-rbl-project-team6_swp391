@@ -16,7 +16,7 @@ import java.util.UUID;
 public interface UserNotificationRepository extends JpaRepository<UserNotification, Long> {
 
     @Query("SELECT un FROM UserNotification un JOIN FETCH un.notification WHERE un.user.id = :userId ORDER BY un.createdAt DESC")
-    List<UserNotification> findByUserIdWithNotification(@Param("userId") UUID userId);
+    List<UserNotification> findByUserIdWithNotification(@Param("userId") UUID userId, org.springframework.data.domain.Pageable pageable);
 
     Optional<UserNotification> findByNotificationIdAndUserId(Long notificationId, UUID userId);
 

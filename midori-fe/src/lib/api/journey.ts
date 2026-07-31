@@ -1,4 +1,4 @@
-import { api } from ./client;
+import { api } from './client';
 
 export interface LearningJourneyLessonDto {
   id: string;
@@ -19,6 +19,6 @@ export interface LearningJourneyResponse {
 
 export const studentJourneyApi = {
   getJourney(level: string): Promise<LearningJourneyResponse> {
-    return api.get<LearningJourneyResponse>(/student/learning-journey?level=${level});
+    return api.get<LearningJourneyResponse>(`/student/learning-journey?level=${level}`);
   }
 };

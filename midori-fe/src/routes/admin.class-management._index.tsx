@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { adminApi, type AdminClassResponse } from "@/lib/api/admin";
 import { classesApi } from "@/lib/api/classes";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 function StatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; color: string; bg: string }> = {
@@ -98,7 +98,7 @@ function ClassManagementPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const error = queryError ? (queryError as Error).message : null;
+  const error = queryError ? (queryError as any).message || "Failed to load classes" : null;
 
   const fetchClasses = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["admin", "classes"] });
@@ -182,10 +182,42 @@ function ClassManagementPage() {
       // Refresh from backend so all derived data stays in sync.
       await fetchClasses();
     } catch (err) {
-      // Roll back optimistic change by refetching from backend since we filtered it out
+      // Roll back optimistic change and surface the error.
+      setClasses((prev) =>
+        prev.map((c) => (c.id === archiveClass.id ? { ...c, status: "ACTIVE" } : c)),
+      );
+      const message =
+        isApiError(err)
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to archive class.";
+      setActionMessage({ kind: "error", text: `Archive failed: ${message}` });
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
+  const handleRestoreClick = (cls: AdminClassResponse) => {
+    setRestoreClass(cls);
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (!restoreClass) return;
+
+    // Optimistic UI update so the status flips immediately on the table.
+    setClasses((prev) =>
+      prev.map((c) => (c.id === restoreClass.id ? { ...c, status: "ACTIVE" } : c)),
+    );
+
+    setRestoreLoading(true);
+    try {
+      await classesApi.restoreClass(restoreClass.id);
+      setRestoreClass(null);
+      setActionMessage({ kind: "success", text: `"${restoreClass.name}" restored successfully.` });
       await fetchClasses();
       const message =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message

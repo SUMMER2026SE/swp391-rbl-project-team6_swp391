@@ -9,7 +9,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "homework")
+@Table(name = "homework", indexes = {
+    @Index(name = "idx_homework_class_id", columnList = "class_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -61,6 +63,9 @@ public class Homework {
     @OneToMany(mappedBy = "homework", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private java.util.List<HomeworkSubmission> submissions = new java.util.ArrayList<>();
+
+    @org.hibernate.annotations.Formula("(SELECT COUNT(*) FROM homework_questions hq WHERE hq.homework_id = id)")
+    private Integer totalQuestionsCache;
 
     public java.util.List<TeacherQuestion> getQuestions() {
         if (homeworkQuestions == null) {

@@ -40,8 +40,7 @@ import {
   FileImage,
 } from "lucide-react";
 import { adminApi, type AdminClassResponse } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ApiError, isApiError } from "@/lib/api/client";
 import type { AdminTeacherResponse, AdminTeacherCertificateResponse } from "@/lib/api/admin";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1445,33 +1444,44 @@ function TeachersPage() {
   >("all");
   const [listStatusFilter, setListStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
+  const [pendingTeachers, setPendingTeachers] = useState<TeacherApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [listTeachers, setListTeachers] = useState<TeacherApplication[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const [allClasses, setAllClasses] = useState<AdminClassResponse[]>([]);
+
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2500);
   }, []);
 
-  const {
-    data: pendingTeachers = [],
-    isLoading: loading,
-    error: pendingErrorObj,
-  } = useQuery({
-    queryKey: ["admin", "teachers", "pending"],
-    queryFn: async () => {
+  const fetchPendingTeachers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
       const pending = await adminApi.getPendingTeachers();
-      return pending.map(mapToTeacherApplication);
-    },
-    enabled: typeof window !== "undefined" && (tab === "pending" || tab === "list"),
-    staleTime: 5 * 60 * 1000,
-  });
-  const error = pendingErrorObj ? (pendingErrorObj as Error).message : null;
+      const mapped = pending.map(mapToTeacherApplication);
+      setPendingTeachers(mapped);
+    } catch (err) {
+      const message =
+        isApiError(err)
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to load pending teachers. Please try again.";
+      setError(message);
+      setPendingTeachers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const {
-    data: listData,
-    isLoading: listLoading,
-    error: listErrorObj,
-  } = useQuery({
-    queryKey: ["admin", "teachers", "list", searchQuery, listStatusFilter],
-    queryFn: async () => {
+  const fetchListTeachers = useCallback(async () => {
+    setListLoading(true);
+    setListError(null);
+    try {
       const params: {
         role: string;
         keyword?: string;
@@ -1494,21 +1504,35 @@ function TeachersPage() {
         adminApi.getAllUsers(params),
         adminApi.getAdminClasses().catch(() => [] as AdminClassResponse[]),
       ]);
-      return {
-        teachers: page.content.map(mapToTeacherApplication),
-        classes,
-      };
-    },
-    enabled: typeof window !== "undefined" && (tab === "list" || tab === "pending"),
-    staleTime: 5 * 60 * 1000,
-  });
+      setListTeachers(page.content.map(mapToTeacherApplication));
+      setAllClasses(classes);
+    } catch (err) {
+      const message =
+        isApiError(err)
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to load teacher list. Please try again.";
+      setListError(message);
+      setListTeachers([]);
+    } finally {
+      setListLoading(false);
+    }
+  }, [searchQuery, listStatusFilter]);
 
-  const listTeachers = listData?.teachers ?? [];
-  const allClasses = listData?.classes ?? [];
-  const listError = listErrorObj ? (listErrorObj as Error).message : null;
+  // Load pending on mount and on tab switch.
+  useEffect(() => {
+    if (tab === "pending") {
+      fetchPendingTeachers();
+    }
+  }, [tab, fetchPendingTeachers]);
 
-  const fetchPendingTeachers = () => queryClient.invalidateQueries({ queryKey: ["admin", "teachers", "pending"] });
-  const fetchListTeachers = () => queryClient.invalidateQueries({ queryKey: ["admin", "teachers", "list"] });
+  // Load list whenever list tab is active or its query/filter changes.
+  useEffect(() => {
+    if (tab === "list") {
+      fetchListTeachers();
+    }
+  }, [tab, fetchListTeachers]);
 
   const handleApprove = useCallback(
     async (id: string) => {
@@ -1526,7 +1550,7 @@ function TeachersPage() {
         // Re-fetch to restore truth on failure.
         await fetchPendingTeachers();
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -1550,7 +1574,7 @@ function TeachersPage() {
       } catch (err) {
         await fetchPendingTeachers();
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -1583,7 +1607,7 @@ function TeachersPage() {
         await fetchListTeachers();
       } catch (err) {
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -1606,7 +1630,7 @@ function TeachersPage() {
         await fetchListTeachers();
       } catch (err) {
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message
@@ -1629,7 +1653,7 @@ function TeachersPage() {
         await fetchListTeachers();
       } catch (err) {
         const message =
-          err instanceof ApiError
+          isApiError(err)
             ? err.message
             : err instanceof Error
               ? err.message

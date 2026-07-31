@@ -15,7 +15,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { adminApi, type AdminTeacherResponse, type AdminClassResponse } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 type TeacherClass = {
   id: string;
@@ -112,7 +112,7 @@ function TeacherClassesPage() {
       setClasses(teacherClasses);
     } catch (err) {
       const msg =
-        err instanceof ApiError ? err.message : "Failed to load teacher classes";
+        isApiError(err) ? err.message : "Failed to load teacher classes";
       setError(msg);
     } finally {
       setLoading(false);

@@ -19,6 +19,12 @@ export interface ClassResponse {
   updatedAt: string;
 }
 
+export interface SelectableClassResponse {
+  id: string;
+  name: string;
+  level: string;
+  teacherName?: string;
+}
 export interface StudentClassResponse {
   studentId: string;
   fullName: string | null;
@@ -108,8 +114,8 @@ export const classesApi = {
     return api.get<any[]>(`/exams/class/${classId}`);
   },
 
-  getSelectableClasses(): Promise<ClassResponse[]> {
-    return api.get<ClassResponse[]>("/teacher/classes/selectable");
+  getSelectableClasses(): Promise<SelectableClassResponse[]> {
+    return api.get<SelectableClassResponse[]>("/teacher/classes/selectable");
   },
 
   removeStudentFromClass(id: string, studentId: string): Promise<void> {

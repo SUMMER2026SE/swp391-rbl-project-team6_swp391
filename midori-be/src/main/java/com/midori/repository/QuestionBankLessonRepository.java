@@ -10,6 +10,8 @@ import java.util.List;
 public interface QuestionBankLessonRepository extends JpaRepository<QuestionBankLesson, Integer> {
     List<QuestionBankLesson> findByLevelOrderByLessonNumberAsc(String level);
     List<QuestionBankLesson> findByLevelAndStatusOrderByLessonNumberAsc(String level, String status);
+    List<QuestionBankLesson> findAllByOrderByLessonNumberAsc();
+    List<QuestionBankLesson> findAllByStatusOrderByLessonNumberAsc(String status);
     boolean existsByLevelAndLessonNumber(String level, Integer lessonNumber);
 
     @org.springframework.data.jpa.repository.Query("SELECT DISTINCT q.lesson FROM TeacherQuestion q " +

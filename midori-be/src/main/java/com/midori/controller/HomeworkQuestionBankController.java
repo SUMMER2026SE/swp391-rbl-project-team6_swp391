@@ -21,9 +21,9 @@ public class HomeworkQuestionBankController {
     private final QuestionBankService questionBankService;
 
     @PostMapping("/generate-preview")
-    public ResponseEntity<ApiResponse<List<TeacherQuestionResponse>>> generatePreview(
+    public ResponseEntity<ApiResponse<List<com.midori.dto.questiondto.TeacherQuestionPreviewDto>>> generatePreview(
             @Valid @RequestBody GeneratePreviewRequest request) {
-        List<TeacherQuestionResponse> preview = questionBankService.generatePreview(request);
+        List<com.midori.dto.questiondto.TeacherQuestionPreviewDto> preview = questionBankService.generatePreview(request);
         return ResponseEntity.ok(ApiResponse.success("Preview generated successfully", preview));
     }
 }

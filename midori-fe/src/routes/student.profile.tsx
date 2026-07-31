@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { useTheme, useAuth, getUserAvatar, isAvatar } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -177,7 +177,7 @@ function ProfilePage() {
         updateCurrentUser({ name: nextName, avatar: nextAvatar, googleAvatar: nextGoogle });
       }
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setLoadError(err.message);
       } else {
         setLoadError("Failed to load profile.");
@@ -225,7 +225,7 @@ function ProfilePage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setSaveError(err.message);
       } else {
         setSaveError("Failed to save profile.");
@@ -1282,7 +1282,7 @@ function ProfilePage() {
                         setConfirmPw("");
                         setTimeout(() => setPwSuccess(false), 4000);
                       } catch (err) {
-                        if (err instanceof ApiError) {
+                        if (isApiError(err)) {
                           setPwError(err.message);
                         } else {
                           setPwError("Failed to change password.");

@@ -165,3 +165,10 @@ verify_*.py
 verify_*.ps1
 test.pdf
 test.txt
+
+# Local emergency database/password reset utilities
+midori-be/ResetPassword.java
+midori-be/ResetPassword*.java
+midori-be/ResetPassword*.class
+midori-be/reset-password*.sql
+midori-be/*database-reset*.java

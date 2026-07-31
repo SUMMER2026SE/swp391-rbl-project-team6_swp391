@@ -3,7 +3,7 @@ import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth, getDashboardPath } from "@/lib/auth";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { z } from "zod";
 
 const loginSearchSchema = z.object({
@@ -34,8 +34,9 @@ function LoginPage() {
     try {
       const u = await login(email, password);
       nav({ to: redirect || getDashboardPath(u), replace: true });
-    } catch (err) {
-      if (err instanceof ApiError) {
+    } catch (err: unknown) {
+      console.error("[Login] Error:", err);
+      if (isApiError(err)) {
         setErr(err.message);
       } else {
         setErr("Unable to sign in. Please try again.");
@@ -51,8 +52,9 @@ function LoginPage() {
     try {
       const u = await loginWithGoogle(credential);
       nav({ to: redirect || getDashboardPath(u), replace: true });
-    } catch (err) {
-      if (err instanceof ApiError) {
+    } catch (err: unknown) {
+      console.error("[Login Google] Error:", err);
+      if (isApiError(err)) {
         setErr(err.message);
       } else {
         setErr("Unable to sign in. Please try again.");

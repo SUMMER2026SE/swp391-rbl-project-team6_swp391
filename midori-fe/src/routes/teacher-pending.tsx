@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,36 +64,31 @@ const POLL_INTERVAL_MS = 30_000;
 
 function TeacherPendingPage() {
   const navigate = useNavigate();
-  const { user, logout, updateCurrentUser } = useAuth();
+  const { user, logout, refreshCurrentUser } = useAuth();
+  const [isFetching, setIsFetching] = useState(false);
 
-  // ── React Query: Poll profile/me every 30s ─────────────────────────────
-  const {
-    data: profile,
-    isFetching,
-    refetch,
-  } = useQuery({
-    queryKey: ["teacher-pending-status"],
-    queryFn: async () => {
-      const res = await authApi.getMe();
-      return res;
-    },
-    enabled: !!user,
-    refetchInterval: POLL_INTERVAL_MS,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
+  // Poll for status updates by calling refreshCurrentUser
+  useEffect(() => {
+    if (!user || user.status === "ACTIVE" || user.status === "REJECTED") return;
+    const interval = setInterval(async () => {
+      try {
+        await refreshCurrentUser();
+      } catch (err) {
+        console.error("Polling user status failed:", err);
+      }
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [user, refreshCurrentUser]);
 
-  const isRejected = profile?.status === "REJECTED";
-  const rejectionReason = profile?.rejectionReason?.trim();
+  const isRejected = user?.status === "REJECTED";
+  const rejectionReason = user?.rejectionReason?.trim();
 
-  // ── Detect approval and redirect ──────────────────────────────────────
-  if (profile && user) {
-    if (profile.status === "ACTIVE" && user.status !== "active") {
+  useEffect(() => {
+    if (user && user.status === "ACTIVE") {
       toast.success("Your teacher account has been approved.");
-      updateCurrentUser({ status: "active" });
       navigate({ to: "/teacher" });
     }
-  }
+  }, [user, navigate]);
 
   const handleLogout = async () => {
     logout();
@@ -100,7 +96,14 @@ function TeacherPendingPage() {
   };
 
   const handleCheckNow = async () => {
-    await refetch();
+    setIsFetching(true);
+    try {
+      await refreshCurrentUser();
+    } catch (err) {
+      console.error("Manual status refresh failed:", err);
+    } finally {
+      setIsFetching(false);
+    }
   };
 
   return (

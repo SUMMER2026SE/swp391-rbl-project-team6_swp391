@@ -89,7 +89,11 @@ function CreateExam() {
           </Button>
           {createdClassId && (
             <Button asChild variant="outline">
-              <Link to="/teacher/classes/$classId/homework" params={{ classId: createdClassId }} search={{ q: "" }}>
+              <Link
+                to="/teacher/classes/$classId/homework"
+                params={{ classId: createdClassId }}
+                search={{ q: "" }}
+              >
                 View class exams
               </Link>
             </Button>
@@ -151,9 +155,7 @@ function CreateExam() {
         Change method
       </Button>
       {method === "ai-pdf" && <ExamAiPdfFlow lockedClass={lockedClass} onDone={handleDone} />}
-      {method === "ai-generate" && (
-        <AiExamGenerate lockedClass={lockedClass} onDone={handleDone} />
-      )}
+      {method === "ai-generate" && <AiExamGenerate lockedClass={lockedClass} onDone={handleDone} />}
       {method === "question-bank" && (
         <QuestionBankExam lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />
       )}
@@ -267,6 +269,10 @@ function QuestionBankExam({
       return res;
     },
     enabled: !!level,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: false,
   });
 
   const handleLevelChange = (newLevel: string) => {
@@ -896,7 +902,7 @@ function QuestionBankExam({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
                       Due date
@@ -947,23 +953,7 @@ function QuestionBankExam({
                       }
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                      Attempts
-                    </Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                      value={metadata.attempts}
-                      onChange={(e) =>
-                        setMetadata({
-                          ...metadata,
-                          attempts: Math.max(1, Number(e.target.value) || 1),
-                        })
-                      }
-                    />
-                  </div>
+
                 </div>
 
                 <div className="flex justify-between mt-6 pt-4 border-t">
@@ -1187,7 +1177,7 @@ function ExamAiPdfFlow({
       return;
     }
 
-    const hasUnresolved = questions.some(q => q.answers.findIndex(ans => ans.isCorrect) === -1);
+    const hasUnresolved = questions.some((q) => q.answers.findIndex((ans) => ans.isCorrect) === -1);
     if (hasUnresolved) {
       toast.error("One or more questions are missing a correct answer. Please resolve them first.");
       return;
@@ -1278,7 +1268,12 @@ function ExamAiPdfFlow({
               </span>
             </div>
             {idx < arr.length - 1 && (
-              <div className={cn("h-[2px] flex-1 -mx-2 -mt-4", currentStepNum > s.num ? "bg-green-500" : "bg-[var(--border)]")} />
+              <div
+                className={cn(
+                  "h-[2px] flex-1 -mx-2 -mt-4",
+                  currentStepNum > s.num ? "bg-green-500" : "bg-[var(--border)]",
+                )}
+              />
             )}
           </div>
         ))}
@@ -1327,9 +1322,7 @@ function ExamAiPdfFlow({
                   {questions.length} Questions Extracted
                 </h3>
               </div>
-              <p className="text-xs text-muted-col mt-0.5">
-                From: {fileName || "PDF Document"}
-              </p>
+              <p className="text-xs text-muted-col mt-0.5">From: {fileName || "PDF Document"}</p>
             </div>
             <div className="flex items-center gap-3">
               <Button
@@ -1376,7 +1369,9 @@ function ExamAiPdfFlow({
 
           {questions.length === 0 && (
             <div className="card-base p-12 text-center border border-[var(--border)]">
-              <p className="text-sm text-muted-foreground">No questions yet. Click "Add Question" to start.</p>
+              <p className="text-sm text-muted-foreground">
+                No questions yet. Click "Add Question" to start.
+              </p>
             </div>
           )}
         </div>
@@ -1513,7 +1508,9 @@ function ExamAiPdfFlow({
                       {i + 1}
                     </span>
                     <div className="space-y-1 flex-1">
-                      <p className="text-sm font-semibold text-primary-col">{q.content || "(Empty question)"}</p>
+                      <p className="text-sm font-semibold text-primary-col">
+                        {q.content || "(Empty question)"}
+                      </p>
                       <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
                         {q.category || "Vocabulary"}
                       </span>

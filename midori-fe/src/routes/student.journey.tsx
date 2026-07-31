@@ -23,101 +23,98 @@ export const Route = createFileRoute("/student/journey")({
     };
   },
   component: JourneyLayout,
+  loader: async ({ deps: { level } }) => {
+    let classes: any[] = [];
+    let selectedLevel = level;
+    let lessons: any[] = [];
+    let vocabLessons: any[] = [];
+    let grammarLessons: any[] = [];
+    let readingLessons: any[] = [];
+    let listeningLessons: any[] = [];
+
+    if (level) {
+      const results = await Promise.all([
+        classesApi.getJoinedClasses("ACTIVE").catch(() => []),
+        lessonsApi.getLessonsByLevel(level).catch(() => []),
+        studentVocabularyApi.getVocabularyLessons({ level }).catch(() => []),
+        studentGrammarApi.getGrammarLessons({ level }).catch(() => [] as GrammarLessonResponse[]),
+        studentReadingApi.getReadingLessons({ level }).catch(() => []),
+        studentListeningApi.getListeningLessons({ level }).catch(() => []),
+      ]);
+      classes = results[0];
+      lessons = results[1];
+      vocabLessons = results[2];
+      grammarLessons = results[3];
+      readingLessons = results[4];
+      listeningLessons = results[5];
+    } else {
+      classes = await classesApi.getJoinedClasses("ACTIVE").catch(() => []);
+      const availableLevels = Array.from(new Set(classes.map((cls) => cls.level))).sort();
+      selectedLevel = availableLevels[0] || "N5";
+
+      const results = await Promise.all([
+        lessonsApi.getLessonsByLevel(selectedLevel).catch(() => []),
+        studentVocabularyApi.getVocabularyLessons({ level: selectedLevel }).catch(() => []),
+        studentGrammarApi.getGrammarLessons({ level: selectedLevel }).catch(() => [] as GrammarLessonResponse[]),
+        studentReadingApi.getReadingLessons({ level: selectedLevel }).catch(() => []),
+        studentListeningApi.getListeningLessons({ level: selectedLevel }).catch(() => []),
+      ]);
+      lessons = results[0];
+      vocabLessons = results[1];
+      grammarLessons = results[2];
+      readingLessons = results[3];
+      listeningLessons = results[4];
+    }
+
+    const availableLevels = Array.from(new Set(classes.map((cls) => cls.level))).sort();
+    if (!level || !availableLevels.includes(selectedLevel)) {
+      const targetLevel = availableLevels[0] || "N5";
+      if (targetLevel !== selectedLevel) {
+        selectedLevel = targetLevel;
+        const results = await Promise.all([
+          lessonsApi.getLessonsByLevel(selectedLevel).catch(() => []),
+          studentVocabularyApi.getVocabularyLessons({ level: selectedLevel }).catch(() => []),
+          studentGrammarApi.getGrammarLessons({ level: selectedLevel }).catch(() => [] as GrammarLessonResponse[]),
+          studentReadingApi.getReadingLessons({ level: selectedLevel }).catch(() => []),
+          studentListeningApi.getListeningLessons({ level: selectedLevel }).catch(() => []),
+        ]);
+        lessons = results[0];
+        vocabLessons = results[1];
+        grammarLessons = results[2];
+        readingLessons = results[3];
+        listeningLessons = results[4];
+      }
+    }
+
+    return {
+      classes,
+      selectedLevel,
+      lessons,
+      vocabLessons,
+      grammarLessons,
+    };
+  },
 });
 
-function JourneySkeleton() {
-  return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-xl w-48" />
-      <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-xl w-72" />
-      <div className="inline-flex gap-2">
-        <div className="h-9 w-16 bg-slate-200 dark:bg-slate-700 rounded-lg" />
-        <div className="h-9 w-16 bg-slate-200 dark:bg-slate-700 rounded-lg" />
-      </div>
-      <div className="space-y-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800 rounded-2xl w-full" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function JourneyLayout() {
-  const location = useLocation();
-  const { level: searchLevel } = Route.useSearch();
+  const {
+    classes,
+    selectedLevel: initialLevel,
+    lessons,
+    vocabLessons,
+    grammarLessons,
+  } = Route.useLoaderData();
+
+  const [selectedLevel, setSelectedLevel] = useState(initialLevel);
   const navigate = Route.useNavigate();
-  const isIndex =
-    location.pathname === "/student/journey" || location.pathname === "/student/journey/";
+  const location = useLocation();
+  const isIndex = location.pathname === "/student/journey";
+  const token = typeof window !== "undefined" ? localStorage.getItem("midori_access_token") : null;
+  const isClassesLoading = false;
+  const isLessonsLoading = false;
+  const isClassesError = false;
 
-  const token = typeof window !== "undefined" ? localStorage.getItem(api.TOKEN_KEY) : null;
-
-  // ── 1. Fetch enrolled classes ──────────────────────────────────────────────
-  const {
-    data: classes = [],
-    isLoading: isClassesLoading,
-    isError: isClassesError,
-  } = useQuery({
-    queryKey: ["student-journey-classes"],
-    queryFn: () => classesApi.getJoinedClasses("ACTIVE"),
-    enabled: !!token,
-    staleTime: 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  // ── 2. Derive available levels from classes ────────────────────────────────
-  const availableLevels = useMemo(
-    () => Array.from(new Set(classes.map((cls) => cls.level))).sort(),
-    [classes],
-  );
-
-  // ── 3. Determine selected level ────────────────────────────────────────────
-  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (availableLevels.length === 0) return;
-    const initialLevel =
-      searchLevel && availableLevels.includes(searchLevel)
-        ? searchLevel
-        : availableLevels[0];
-    setSelectedLevel((prev) => prev ?? initialLevel);
-  }, [availableLevels, searchLevel]);
-
-  // Sync with URL search param changes
-  useEffect(() => {
-    if (searchLevel && availableLevels.includes(searchLevel) && searchLevel !== selectedLevel) {
-      setSelectedLevel(searchLevel);
-    }
-  }, [searchLevel, availableLevels, selectedLevel]);
-
-  // ── 4. Fetch lessons for selected level ────────────────────────────────────
-  const {
-    data: lessons = [],
-    isLoading: isLessonsLoading,
-  } = useQuery({
-    queryKey: ["student-journey-lessons", selectedLevel],
-    queryFn: () => lessonsApi.getLessonsByLevel(selectedLevel!),
-    enabled: !!token && !!selectedLevel,
-    staleTime: 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  // ── 5. Fetch skill availability for selected level ─────────────────────────
-  const { data: vocabLessons = [] } = useQuery({
-    queryKey: ["student-journey-vocab", selectedLevel],
-    queryFn: () => studentVocabularyApi.getVocabularyLessons({ level: selectedLevel! }),
-    enabled: !!token && !!selectedLevel,
-    staleTime: 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: grammarLessons = [] } = useQuery({
-    queryKey: ["student-journey-grammar", selectedLevel],
-    queryFn: () => studentGrammarApi.getGrammarLessons({ level: selectedLevel! }),
-    enabled: !!token && !!selectedLevel,
-    staleTime: 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const availableLevels = useMemo(() => Array.from(new Set(classes.map((cls: any) => cls.level))).sort(), [classes]);
 
   const { data: readingLessons = [] } = useQuery({
     queryKey: ["student-journey-reading", selectedLevel],

@@ -7,6 +7,7 @@ import { Card } from "@/components/page-ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { progressApi } from "@/lib/api/studentProgress";
 import { classesApi } from "@/lib/api/classes";
+import { useClassDetailContext } from "./teacher.classes.$classId";
 
 export const Route = createFileRoute("/teacher/classes/$classId/progress")({
   component: TeacherClassProgressPage,
@@ -14,17 +15,15 @@ export const Route = createFileRoute("/teacher/classes/$classId/progress")({
 
 function TeacherClassProgressPage() {
   const { classId } = useParams({ strict: false });
-
-  const { data: classDetail, isLoading: isLoadingClass } = useQuery({
-    queryKey: ["teacherClassDetail", classId],
-    queryFn: () => classesApi.getClassById(classId),
-    enabled: !!classId,
-  });
+  // classDetail is already loaded by the parent layout (teacher.classes.$classId.tsx)
+  // and shared via ClassDetailContext — no duplicate network request needed here.
+  const { classDetail } = useClassDetailContext();
 
   const { data: students = [] } = useQuery({
     queryKey: ["classStudents", classId],
     queryFn: () => classesApi.getClassStudents(classId),
     enabled: !!classId,
+    staleTime: 5 * 60 * 1000, // 5 min cache — avoid re-fetch when switching tabs
   });
 
   const avgScore = useMemo(() => {

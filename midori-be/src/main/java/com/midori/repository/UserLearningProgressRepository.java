@@ -79,6 +79,9 @@ public interface UserLearningProgressRepository extends JpaRepository<UserLearni
     @Query("SELECT MAX(p.lastStudiedAt) FROM UserLearningProgress p WHERE p.user.id = :userId")
     Instant latestStudiedAtByUserId(@Param("userId") UUID userId);
 
+    @Query("SELECT p.user.id, MAX(p.lastStudiedAt) FROM UserLearningProgress p WHERE p.user.id IN :userIds GROUP BY p.user.id")
+    List<Object[]> findLatestStudiedAtByUserIds(@Param("userIds") List<UUID> userIds);
+
     @Query("SELECT p.contentType, " +
            "SUM(CASE WHEN p.learned = true THEN 1 ELSE 0 END), " +
            "SUM(CASE WHEN p.mastered = true THEN 1 ELSE 0 END), " +
