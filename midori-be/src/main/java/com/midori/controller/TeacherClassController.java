@@ -51,20 +51,12 @@ public class TeacherClassController {
         return ResponseEntity.ok(ApiResponse.success("Class updated successfully", classResponse));
     }
 
-    @PutMapping("/{id}/archive")
-    public ResponseEntity<ApiResponse<ClassResponse>> archiveClass(
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteClass(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable UUID id) {
-        ClassResponse classResponse = classService.archiveClass(id, userDetails.getId());
-        return ResponseEntity.ok(ApiResponse.success("Class archived successfully", classResponse));
-    }
-
-    @PutMapping("/{id}/restore")
-    public ResponseEntity<ApiResponse<ClassResponse>> restoreClass(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable UUID id) {
-        ClassResponse classResponse = classService.restoreClass(id, userDetails.getId());
-        return ResponseEntity.ok(ApiResponse.success("Class restored successfully", classResponse));
+        classService.deleteClass(id, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success("Class deleted successfully", null));
     }
 
     @GetMapping("/{id}/students")

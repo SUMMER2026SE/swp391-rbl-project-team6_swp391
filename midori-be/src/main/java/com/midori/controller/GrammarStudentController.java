@@ -22,6 +22,7 @@ public class GrammarStudentController {
 
     private final GrammarLessonService grammarLessonService;
     private final ClassService classService;
+    private final com.midori.service.LearningAccessService learningAccessService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<GrammarLessonResponse>>> getGrammarList(
@@ -31,9 +32,7 @@ public class GrammarStudentController {
         boolean isStudent = userDetails != null && "STUDENT".equalsIgnoreCase(userDetails.getRole());
         
         if (isStudent && level != null && !level.isBlank()) {
-            if (!classService.isStudentEnrolledInLevel(userDetails.getId(), level)) {
-                throw new com.midori.exception.AccessDeniedException("You are not enrolled in a class for level " + level);
-            }
+            learningAccessService.checkAccess(userDetails.getId(), level);
         }
 
         List<GrammarLessonResponse> grammars;
@@ -44,13 +43,18 @@ public class GrammarStudentController {
         }
 
         if (isStudent && (level == null || level.isBlank())) {
-            Set<String> activeLevels = classService.getStudentActiveLevels(userDetails.getId());
+            Set<String> activeLevels = learningAccessService.getStudentActiveLevels(userDetails.getId());
             grammars = grammars.stream()
                     .filter(g -> g.getJlptLevel() != null && activeLevels.contains(g.getJlptLevel()))
                     .toList();
         }
 
-        return ResponseEntity.ok(ApiResponse.success(grammars));
+        ApiResponse<List<GrammarLessonResponse>> response = ApiResponse.success(grammars);
+        if (isStudent && level != null && !level.isBlank()) {
+            response.setMetadata(learningAccessService.getAccessMetadata(userDetails.getId(), level));
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -61,12 +65,15 @@ public class GrammarStudentController {
         
         boolean isStudent = userDetails != null && "STUDENT".equalsIgnoreCase(userDetails.getRole());
         if (isStudent && detail != null && detail.getJlptLevel() != null) {
-            if (!classService.isStudentEnrolledInLevel(userDetails.getId(), detail.getJlptLevel())) {
-                throw new com.midori.exception.AccessDeniedException("You are not enrolled in a class for level " + detail.getJlptLevel());
-            }
+            learningAccessService.checkAccess(userDetails.getId(), detail.getJlptLevel());
         }
         
-        return ResponseEntity.ok(ApiResponse.success(detail));
+        ApiResponse<GrammarDetailResponse> response = ApiResponse.success(detail);
+        if (isStudent && detail != null && detail.getJlptLevel() != null) {
+            response.setMetadata(learningAccessService.getAccessMetadata(userDetails.getId(), detail.getJlptLevel()));
+        }
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/level/{jlptLevel}")
@@ -76,12 +83,14 @@ public class GrammarStudentController {
         
         boolean isStudent = userDetails != null && "STUDENT".equalsIgnoreCase(userDetails.getRole());
         if (isStudent && jlptLevel != null && !jlptLevel.isBlank()) {
-            if (!classService.isStudentEnrolledInLevel(userDetails.getId(), jlptLevel)) {
-                throw new com.midori.exception.AccessDeniedException("You are not enrolled in a class for level " + jlptLevel);
-            }
+            learningAccessService.checkAccess(userDetails.getId(), jlptLevel);
         }
         
         List<GrammarLessonResponse> grammars = grammarLessonService.getActiveGrammarLessonsByLevel(jlptLevel);
-        return ResponseEntity.ok(ApiResponse.success(grammars));
+        ApiResponse<List<GrammarLessonResponse>> response = ApiResponse.success(grammars);
+        if (isStudent) {
+            response.setMetadata(learningAccessService.getAccessMetadata(userDetails.getId(), jlptLevel));
+        }
+        return ResponseEntity.ok(response);
     }
 }

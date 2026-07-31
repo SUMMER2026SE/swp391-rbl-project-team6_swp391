@@ -159,7 +159,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailWithProfile(email)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
         return toUserResponse(user);
     }
@@ -294,9 +294,20 @@ public class AuthService {
     }
 
     private UserResponse toUserResponse(User user) {
+        String displayName = null;
+        String avatarUrl = null;
+        String bio = null;
+        if (user.getProfile() != null) {
+            displayName = user.getProfile().getDisplayName();
+            avatarUrl = user.getProfile().getAvatarUrl();
+            bio = user.getProfile().getBio();
+        }
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .name(displayName)
+                .avatarUrl(avatarUrl)
+                .bio(bio)
                 .role(user.getRole())
                 .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())

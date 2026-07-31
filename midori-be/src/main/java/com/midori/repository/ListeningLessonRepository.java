@@ -36,4 +36,10 @@ public interface ListeningLessonRepository extends JpaRepository<ListeningLesson
     long countByLessonId(UUID lessonId);
 
     Optional<ListeningLesson> findByJlptLevelAndLessonNumber(String jlptLevel, Integer lessonNumber);
+
+    @Query("SELECT COUNT(ll), " +
+           "SUM(CASE WHEN ll.isActive = false THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN ll.isActive = true THEN 1L ELSE 0L END) " +
+           "FROM ListeningLesson ll")
+    List<Object[]> getDashboardStats();
 }

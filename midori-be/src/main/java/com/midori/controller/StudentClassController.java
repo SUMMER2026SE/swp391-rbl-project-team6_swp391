@@ -62,6 +62,18 @@ public class StudentClassController {
         List<ExamResponse> exams = classService.getClassExams(userDetails.getId(), classId);
         return ResponseEntity.ok(ApiResponse.success(exams));
     }
+
+    @GetMapping("/exams")
+    public ResponseEntity<ApiResponse<List<ExamResponse>>> getAllClassExams(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<ClassResponse> classes = classService.getStudentClasses(userDetails.getId(), "ACTIVE");
+        List<ExamResponse> allExams = new java.util.ArrayList<>();
+        for (ClassResponse cls : classes) {
+            List<ExamResponse> classExams = classService.getClassExams(userDetails.getId(), cls.getId());
+            allExams.addAll(classExams);
+        }
+        return ResponseEntity.ok(ApiResponse.success(allExams));
+    }
 }
 
 

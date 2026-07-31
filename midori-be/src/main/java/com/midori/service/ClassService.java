@@ -18,8 +18,7 @@ public interface ClassService {
     ClassResponse getStudentClassDetail(UUID studentId, UUID classId);
     ClassResponse createClass(CreateClassRequest request, UUID teacherId);
     ClassResponse updateClass(UUID classId, UpdateClassRequest request, UUID teacherId);
-    ClassResponse archiveClass(UUID classId, UUID teacherId);
-    ClassResponse restoreClass(UUID classId, UUID teacherId);
+    void deleteClass(UUID classId, UUID teacherId);
     List<StudentClassResponse> getClassStudents(UUID classId, UUID teacherId);
     void removeStudentFromClass(UUID classId, UUID studentId, UUID teacherId);
     StudentClassResponse addStudentToClass(UUID classId, String email, UUID teacherId);

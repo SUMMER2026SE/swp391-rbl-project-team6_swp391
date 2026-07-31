@@ -108,21 +108,12 @@ public class ClassController {
     }
 
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @PatchMapping("/{id}/archive")
-    public ResponseEntity<ApiResponse<ClassResponse>> archiveClass(
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteClass(
             @PathVariable UUID id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ClassResponse response = classService.archiveClass(id, userDetails.getId());
-        return ResponseEntity.ok(ApiResponse.success("Class archived successfully", response));
-    }
-
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
-    @PatchMapping("/{id}/restore")
-    public ResponseEntity<ApiResponse<ClassResponse>> restoreClass(
-            @PathVariable UUID id,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ClassResponse response = classService.restoreClass(id, userDetails.getId());
-        return ResponseEntity.ok(ApiResponse.success("Class restored successfully", response));
+        classService.deleteClass(id, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success("Class deleted successfully", null));
     }
 
     @GetMapping("/{id}")
@@ -187,5 +178,35 @@ public class ClassController {
                 .createdAt(classEntity.getCreatedAt())
                 .updatedAt(classEntity.getUpdatedAt())
                 .build();
+    }
+    @GetMapping("/delete-archived")
+    public ResponseEntity<ApiResponse<String>> deleteArchivedClasses() {
+        List<ClassEntity> classes = classRepository.findAll();
+        int count = 0;
+        for (ClassEntity c : classes) {
+            if (c.getStatus() == ClassEntity.ClassStatus.ARCHIVED) {
+                // Manually break relationships to avoid constraint violations
+                List<com.midori.entity.User> students = new java.util.ArrayList<>(c.getStudents());
+                for (com.midori.entity.User student : students) {
+                    student.getAssignedClasses().remove(c);
+                    userRepository.save(student);
+                }
+                c.getStudents().clear();
+                
+                List<com.midori.entity.Exam> exams = examRepository.findByAssignedClassId(c.getId());
+                if (!exams.isEmpty()) {
+                    examRepository.deleteAll(exams);
+                }
+        
+                List<com.midori.entity.Homework> homeworks = homeworkRepository.findByAssignedClassId(c.getId());
+                if (!homeworks.isEmpty()) {
+                    homeworkRepository.deleteAll(homeworks);
+                }
+                
+                classRepository.delete(c);
+                count++;
+            }
+        }
+        return ResponseEntity.ok(ApiResponse.success("Deleted " + count + " archived classes"));
     }
 }

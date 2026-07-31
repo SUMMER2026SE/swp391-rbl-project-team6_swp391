@@ -18,6 +18,9 @@ public class UserResponse {
 
     private UUID id;
     private String email;
+    private String name;
+    private String avatarUrl;
+    private String bio;
     private Role role;
     private UserStatus status;
     private String rejectionReason;

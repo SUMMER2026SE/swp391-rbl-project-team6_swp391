@@ -44,4 +44,9 @@ public interface VocabularyLessonV2Repository extends JpaRepository<VocabularyLe
     List<VocabularyLessonV2> searchPublished(@Param("search") String search);
 
     long countByIsPublished(Boolean isPublished);
+
+    @Query("SELECT COUNT(vl), " +
+           "SUM(CASE WHEN vl.isPublished = true THEN 1L ELSE 0L END) " +
+           "FROM VocabularyLessonV2 vl")
+    List<Object[]> getDashboardStats();
 }

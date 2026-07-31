@@ -4,6 +4,7 @@ import { Outlet } from "@tanstack/react-router";
 import { AuthGuard } from "@/components/auth-guard";
 
 export const Route = createFileRoute("/admin")({
+  ssr: false,
   component: () => (
     <AuthGuard role="admin">
       <DashboardLayout role="admin">

@@ -13,7 +13,7 @@ import java.util.UUID;
 @Repository
 public interface ClassStatusEventRepository extends JpaRepository<ClassStatusEvent, UUID> {
 
-    @Query("SELECT e FROM ClassStatusEvent e LEFT JOIN FETCH e.classEntity LEFT JOIN FETCH e.performedBy ORDER BY e.createdAt DESC")
+    @Query("SELECT e FROM ClassStatusEvent e LEFT JOIN FETCH e.classEntity LEFT JOIN FETCH e.performedBy pb LEFT JOIN FETCH pb.profile ORDER BY e.createdAt DESC")
     List<ClassStatusEvent> findRecentEvents(Pageable pageable);
 
     @Query("SELECT e FROM ClassStatusEvent e LEFT JOIN FETCH e.classEntity LEFT JOIN FETCH e.performedBy WHERE e.classEntity.id = :classId ORDER BY e.createdAt DESC")

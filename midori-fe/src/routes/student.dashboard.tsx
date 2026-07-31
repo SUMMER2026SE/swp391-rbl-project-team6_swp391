@@ -157,6 +157,7 @@ function StudentDashboard() {
     queryKey: ["progress-stats"],
     queryFn: () => studentProgressApi.getProgressStats(),
     staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Joined classes — drives the left column.

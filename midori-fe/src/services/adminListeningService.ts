@@ -19,23 +19,24 @@ export const adminListeningKeys = {
 /**
  * Fetch all listening lessons for a given level (with optional filters).
  */
-export function useFetchListeningLessons(level: string) {
+export function useFetchListeningLessons(level: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: adminListeningKeys.lessons(level),
     queryFn: () => adminListeningApi.getAdminListeningLessons({ level }),
     select: (data: ListeningLessonResponse[]) => data,
+    ...options,
   });
 }
 
 /**
  * Fetch a single listening lesson with its items.
  */
-export function useFetchListeningDetail(id: string) {
+export function useFetchListeningDetail(id: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: adminListeningKeys.detail(id),
     queryFn: () => adminListeningApi.getAdminListeningLesson(id),
     select: (data: ListeningDetailResponse) => data,
-    enabled: !!id,
+    enabled: id ? (options?.enabled ?? true) : false,
   });
 }
 

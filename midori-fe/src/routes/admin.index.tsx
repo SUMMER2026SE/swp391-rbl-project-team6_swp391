@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Activity } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { KPI_DEFINITIONS, KpiCard } from "@/features/admin/dashboard/KpiCard";
 import {
   DashboardErrorCard,
@@ -10,7 +10,6 @@ import { RecentActivitiesCard } from "@/features/admin/dashboard/RecentActivitie
 import { JlptDistributionCard } from "@/features/admin/dashboard/JlptDistributionCard";
 import {
   loadDashboardData,
-  type DashboardOutcome,
 } from "@/features/admin/dashboard/dashboard.api";
 import {
   buildJlptDistribution,
@@ -22,22 +21,15 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function AdminDashboard() {
-  const [outcome, setOutcome] = useState<DashboardOutcome | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
+  const { data: outcome, isLoading: queryLoading, refetch } = useQuery({
+    queryKey: ["adminDashboardData"],
+    queryFn: loadDashboardData,
+    staleTime: 5 * 60 * 1000,
+    enabled: typeof window !== "undefined",
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const result = await loadDashboardData();
-      if (!cancelled) setOutcome(result);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadKey]);
-
-  const isLoading = outcome === null;
-  const isError = outcome !== null && !outcome.ok;
+  const isLoading = queryLoading;
+  const isError = outcome && !outcome.ok;
   const data = outcome && outcome.ok ? outcome.data : null;
 
   // Keep the JLPT card populated even on error so retry UX is obvious.
@@ -96,7 +88,7 @@ function AdminDashboard() {
       {isError ? (
         <DashboardErrorCard
           message={outcome && !outcome.ok ? outcome.error : ""}
-          onRetry={() => setReloadKey((k) => k + 1)}
+          onRetry={() => refetch()}
           height={380}
         />
       ) : (

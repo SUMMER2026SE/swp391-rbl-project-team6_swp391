@@ -37,8 +37,16 @@ public class AdminClassServiceImpl implements AdminClassService {
 
     @Override
     public List<AdminClassResponse> getAdminClasses() {
-        return classRepository.findAll().stream()
-                .map(this::mapToAdminClassResponse)
+        return classRepository.findAllWithStudentCount().stream()
+                .map(obj -> {
+                    ClassEntity classEntity = (ClassEntity) obj[0];
+                    Integer studentCount = (Integer) obj[1];
+                    AdminClassResponse response = mapToAdminClassResponse(classEntity);
+                    if (response != null) {
+                        response.setStudents(studentCount);
+                    }
+                    return response;
+                })
                 .toList();
     }
 
@@ -46,7 +54,11 @@ public class AdminClassServiceImpl implements AdminClassService {
     public AdminClassResponse getAdminClassById(UUID id) {
         ClassEntity classEntity = classRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", id));
-        return mapToAdminClassResponse(classEntity);
+        AdminClassResponse response = mapToAdminClassResponse(classEntity);
+        if (response != null && classEntity.getStudents() != null) {
+            response.setStudents(classEntity.getStudents().size());
+        }
+        return response;
     }
 
     @Override
@@ -206,7 +218,7 @@ public class AdminClassServiceImpl implements AdminClassService {
                 .teacher(teacherName)
                 .teacherId(teacherId)
                 .level(classEntity.getLevel() != null ? classEntity.getLevel().name() : null)
-                .students(classEntity.getStudents() != null ? classEntity.getStudents().size() : 0)
+                .students(0) // Will be overwritten by caller if needed
                 .maxStudents(classEntity.getMaxStudents())
                 .status(classEntity.getStatus())
                 .createdAt(classEntity.getCreatedAt())

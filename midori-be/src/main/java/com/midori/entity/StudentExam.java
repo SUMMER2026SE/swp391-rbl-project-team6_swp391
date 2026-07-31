@@ -26,6 +26,7 @@ public class StudentExam {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exam_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private Exam exam;
 
     @ManyToOne(fetch = FetchType.LAZY)

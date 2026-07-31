@@ -146,7 +146,7 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
                 .collect(Collectors.groupingBy(t -> t.getSentence().getId()));
 
         List<ShadowingTranscriptResponse> segments = transcripts.stream()
-                .map(t -> toTranscriptResponse(t, tokensBySentence.getOrDefault(t.getId(), List.of())))
+                .map(t -> toTranscriptResponse(t, tokensBySentence.get(t.getId())))
                 .collect(Collectors.toList());
 
         return ShadowingTimestampsResponse.builder()
@@ -175,7 +175,7 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
                 .collect(Collectors.groupingBy(t -> t.getSentence().getId()));
 
         List<ShadowingTranscriptResponse> translations = transcripts.stream()
-                .map(t -> toTranscriptResponse(t, tokensBySentence.getOrDefault(t.getId(), List.of())))
+                .map(t -> toTranscriptResponse(t, tokensBySentence.get(t.getId())))
                 .collect(Collectors.toList());
 
         return ShadowingTranslationResponse.builder()
@@ -259,21 +259,23 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
     private ShadowingTranscriptResponse toTranscriptResponse(ShadowingTranscript transcript, List<com.midori.entity.TranscriptToken> tokens) {
         List<TranscriptTokenResponse> tokenResponses = List.of();
         try {
-            if (tokens == null || tokens.isEmpty()) {
+            if (tokens == null) {
                 tokens = transcriptAnalyzerService.getTokensForSentence(transcript.getId());
                 if (tokens.isEmpty()) {
                     tokens = transcriptAnalyzerService.analyzeAndSave(transcript);
                 }
             }
-            tokenResponses = tokens.stream()
-                    .map(t -> TranscriptTokenResponse.builder()
-                            .id(t.getId())
-                            .surface(t.getSurface())
-                            .lemma(t.getLemma())
-                            .reading(t.getReading())
-                            .position(t.getPosition())
-                            .build())
-                    .collect(Collectors.toList());
+            if (tokens != null && !tokens.isEmpty()) {
+                tokenResponses = tokens.stream()
+                        .map(t -> TranscriptTokenResponse.builder()
+                                .id(t.getId())
+                                .surface(t.getSurface())
+                                .lemma(t.getLemma())
+                                .reading(t.getReading())
+                                .position(t.getPosition())
+                                .build())
+                        .collect(Collectors.toList());
+            }
         } catch (Exception e) {
             log.warn("Failed to retrieve or analyze tokens for transcript {}: {}", transcript.getId(), e.getMessage());
         }

@@ -90,7 +90,7 @@ export const teacherQuestionsApi = {
   updateQuestion: (id: string, req: UpdateTeacherQuestionRequest) =>
     api.put<TeacherQuestionResponse>(`/teacher/questions/${id}`, req),
   deleteQuestion: (id: string) => api.delete<void>(`/teacher/questions/${id}`),
-  getQuestions: () => api.get<TeacherQuestionResponse[]>("/teacher/questions"),
+  getQuestions: (level?: string) => api.get<TeacherQuestionResponse[]>(level ? `/teacher/questions?level=${level}` : "/teacher/questions"),
   getQuestionById: (id: string) => api.get<TeacherQuestionResponse>(`/teacher/questions/${id}`),
 
   // Lessons

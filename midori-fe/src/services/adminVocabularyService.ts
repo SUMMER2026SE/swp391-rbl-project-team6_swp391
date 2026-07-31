@@ -15,23 +15,24 @@ export const adminVocabularyKeys = {
 /**
  * Fetch all vocabulary lessons for a given level.
  */
-export function useFetchVocabularyLessons(level: string) {
+export function useFetchVocabularyLessons(level: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: adminVocabularyKeys.lessons(level),
     queryFn: () => adminVocabularyApi.getAdminVocabularyLessons({ level }),
     select: (data: VocabularyLessonResponse[]) => data,
+    ...options,
   });
 }
 
 /**
  * Fetch a single vocabulary lesson with its items.
  */
-export function useFetchVocabularyDetail(id: string) {
+export function useFetchVocabularyDetail(id: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: adminVocabularyKeys.detail(id),
     queryFn: () => adminVocabularyApi.getAdminVocabularyLesson(id),
     select: (data: VocabularyDetailResponse) => data,
-    enabled: !!id,
+    enabled: id ? (options?.enabled ?? true) : false,
   });
 }
 
