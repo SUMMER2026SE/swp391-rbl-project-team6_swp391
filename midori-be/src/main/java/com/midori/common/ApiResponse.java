@@ -16,12 +16,22 @@ public class ApiResponse<T> {
     private String message;
     private T data;
     private Object errors;
+    private Object metadata;
 
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()
                 .success(true)
                 .message("Success")
                 .data(data)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> success(T data, Object metadata) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message("Success")
+                .data(data)
+                .metadata(metadata)
                 .build();
     }
 

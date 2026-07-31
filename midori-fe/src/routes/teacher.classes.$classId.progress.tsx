@@ -13,7 +13,7 @@ export const Route = createFileRoute("/teacher/classes/$classId/progress")({
   component: TeacherClassProgressPage,
 });
 
-export function TeacherClassProgressPage() {
+function TeacherClassProgressPage() {
   const { classId } = useParams({ strict: false });
   // classDetail is already loaded by the parent layout (teacher.classes.$classId.tsx)
   // and shared via ClassDetailContext — no duplicate network request needed here.

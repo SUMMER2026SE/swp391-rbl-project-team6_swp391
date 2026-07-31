@@ -3118,11 +3118,11 @@ function LegacySkillDetailPage() {
   );
 
   // ── Backend reading hooks (used only when skill === "reading") ──
-  const readingQuery = useFetchReadingLessons(upperLevel);
+  const readingQuery = useFetchReadingLessons(upperLevel, { enabled: skill === "reading" });
   const readingLessons: AdminReadingLesson[] = (readingQuery.data ?? []) as AdminReadingLesson[];
 
   const [readingDetailId, setReadingDetailId] = useState<string | null>(null);
-  const readingDetailQuery = useFetchReadingDetail(readingDetailId ?? "");
+  const readingDetailQuery = useFetchReadingDetail(readingDetailId ?? "", { enabled: skill === "reading" && !!readingDetailId });
   const readingDetail: AdminReadingLesson | null =
     (readingDetailQuery.data != null ? readingDetailQuery.data : null) as AdminReadingLesson | null;
 
@@ -3405,13 +3405,13 @@ function LegacySkillDetailPage() {
   };
 
   // ── Backend listening hooks (used only when skill === "listening") ──
-  const listeningQuery = useFetchListeningLessons(upperLevel);
+  const listeningQuery = useFetchListeningLessons(upperLevel, { enabled: skill === "listening" });
   const listeningLessons: AdminListeningLesson[] = (listeningQuery.data ?? []) as unknown as AdminListeningLesson[];
 
   const [listeningDetailId, setListeningDetailId] = useState<string | null>(null);
   // Use ref to always get the latest lessonId (fixes closure bug in mutation)
   const listeningDetailIdRef = useRef<string | null>(null);
-  const listeningDetailQuery = useFetchListeningDetail(listeningDetailId ?? "");
+  const listeningDetailQuery = useFetchListeningDetail(listeningDetailId ?? "", { enabled: skill === "listening" && !!listeningDetailId });
   const listeningDetail: AdminListeningLesson | null =
     (listeningDetailQuery.data != null ? listeningDetailQuery.data : null) as AdminListeningLesson | null;
 
@@ -3606,12 +3606,12 @@ function LegacySkillDetailPage() {
   };
 
   // ── Backend vocabulary hooks (used only when skill === "vocabulary") ──
-  const vocabularyQuery = useFetchVocabularyLessons(upperLevel);
+  const vocabularyQuery = useFetchVocabularyLessons(upperLevel, { enabled: skill === "vocabulary" });
   const vocabularyLessons: AdminVocabularyLesson[] = (vocabularyQuery.data ?? []) as AdminVocabularyLesson[];
 
   const [vocabularyDetailId, setVocabularyDetailId] = useState<string | null>(null);
   const vocabularyDetailIdRef = useRef<string | null>(null);
-  const vocabularyDetailQuery = useFetchVocabularyDetail(vocabularyDetailId ?? "");
+  const vocabularyDetailQuery = useFetchVocabularyDetail(vocabularyDetailId ?? "", { enabled: skill === "vocabulary" && !!vocabularyDetailId });
   const vocabularyDetail: AdminVocabularyLesson | null =
     (vocabularyDetailQuery.data != null ? vocabularyDetailQuery.data : null) as AdminVocabularyLesson | null;
 

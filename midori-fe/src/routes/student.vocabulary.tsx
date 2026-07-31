@@ -34,6 +34,7 @@ import { QuizletFlashcardModal } from "@/components/student/QuizletFlashcardModa
 import { mockClasses } from "@/mock/classes";
 import { studentAccessibleLevels } from "./student.classes";
 import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
 type WordStatus = "new" | "learning" | "mastered";
@@ -265,11 +266,24 @@ function VocabularyPage() {
   // Default to first enrolled level or "N5" if enrolled
   const defaultLevel = enrolledLevels.length > 0 ? enrolledLevels[0] : "N5";
 
-  const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
-  const [allLessonsBase, setAllLessonsBase] = useState<VocabularyLessonResponse[]>([]);
-  const [allTopics, setAllTopics] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: allLessonsRaw = [], isLoading: loading, error: queryError, refetch: fetchLessons } = useQuery({
+    queryKey: ["student-vocabulary-lessons"],
+    queryFn: () => studentVocabularyApi.getPublishedLessons(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const allLessonsBase = useMemo(() => {
+    return sortLessonsByNumber(allLessonsRaw);
+  }, [allLessonsRaw]);
+
+  const allTopics = useMemo(() => {
+    return Array.from(
+      new Set(allLessonsBase.map((l) => l.topic).filter(Boolean) as string[]),
+    ).sort();
+  }, [allLessonsBase]);
+
+  const error = queryError ? (queryError as any).message || "Failed to load lessons" : null;
 
   const [selectedLevel, setSelectedLevel] = useState<string>(defaultLevel);
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");

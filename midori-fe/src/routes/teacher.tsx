@@ -3,6 +3,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { TeacherShell } from "@/components/teacher/teacher-shell";
 
 export const Route = createFileRoute("/teacher")({
+  ssr: false,
   component: () => (
     <AuthGuard role="teacher">
       <TeacherShell>

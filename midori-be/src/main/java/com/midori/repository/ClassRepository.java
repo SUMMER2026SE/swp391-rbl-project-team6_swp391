@@ -74,4 +74,7 @@ public interface ClassRepository extends JpaRepository<ClassEntity, UUID> {
 
     @Query("SELECT c FROM ClassEntity c LEFT JOIN FETCH c.teacher ORDER BY c.createdAt DESC")
     List<ClassEntity> findRecentClasses(Pageable pageable);
+
+    @Query("SELECT c, SIZE(c.students) FROM ClassEntity c LEFT JOIN FETCH c.teacher t LEFT JOIN FETCH t.profile ORDER BY c.createdAt DESC")
+    List<Object[]> findAllWithStudentCount();
 }

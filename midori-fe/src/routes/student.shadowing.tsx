@@ -7,6 +7,8 @@ import { Mic, Play, Clock, ChevronRight, Loader2 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi, type ShadowingVideoSummaryResponse } from "@/lib/api/shadowing";
 
+import { useQuery } from "@tanstack/react-query";
+
 type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
 
 const levelGradients: Record<JLPTLevel, string> = {
@@ -56,25 +58,15 @@ function ShadowingLayout() {
 }
 
 function ShadowingListPage() {
-  const [realVideos, setRealVideos] = useState<ShadowingVideoSummaryResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: realVideos = [], isLoading } = useQuery({
+    queryKey: ["student-shadowing-videos"],
+    queryFn: () => studentShadowingApi.getVideos(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadVideos = async () => {
-      setIsLoading(true);
-      try {
-        const list = await studentShadowingApi.getVideos();
-        setRealVideos(list);
-      } catch (err) {
-        console.error("Error loading student shadowing videos:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadVideos();
-  }, []);
 
   const topics = useMemo(() => {
     const map = new Map<string, { title: string; count: number }>();

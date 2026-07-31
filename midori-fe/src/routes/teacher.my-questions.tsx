@@ -37,6 +37,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/lib/auth";
 import { homeworkApi, HomeworkResponse } from "@/lib/api/homework";
 import { examsApi, ExamResponse } from "@/lib/api/exams";
 import { classesApi } from "@/lib/api/classes";

@@ -19,6 +19,7 @@ import java.time.Instant;
 import com.midori.repository.StudentExamRepository;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.exception.BadRequestException;
+import com.midori.exception.DataConflictException;
 import com.midori.repository.ClassRepository;
 import com.midori.repository.UserRepository;
 import com.midori.repository.HomeworkRepository;
@@ -208,7 +209,7 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     @Transactional
-    public ClassResponse archiveClass(UUID classId, UUID teacherId) {
+    public void deleteClass(UUID classId, UUID teacherId) {
         ClassEntity classEntity = classRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
 
@@ -219,51 +220,28 @@ public class ClassServiceImpl implements ClassService {
             throw new com.midori.exception.AccessDeniedException("You are not allowed to manage this class");
         }
 
-        if (classEntity.getStatus() == ClassEntity.ClassStatus.ARCHIVED) {
-            throw new BadRequestException("Class is already archived");
+        // Delete child records first to avoid foreign key constraints and rely on JPA cascades
+        List<com.midori.entity.Exam> exams = examRepository.findByAssignedClassId(classId);
+        if (!exams.isEmpty()) {
+            examRepository.deleteAll(exams);
         }
 
-        classEntity.setStatus(ClassEntity.ClassStatus.ARCHIVED);
-        ClassEntity updatedClass = classRepository.save(classEntity);
-
-        ClassStatusEvent event = ClassStatusEvent.builder()
-                .classEntity(updatedClass)
-                .eventType(ClassStatusEvent.ClassEventType.ARCHIVED)
-                .performedBy(user)
-                .build();
-        classStatusEventRepository.save(event);
-
-        return mapToClassResponse(updatedClass);
-    }
-
-    @Override
-    @Transactional
-    public ClassResponse restoreClass(UUID classId, UUID teacherId) {
-        ClassEntity classEntity = classRepository.findById(classId)
-                .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
-
-        User user = userRepository.findById(teacherId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", teacherId));
-        boolean isAdmin = user.getRole() == com.midori.entity.Role.ADMIN;
-        if (!classEntity.getTeacher().getId().equals(teacherId) && !isAdmin) {
-            throw new com.midori.exception.AccessDeniedException("You are not allowed to manage this class");
+        List<com.midori.entity.Homework> homeworks = homeworkRepository.findByAssignedClassId(classId);
+        if (!homeworks.isEmpty()) {
+            homeworkRepository.deleteAll(homeworks);
         }
 
-        if (classEntity.getStatus() == ClassEntity.ClassStatus.ACTIVE) {
-            throw new BadRequestException("Class is already active");
+        // Manually break the relationship with users (students) in Hibernate context
+        // to prevent constraint violations if the User entity tries to save cascade operations.
+        List<com.midori.entity.User> students = new java.util.ArrayList<>(classEntity.getStudents());
+        for (com.midori.entity.User student : students) {
+            student.getAssignedClasses().remove(classEntity);
+            userRepository.save(student);
         }
+        classEntity.getStudents().clear();
 
-        classEntity.setStatus(ClassEntity.ClassStatus.ACTIVE);
-        ClassEntity updatedClass = classRepository.save(classEntity);
-
-        ClassStatusEvent event = ClassStatusEvent.builder()
-                .classEntity(updatedClass)
-                .eventType(ClassStatusEvent.ClassEventType.RESTORED)
-                .performedBy(user)
-                .build();
-        classStatusEventRepository.save(event);
-
-        return mapToClassResponse(updatedClass);
+        // Finally, delete the class
+        classRepository.delete(classEntity);
     }
 
     @Override
@@ -389,6 +367,11 @@ public class ClassServiceImpl implements ClassService {
             }
         }
 
+        if (classMembershipRepository.findByStudentIdAndClassId(student.getId(), classId).isPresent()) {
+            throw new BadRequestException("Student is already in this class");
+        }
+
+
         if (classEntity.getStudents().size() >= classEntity.getMaxStudents()) {
             throw new BadRequestException("Class is already full");
         }
@@ -405,6 +388,9 @@ public class ClassServiceImpl implements ClassService {
                 .classEntity(classEntity)
                 .build();
         classMembershipRepository.save(membership);
+        
+        // Grant or extend 1-year Learning Journey access
+        learningAccessService.grantOrExtendAccess(student, classEntity);
 
         return mapToStudentClassResponse(student, classEntity);
     }

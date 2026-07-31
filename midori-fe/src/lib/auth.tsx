@@ -184,6 +184,7 @@ async function hydrateWithProfile(baseUser: User): Promise<User> {
   return user;
 }
 
+
 export function rolePath(role: FrontendRole) {
   return role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/admin";
 }
@@ -366,6 +367,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
+      queryClient.setQueryData(["currentUser"], hydrated);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -377,6 +379,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(TOKEN_KEY);
       setToken(null);
       persistUser(null);
+      queryClient.setQueryData(["currentUser"], null);
+      queryClient.clear();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -386,6 +390,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) return;
       const updated = { ...user, ...patch };
       persistUser(updated);
+      queryClient.setQueryData(["currentUser"], updated);
     },
 
     refreshCurrentUser,

@@ -12,6 +12,7 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60 * 5, // Dữ liệu được coi là mới trong 5 phút, không re-fetch nhảm
       refetchOnWindowFocus: false, // Tắt tự động fetch khi bấm ra vào tab
       retry: 1,
+      enabled: typeof window !== "undefined",
     },
     mutations: {
       retry: 0,

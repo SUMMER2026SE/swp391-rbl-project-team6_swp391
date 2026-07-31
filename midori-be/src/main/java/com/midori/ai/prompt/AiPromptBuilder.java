@@ -1527,30 +1527,5 @@ public final class AiPromptBuilder {
     // LEGACY PROMPTS (For backward compatibility - deprecated)
     // ============================================================
 
-    /**
-     * @deprecated Use buildAdminVocabularyGenerationPrompt with lesson context
-     */
-    @Deprecated
-    public static String buildAdminVocabularyGenerationPrompt(String level, String topic, Integer itemCount, String customInstructions) {
-        return buildAdminVocabularyGenerationPrompt(level, null, null, null, topic, itemCount, customInstructions, null, null);
-    }
-
-    /**
-     * @deprecated Use buildAdminGrammarGenerationPrompt with lesson context
-     */
-    @Deprecated
-    public static String buildAdminGrammarGenerationPrompt(String level, String topic, Integer itemCount, String customInstructions) {
-        return buildAdminGrammarGenerationPrompt(level, null, null, null, topic, itemCount, customInstructions, null, null);
-    }
-
-    /**
-     * @deprecated Use buildAdminReadingGenerationPrompt with lesson context
-     */
-    @Deprecated
-    public static String buildAdminReadingGenerationPrompt(
-            String level, String topic, Integer passageCount, Integer questionsPerPassage,
-            String difficulty, String passageLength, String customInstructions) {
-        return buildAdminReadingGenerationPrompt(level, null, null, null, topic, passageCount, questionsPerPassage, difficulty, passageLength, customInstructions, null, null);
-    }
 }
 

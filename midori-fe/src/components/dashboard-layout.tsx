@@ -227,6 +227,7 @@ export function DashboardLayout({
   const { theme, toggleTheme } = useTheme();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const search = useRouterState({ select: (s) => s.location.search }) as any;
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -289,6 +290,26 @@ export function DashboardLayout({
 
   const isRouteActive = useCallback(
     (to: string, exact?: boolean) => {
+      if (to === "/student/shadowing") {
+        return (
+          pathname === "/student/shadowing" ||
+          (pathname.startsWith("/student/vocabulary") && !!search?.sourceVideoId)
+        );
+      }
+
+      if (to === "/student/journey") {
+        if (pathname.startsWith("/student/vocabulary") && !!search?.sourceVideoId) {
+          return false;
+        }
+        return (
+          pathname === "/student/journey" ||
+          pathname.startsWith("/student/journey/") ||
+          pathname.startsWith("/student/vocabulary") ||
+          pathname.startsWith("/student/grammar") ||
+          pathname.startsWith("/student/reading") ||
+          pathname.startsWith("/student/listening")
+        );
+      }
       if (to === "/teacher/classes") {
         return (
           pathname === "/teacher/classes" ||
@@ -313,7 +334,7 @@ export function DashboardLayout({
         (!isBaseRoute && pathname.startsWith(to + "?"))
       );
     },
-    [pathname, role],
+    [pathname, search, role],
   );
 
   // Check if item or any child is active
@@ -1221,11 +1242,14 @@ export function DashboardLayout({
 }
 
 function StreakBadge() {
+  // Reuse the same queryKey as StudentDashboard ("progress-stats") so React Query
+  // serves the cached result — no second GET /stats request is made.
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["streak-badge"],
+    queryKey: ["progress-stats"],
     queryFn: () => studentProgressApi.getProgressStats(),
     staleTime: 60 * 1000,
     retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const streak = typeof stats?.learningStreak === "number" ? stats.learningStreak : null;

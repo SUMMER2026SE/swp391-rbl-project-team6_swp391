@@ -42,4 +42,10 @@ public interface FlashcardSetRepository extends JpaRepository<FlashcardSet, UUID
 
     @Query("SELECT fs FROM FlashcardSet fs LEFT JOIN FETCH fs.teacher t LEFT JOIN FETCH t.profile WHERE fs.status = :status AND fs.level = :level AND LOWER(fs.title) LIKE LOWER(CONCAT('%',:search,'%')) ORDER BY fs.createdAt DESC")
     List<FlashcardSet> searchByStatusAndLevelWithTeacher(@Param("status") FlashcardSetStatus status, @Param("level") GrammarLevel level, @Param("search") String search);
+
+    @Query("SELECT COUNT(fs), " +
+           "SUM(CASE WHEN fs.status = 'PENDING' THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN fs.status = 'APPROVED' THEN 1L ELSE 0L END) " +
+           "FROM FlashcardSet fs")
+    List<Object[]> getDashboardStats();
 }

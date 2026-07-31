@@ -68,18 +68,7 @@ class StudyProgressStreakTest {
         @Test
         @DisplayName("No login history returns zero streak")
         void noLoginHistory_returnsZero() {
-            when(progressRepository.countLearnedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
+            when(progressRepository.getProgressCountsGroupedByContentType(userId)).thenReturn(Collections.emptyList());
             when(userLoginHistoryRepository.findLoginDatesByUserId(userId)).thenReturn(Collections.emptyList());
             when(progressRepository.findAllByUserIdOrdered(userId)).thenReturn(Collections.emptyList());
 
@@ -101,18 +90,7 @@ class StudyProgressStreakTest {
                     today.minusDays(4)
             );
 
-            when(progressRepository.countLearnedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
+            when(progressRepository.getProgressCountsGroupedByContentType(userId)).thenReturn(Collections.emptyList());
             when(userLoginHistoryRepository.findLoginDatesByUserId(userId)).thenReturn(loginDates);
             when(progressRepository.findAllByUserIdOrdered(userId)).thenReturn(Collections.emptyList());
 
@@ -135,18 +113,7 @@ class StudyProgressStreakTest {
                     today.minusDays(7)
             );
 
-            when(progressRepository.countLearnedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
+            when(progressRepository.getProgressCountsGroupedByContentType(userId)).thenReturn(Collections.emptyList());
             when(userLoginHistoryRepository.findLoginDatesByUserId(userId)).thenReturn(loginDates);
             when(progressRepository.findAllByUserIdOrdered(userId)).thenReturn(Collections.emptyList());
 
@@ -169,18 +136,7 @@ class StudyProgressStreakTest {
                     today.minusDays(2)
             );
 
-            when(progressRepository.countLearnedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
+            when(progressRepository.getProgressCountsGroupedByContentType(userId)).thenReturn(Collections.emptyList());
             when(userLoginHistoryRepository.findLoginDatesByUserId(userId)).thenReturn(loginDatesWithDuplicates);
             when(progressRepository.findAllByUserIdOrdered(userId)).thenReturn(Collections.emptyList());
 
@@ -201,18 +157,7 @@ class StudyProgressStreakTest {
                     yesterday.minusDays(2)
             );
 
-            when(progressRepository.countLearnedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
+            when(progressRepository.getProgressCountsGroupedByContentType(userId)).thenReturn(Collections.emptyList());
             when(userLoginHistoryRepository.findLoginDatesByUserId(userId)).thenReturn(loginDates);
             when(progressRepository.findAllByUserIdOrdered(userId)).thenReturn(Collections.emptyList());
 
@@ -228,18 +173,7 @@ class StudyProgressStreakTest {
 
             List<LocalDate> loginDates = List.of(today);
 
-            when(progressRepository.countLearnedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserId(userId)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.VOCABULARY)).thenReturn(0L);
-            when(progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
-            when(progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.GRAMMAR)).thenReturn(0L);
+            when(progressRepository.getProgressCountsGroupedByContentType(userId)).thenReturn(Collections.emptyList());
             when(userLoginHistoryRepository.findLoginDatesByUserId(userId)).thenReturn(loginDates);
             when(progressRepository.findAllByUserIdOrdered(userId)).thenReturn(Collections.emptyList());
 
