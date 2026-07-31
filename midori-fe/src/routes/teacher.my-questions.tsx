@@ -42,7 +42,6 @@ import { homeworkApi, HomeworkResponse } from "@/lib/api/homework";
 import { examsApi, ExamResponse } from "@/lib/api/exams";
 import { classesApi } from "@/lib/api/classes";
 import { authApi } from "@/lib/api/auth";
-import { useAuth } from "@/lib/auth";
 import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

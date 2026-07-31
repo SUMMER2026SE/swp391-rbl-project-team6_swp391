@@ -1444,18 +1444,23 @@ function TeachersPage() {
   >("all");
   const [listStatusFilter, setListStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
+  const [pendingTeachers, setPendingTeachers] = useState<TeacherApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [listTeachers, setListTeachers] = useState<TeacherApplication[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const [allClasses, setAllClasses] = useState<AdminClassResponse[]>([]);
+
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2500);
   }, []);
 
-  const {
-    data: pendingTeachers = [],
-    isLoading: loading,
-    error: pendingErrorObj,
-  } = useQuery({
-    queryKey: ["admin", "teachers", "pending"],
-    queryFn: async () => {
+  const fetchPendingTeachers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
       const pending = await adminApi.getPendingTeachers();
       const mapped = pending.map(mapToTeacherApplication);
       setPendingTeachers(mapped);

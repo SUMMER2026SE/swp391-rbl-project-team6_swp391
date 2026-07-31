@@ -86,6 +86,36 @@ export const Route = createFileRoute("/student/journey")({
       }
     }
 
+    return {
+      classes,
+      selectedLevel,
+      lessons,
+      vocabLessons,
+      grammarLessons,
+    };
+  },
+});
+
+function JourneyLayout() {
+  const {
+    classes,
+    selectedLevel: initialLevel,
+    lessons,
+    vocabLessons,
+    grammarLessons,
+  } = Route.useLoaderData();
+
+  const [selectedLevel, setSelectedLevel] = useState(initialLevel);
+  const navigate = Route.useNavigate();
+  const location = useLocation();
+  const isIndex = location.pathname === "/student/journey";
+  const token = typeof window !== "undefined" ? localStorage.getItem("midori_access_token") : null;
+  const isClassesLoading = false;
+  const isLessonsLoading = false;
+  const isClassesError = false;
+
+  const availableLevels = useMemo(() => Array.from(new Set(classes.map((cls: any) => cls.level))).sort(), [classes]);
+
   const { data: readingLessons = [] } = useQuery({
     queryKey: ["student-journey-reading", selectedLevel],
     queryFn: () => studentReadingApi.getReadingLessons({ level: selectedLevel! }),

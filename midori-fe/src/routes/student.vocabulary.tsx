@@ -289,6 +289,18 @@ function VocabularyPage() {
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+
+  const lessons = useMemo(() => {
+    return allLessonsBase.filter((lesson) => {
+      const matchesLevel = selectedLevel === "all" || lesson.level === selectedLevel;
+      const matchesTopic = selectedTopic === "All Topics" || lesson.topic === selectedTopic;
+      const matchesSearch =
+        !appliedSearch.trim() ||
+        lesson.title?.toLowerCase().includes(appliedSearch.toLowerCase()) ||
+        lesson.description?.toLowerCase().includes(appliedSearch.toLowerCase());
+      return matchesLevel && matchesTopic && matchesSearch;
+    });
+  }, [allLessonsBase, selectedLevel, selectedTopic, appliedSearch]);
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<(typeof FILTER_TABS)[number]>("All");
   const [topicsOpen, setTopicsOpen] = useState(false);
@@ -394,40 +406,6 @@ function VocabularyPage() {
       setDetailLoading(false);
     }
   };
-
-  // Fetch published lessons from API
-  const fetchLessons = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const lessonParams = {
-        level: selectedLevel !== "all" ? selectedLevel : undefined,
-        topic: selectedTopic !== "All Topics" ? selectedTopic : undefined,
-        search: appliedSearch.trim() || undefined,
-      };
-
-      const [allData, filteredData] = await Promise.all([
-        studentVocabularyApi.getPublishedLessons(),
-        studentVocabularyApi.getPublishedLessons(lessonParams),
-      ]);
-
-      setAllLessonsBase(sortLessonsByNumber(allData));
-      setLessons(sortLessonsByNumber(filteredData));
-
-      const topics = Array.from(
-        new Set(allData.map((l) => l.topic).filter(Boolean) as string[]),
-      ).sort();
-      setAllTopics(topics);
-    } catch (err) {
-      setError(isApiError(err) ? err.message : "Failed to load lessons");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedLevel, selectedTopic, appliedSearch]);
-
-  useEffect(() => {
-    fetchLessons();
-  }, [fetchLessons]);
 
   // Filter lessons to only show enrolled levels
   const filteredLessons = lessons.filter((lesson) => enrolledLevels.includes(lesson.level));

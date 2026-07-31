@@ -98,25 +98,7 @@ function ClassManagementPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const fetchClasses = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await adminApi.getAdminClasses();
-      setClasses(data);
-    } catch (err) {
-      const message =
-        isApiError(err)
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load classes. Please try again.";
-      setError(message);
-      setClasses([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const error = queryError ? (queryError as any).message || "Failed to load classes" : null;
 
   const fetchClasses = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["admin", "classes"] });

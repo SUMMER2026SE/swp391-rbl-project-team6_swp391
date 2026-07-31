@@ -282,52 +282,14 @@ function ClassWorkspacePage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const studentsError = studentsErrorObj ? (studentsErrorObj as Error).message : null;
+
   // Homework data state — used by the Progress tab to render per-homework
   // submitted/total/percentage/average-score. The previous "Assignments"
   // tab is gone, so we no longer fetch exams.
   const [homeworks, setHomeworks] = useState<HomeworkResponse[]>([]);
   const [homeworksLoading, setHomeworksLoading] = useState(false);
   const [homeworksError, setHomeworksError] = useState<string | null>(null);
-
-  // Fetch class data
-  const fetchClassData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await adminApi.getAdminClassById(classId);
-      setClassData(data);
-    } catch (err) {
-      const msg =
-        isApiError(err)
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load class.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [classId]);
-
-  // Fetch students data
-  const fetchStudents = useCallback(async () => {
-    setStudentsLoading(true);
-    setStudentsError(null);
-    try {
-      const data = await adminApi.getClassStudents(classId);
-      setStudents(data);
-    } catch (err) {
-      const msg =
-        isApiError(err)
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load students.";
-      setStudentsError(msg);
-    } finally {
-      setStudentsLoading(false);
-    }
-  }, [classId]);
 
   // Fetch homework data — used by the Progress tab. Lazily triggered
   // when the user opens the Progress tab so the Students tab is not
