@@ -53,7 +53,7 @@ export function isApiError(error: unknown): error is ApiError {
   );
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, init?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const isFormData = body instanceof FormData;
   const options: RequestInit = {

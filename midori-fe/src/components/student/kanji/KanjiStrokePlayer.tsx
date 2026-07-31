@@ -146,8 +146,22 @@ export function KanjiStrokePlayer({ kanjiId }: KanjiStrokePlayerProps) {
       });
     }
 
-    // Auto play when loaded
-    setIsPlaying(true);
+    // Wait for the browser to render the SVG before computing getTotalLength()
+    // otherwise it might return 0, making strokes invisible.
+    setTimeout(() => {
+      const pathsGroup = svgEl.querySelector('[id^="kvg:StrokePaths"]');
+      if (pathsGroup) {
+        const parsedPaths = Array.from(pathsGroup.querySelectorAll("path")) as SVGPathElement[];
+        parsedPaths.forEach((p) => {
+          const len = p.getTotalLength() || 1000; // fallback just in case
+          p.style.strokeDasharray = `${len}`;
+          p.style.strokeDashoffset = `${len}`;
+        });
+      }
+      // Auto play when loaded
+      setIsPlaying(true);
+    }, 50);
+
   }, [svgText]);
 
   // Animation Loop

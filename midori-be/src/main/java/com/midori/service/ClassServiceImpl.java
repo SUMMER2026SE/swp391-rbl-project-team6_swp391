@@ -336,6 +336,12 @@ public class ClassServiceImpl implements ClassService {
             throw new BadRequestException("Student is not in this class");
         }
 
+        classMembershipRepository.findByStudentIdAndClassId(studentId, classId)
+                .ifPresent(m -> {
+                    classMembershipRepository.delete(m);
+                    classMembershipRepository.flush();
+                });
+
         userRepository.save(student);
     }
 
@@ -368,11 +374,6 @@ public class ClassServiceImpl implements ClassService {
             }
         }
 
-        if (classMembershipRepository.findByStudentIdAndClassId(student.getId(), classId).isPresent()) {
-            throw new BadRequestException("Student is already in this class");
-        }
-
-
         if (classEntity.getStudents().size() >= classEntity.getMaxStudents()) {
             throw new BadRequestException("Class is already full");
         }
@@ -383,12 +384,14 @@ public class ClassServiceImpl implements ClassService {
         student.getAssignedClasses().add(classEntity);
         userRepository.save(student);
 
-        // Create ClassMembership to track join date
-        ClassMembership membership = ClassMembership.builder()
-                .student(student)
-                .classEntity(classEntity)
-                .build();
-        classMembershipRepository.save(membership);
+        // Create ClassMembership to track join date ONLY if it doesn't already exist
+        if (classMembershipRepository.findByStudentIdAndClassId(student.getId(), classId).isEmpty()) {
+            ClassMembership membership = ClassMembership.builder()
+                    .student(student)
+                    .classEntity(classEntity)
+                    .build();
+            classMembershipRepository.save(membership);
+        }
         
         // Grant or extend 1-year Learning Journey access
         learningAccessService.grantOrExtendAccess(student, classEntity);

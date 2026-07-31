@@ -230,15 +230,11 @@ export function ShadowingCard({
           /* Video first-frame preview */
           <>
             <video
-              src={lesson.videoUrl}
+              src={lesson.videoUrl ? `${lesson.videoUrl}#t=0.5` : undefined}
               preload="metadata"
               muted
               playsInline
               className="w-full h-full object-cover select-none"
-              onLoadedMetadata={(e) => {
-                // Seek to 0.5s to get a better first frame
-                (e.target as HTMLVideoElement).currentTime = 0.5;
-              }}
             />
             {/* Play overlay on hover */}
             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
