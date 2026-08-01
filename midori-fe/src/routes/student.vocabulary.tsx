@@ -25,6 +25,11 @@ import {
 import { SakuraBg } from "@/components/sakura-bg";
 import {
   studentVocabularyApi,
+  type VocabularyLessonResponse as BackendVocabularyLessonResponse,
+  type VocabularyDetailResponse as BackendVocabularyDetailResponse,
+  type VocabularyItemResponse as BackendVocabularyItemResponse,
+} from "@/lib/api/vocabulary";
+import {
   type VocabularyLessonResponse,
   type VocabularyLessonDetailResponse,
 } from "@/lib/api/studentVocabulary";
@@ -363,6 +368,23 @@ function VocabularyPage() {
     }
   }, [allLessonsBase]);
 
+  // Mapper function to match the existing UI interface
+  const mapToUiLesson = (lesson: BackendVocabularyLessonResponse): VocabularyLessonResponse => {
+    return {
+      id: lesson.id,
+      title: lesson.title,
+      description: lesson.description || undefined,
+      level: lesson.jlptLevel,
+      topic: undefined, // Content Library lessons don't have topics
+      estimatedMinutes: lesson.estimatedMinutes || undefined,
+      wordCount: 0, // Will be computed in the detail load, otherwise defaults to 0
+      isPublished: lesson.isActive,
+      createdBy: "MIDORI",
+      createdAt: lesson.createdAt,
+      updatedAt: lesson.updatedAt,
+    };
+  };
+
   // Fetch lesson detail when opening a lesson
   const openLesson = async (lessonId: string) => {
     setActiveLesson(lessonId);
@@ -372,7 +394,23 @@ function VocabularyPage() {
     setFilterTab("All");
     setCurrentPage(1);
     try {
-      const detail = await studentVocabularyApi.getPublishedLessonDetail(lessonId);
+      const rawDetail: BackendVocabularyDetailResponse = await studentVocabularyApi.getVocabularyLesson(lessonId);
+      const detail: VocabularyLessonDetailResponse = {
+        ...mapToUiLesson(rawDetail),
+        words: (rawDetail.items ?? []).map((item: BackendVocabularyItemResponse) => ({
+          id: item.id,
+          lessonId: item.vocabularyLessonId,
+          word: item.japanese,
+          japanese: item.japanese,
+          furigana: item.furigana || undefined,
+          romaji: item.romaji || undefined,
+          meaning: item.meaning,
+          displayOrder: item.itemOrder,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+        })),
+        wordCount: rawDetail.items?.length ?? 0,
+      };
       setLessonDetail(detail);
     } catch (err) {
       setDetailError(err instanceof ApiError ? err.message : "Failed to load lesson details");
@@ -386,22 +424,32 @@ function VocabularyPage() {
     setLoading(true);
     setError(null);
     try {
-      const lessonParams = {
-        level: selectedLevel !== "all" ? selectedLevel : undefined,
-        topic: selectedTopic !== "All Topics" ? selectedTopic : undefined,
-        search: appliedSearch.trim() || undefined,
-      };
+      const allRawData = await studentVocabularyApi.getVocabularyLessons();
+      const allDataMapped = allRawData.map(mapToUiLesson);
 
-      const [allData, filteredData] = await Promise.all([
-        studentVocabularyApi.getPublishedLessons(),
-        studentVocabularyApi.getPublishedLessons(lessonParams),
-      ]);
+      setAllLessonsBase(sortLessonsByNumber(allDataMapped));
 
-      setAllLessonsBase(sortLessonsByNumber(allData));
-      setLessons(sortLessonsByNumber(filteredData));
+      // Apply level, topic, and search filtering on the frontend
+      let filtered = allDataMapped;
+      if (selectedLevel !== "all") {
+        filtered = filtered.filter((l) => l.level === selectedLevel);
+      }
+      if (selectedTopic !== "All Topics") {
+        // Content Library lessons don't have topics, so filtering for a specific topic yields empty
+        filtered = [];
+      }
+      if (appliedSearch.trim()) {
+        const term = appliedSearch.toLowerCase();
+        filtered = filtered.filter((l) =>
+          l.title.toLowerCase().includes(term) ||
+          (l.description && l.description.toLowerCase().includes(term))
+        );
+      }
+
+      setLessons(sortLessonsByNumber(filtered));
 
       const topics = Array.from(
-        new Set(allData.map((l) => l.topic).filter(Boolean) as string[]),
+        new Set(allDataMapped.map((l) => l.topic).filter(Boolean) as string[]),
       ).sort();
       setAllTopics(topics);
     } catch (err) {

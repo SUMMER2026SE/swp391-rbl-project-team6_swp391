@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useEvent } from "./useEvent";
-import { Upload, Loader2, AlertCircle, Plus, CheckCircle, FileText, Sparkles } from "lucide-react";
+import { Upload, Loader2, AlertCircle, Plus, CheckCircle, FileText, Sparkles, RefreshCw } from "lucide-react";
 import { QuestionEditor, ImportedQuestion } from "./pdf-import/QuestionEditor";
-import { aiApi, type PdfImportMode, type TargetSkill, type PdfImportQuestionType, type DifficultyPercentages } from "@/lib/api/ai";
+import { aiApi, type PdfImportMode, type TargetSkill, type PdfImportQuestionType, type DifficultyPercentages, type WritingMode } from "@/lib/api/ai";
 import { toast } from "sonner";
 
 interface AiPdfImportWorkflowProps {
@@ -26,6 +26,42 @@ interface AiPdfImportWorkflowProps {
   defaultMode?: PdfImportMode;
 }
 
+const mapErrorCodeToMessage = (
+  code: string | undefined | null,
+  fallbackMsg: string,
+  generatedCount?: number,
+  requestedCount?: number
+): string => {
+  if (!code) return fallbackMsg;
+  switch (code) {
+    case "AI_QUOTA_EXHAUSTED":
+      return "AI quota is temporarily exhausted. Please try again later.";
+    case "AI_RATE_LIMITED":
+      return "AI providers are temporarily rate-limited. Please try again later.";
+    case "AI_PROVIDER_TIMEOUT":
+      return "The AI provider took too long to respond. Please try again.";
+    case "AI_REQUEST_TIMEOUT":
+      return "The request exceeded the maximum processing time. Please try again.";
+    case "AI_PROVIDER_UNAVAILABLE":
+      return "AI providers are temporarily unavailable due to quota limits or provider timeout. Please try again later.";
+    case "AI_INVALID_RESPONSE":
+      return "AI service returned an invalid response. Please retry.";
+    case "AI_INVALID_API_KEY":
+    case "AI_PROVIDER_FORBIDDEN":
+    case "AI_PROVIDER_CALL_LIMIT_REACHED":
+      return "AI service is temporarily unavailable. Please try again later.";
+    case "PDF_UNREADABLE":
+      return "No questions could be extracted from this PDF. Please check that the file contains readable learning content and try again.";
+    case "AI_PARTIAL_RESULT":
+      if (generatedCount !== undefined && requestedCount !== undefined) {
+        return `${generatedCount} of ${requestedCount} questions were generated. Please try again.`;
+      }
+      return fallbackMsg;
+    default:
+      return fallbackMsg;
+  }
+};
+
 export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   onCreate,
   title,
@@ -48,6 +84,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [reAnalyzingIndexes] = useState<Record<number, boolean>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Guards against duplicate requests (StrictMode double-mount, double onChange,
   // double drop, etc). The string is a stable request key.
@@ -69,28 +106,126 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   );
   const [questionCount, setQuestionCount] = useState(10);
   const [questionType, setQuestionType] = useState<PdfImportQuestionType>("MULTIPLE_CHOICE");
+  const [questionFormats, setQuestionFormats] = useState<PdfImportQuestionType[]>(["AUTO_DETECT"]);
+  const SKILL_FORMAT_COMPATIBILITY: Record<string, string[]> = {
+    VOCABULARY: ["MULTIPLE_CHOICE", "FILL_BLANK", "SHORT_ANSWER", "MATCHING", "TRANSLATION", "SENTENCE_WRITING"],
+    GRAMMAR: ["MULTIPLE_CHOICE", "TRUE_FALSE", "FILL_BLANK", "SHORT_ANSWER", "SENTENCE_WRITING", "ERROR_CORRECTION", "TRANSLATION"],
+    READING: ["MULTIPLE_CHOICE", "TRUE_FALSE", "SHORT_ANSWER", "FILL_BLANK", "TRANSLATION"],
+    WRITING: ["TRANSLATION", "SENTENCE_WRITING", "SHORT_ANSWER", "ERROR_CORRECTION"]
+  };
+
   const [difficulty, setDifficulty] = useState("MEDIUM");
   const [level, setLevel] = useState("");
   const [targetSkills, setTargetSkills] = useState<TargetSkill[]>([]);
+  const [writingMode, setWritingMode] = useState<WritingMode>("MIXED_WRITING");
   const [difficultyPercent, setDifficultyPercent] = useState<DifficultyPercentages>({
     easy: 30,
     medium: 50,
     hard: 20,
   });
 
-  const AVAILABLE_SKILLS: TargetSkill[] = ["VOCABULARY", "GRAMMAR", "READING"];
+  const getCompatibleFormats = (): PdfImportQuestionType[] => {
+    const allFormats: PdfImportQuestionType[] = [
+      "MULTIPLE_CHOICE",
+      "TRUE_FALSE",
+      "FILL_BLANK",
+      "SHORT_ANSWER",
+      "MATCHING",
+      "TRANSLATION",
+      "SENTENCE_WRITING",
+      "ERROR_CORRECTION"
+    ];
+    if (!targetSkills || targetSkills.length === 0) {
+      return allFormats;
+    }
+    const compatible = new Set<string>();
+    targetSkills.forEach(skill => {
+      const formatsForSkill = SKILL_FORMAT_COMPATIBILITY[skill.toUpperCase()];
+      if (formatsForSkill) {
+        formatsForSkill.forEach(f => compatible.add(f));
+      }
+    });
+    return allFormats.filter(f => compatible.has(f));
+  };
+
+  const getFirstCompatibleFormat = (): PdfImportQuestionType | null => {
+    const comp = getCompatibleFormats();
+    return comp.length > 0 ? comp[0] : null;
+  };
+
+  // Derive isWritingOnly from targetSkills
+  const isWritingOnly = targetSkills.length === 1 && targetSkills[0] === "WRITING";
+
+  // Adjust selected formats and reset questionType/writingMode when skills change
+  useEffect(() => {
+    if (selectedMode === "IMPORT_EXISTING_QUESTIONS") {
+      const compatible = getCompatibleFormats();
+      setQuestionFormats((prev) => {
+        if (prev.includes("AUTO_DETECT")) return prev;
+        const next = prev.filter((f) => compatible.includes(f));
+        return next.length > 0 ? next : ["AUTO_DETECT"];
+      });
+    }
+    if (isWritingOnly) {
+      setQuestionType("MULTIPLE_CHOICE");
+    }
+  }, [targetSkills, selectedMode, isWritingOnly]);
+
+  // Derive single questionFormat for backward compatibility (takes first element)
+  const questionFormat = questionFormats[0] || "AUTO_DETECT";
+
+  // Toggle format selection (only for IMPORT mode)
+  const handleFormatToggle = (format: PdfImportQuestionType) => {
+    if (selectedMode === "IMPORT_EXISTING_QUESTIONS") {
+      setQuestionFormats((prev) => {
+        if (format === "AUTO_DETECT") {
+          if (prev.includes("AUTO_DETECT")) {
+            const firstCompatible = getFirstCompatibleFormat();
+            return firstCompatible ? [firstCompatible] : ["AUTO_DETECT"];
+          } else {
+            return ["AUTO_DETECT"];
+          }
+        }
+        const withoutAutoDetect = prev.filter((f) => f !== "AUTO_DETECT");
+        if (withoutAutoDetect.includes(format)) {
+          const remaining = withoutAutoDetect.filter((f) => f !== format);
+          return remaining.length > 0 ? remaining : ["AUTO_DETECT"];
+        } else {
+          return [...withoutAutoDetect, format];
+        }
+      });
+    }
+  };
+
+  const isFormatDisabled = (format: PdfImportQuestionType) => {
+    if (selectedMode !== "IMPORT_EXISTING_QUESTIONS") return true;
+    if (format === "AUTO_DETECT") return false;
+    if (questionFormats.includes("AUTO_DETECT")) return true;
+    const compatible = getCompatibleFormats();
+    if (!compatible.includes(format)) return true;
+    return false;
+  };
+
+  // Question Bank skills only - LISTENING and KANJI excluded
+  const AVAILABLE_SKILLS: TargetSkill[] = ["VOCABULARY", "GRAMMAR", "READING", "WRITING"];
 
   const isSkillRequired = selectedMode === "GENERATE_FROM_CONTENT";
   const disableUpload = isSkillRequired && targetSkills.length === 0;
 
   const handleSkillToggle = (skill: TargetSkill) => {
-    setTargetSkills(prev => {
-      if (prev.includes(skill)) {
-        return prev.filter(s => s !== skill);
+    setTargetSkills((prev) => {
+      if (skill === "WRITING") {
+        return prev.includes("WRITING") ? [] : ["WRITING"];
       } else {
-        return [...prev, skill];
+        const withoutWriting = prev.filter((s) => s !== "WRITING");
+        if (withoutWriting.includes(skill)) {
+          return withoutWriting.filter((s) => s !== skill);
+        } else {
+          return [...withoutWriting, skill];
+        }
       }
     });
+    setQuestionType("MULTIPLE_CHOICE");
     // Clear stale preview whenever the user toggles a skill — the existing
     // questions were produced for a different skill filter and would mislead
     // the teacher if shown next to the new selection.
@@ -268,52 +403,66 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     setError(null);
     setWarning(null);
     setStep("loading");
-    setLoadingMessage("Extracting text from PDF...");
+    setLoadingMessage("Processing PDF and generating questions...");
+    setIsGenerating(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 180000); // 180 seconds (3 minutes) — safety net; backend enforces 90s deadline and returns before this fires
+
+    let success = false;
     try {
       const response = await aiApi.generateQuestionsFromPdf({
         file,
         mode: selectedMode,
         level: level || undefined,
         count: selectedMode === "GENERATE_FROM_CONTENT" ? questionCount : undefined,
-        questionType: selectedMode === "GENERATE_FROM_CONTENT" ? questionType : undefined,
+        questionType: selectedMode === "GENERATE_FROM_CONTENT" ? (targetSkills.includes("WRITING") ? "SHORT_ANSWER" as PdfImportQuestionType : questionType) : undefined,
+        writingMode: selectedMode === "GENERATE_FROM_CONTENT" && targetSkills.includes("WRITING") ? writingMode : undefined,
         difficulty: selectedMode === "GENERATE_FROM_CONTENT" ? difficulty : undefined,
         difficultyPercent:
           selectedMode === "GENERATE_FROM_CONTENT" ? difficultyPercent : undefined,
         targetSkills: targetSkills.length > 0 ? targetSkills : undefined,
-      });
+        // For IMPORT mode, pass the format filter
+        // questionFormats array (supports multiple formats)
+        // AUTO_DETECT means no filter
+        questionFormats: selectedMode === "IMPORT_EXISTING_QUESTIONS" ? questionFormats : undefined,
+      }, controller.signal);
 
-      setLoadingMessage("AI is analyzing questions...");
-      await new Promise(resolve => setTimeout(resolve, 500));
+      clearTimeout(timeoutId);
 
-      if (response.errorMessage) {
+      if (response.success === false || response.errorMessage) {
         const rawQuestions = Array.isArray(response.questions) ? response.questions : [];
         if (rawQuestions.length === 0) {
-          setError(response.errorMessage);
+          const userMsg = mapErrorCodeToMessage(response.code, response.errorMessage || "Failed to process PDF.", response.generatedCount, response.requestedCount);
+          setError(userMsg);
           setStep("upload");
-          toast.error(response.errorMessage);
+          toast.error(userMsg);
           return;
         } else {
-          setWarning(response.errorMessage);
-          toast.warning(response.errorMessage);
+          const userMsg = mapErrorCodeToMessage(response.code, response.errorMessage || "Some questions could not be generated.", response.generatedCount, response.requestedCount);
+          setWarning(userMsg);
+          toast.warning(userMsg);
         }
       }
 
       const rawQuestions = Array.isArray(response.questions) ? response.questions : [];
       if (rawQuestions.length === 0) {
-        const fallback =
-          "No questions could be extracted from this PDF. Please check that the file contains readable learning content and try again.";
+        const fallback = response.code === "PDF_UNREADABLE"
+          ? "No questions could be extracted from this PDF. Please check that the file contains readable learning content and try again."
+          : (response.errorMessage || "Failed to generate questions from this PDF. Please try again.");
         setError(fallback);
         setStep("upload");
         toast.error(fallback);
         return;
       }
 
-      const importedQuestions: ImportedQuestion[] = rawQuestions.map((q, idx) => {
+      let importedQuestions: ImportedQuestion[] = rawQuestions.map((q, idx) => {
         const rawAnswers = Array.isArray(q.answers) ? q.answers : [];
         const correctIndex = rawAnswers.findIndex(a => a && a.isCorrect);
         const mappedCategory = mapCategory(q.category, q.content);
-        const resolvedType = normalizePreviewType(q.type);
+        let resolvedType = normalizePreviewType(q.type);
         let mappedAnswers: { content: string; isCorrect: boolean }[];
         if (resolvedType === "FILL_BLANK" || resolvedType === "SHORT_ANSWER") {
           // For text-only questions the BE may return zero or many options;
@@ -326,6 +475,58 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
             isCorrect: aIdx === correctIndex || (correctIndex === -1 && aIdx === 0),
           }));
         }
+
+        let transMeta = q.translationMetadata;
+        let sentenceMeta = q.sentenceWritingMetadata;
+
+        // Apply WRITING mode rules
+        if (targetSkills.includes("WRITING") || mappedCategory === "Writing") {
+          if (writingMode === "JA_TO_VI_TRANSLATION") {
+            resolvedType = "TRANSLATION";
+            transMeta = {
+              direction: "JA_TO_VI",
+              sourceText: q.translationMetadata?.sourceText || q.content,
+              referenceAnswer: q.translationMetadata?.referenceAnswer || rawAnswers[0]?.content || "",
+              acceptedAnswers: q.translationMetadata?.acceptedAnswers || rawAnswers.map(a => a.content),
+              ...q.translationMetadata
+            };
+          } else if (writingMode === "VI_TO_JA_TRANSLATION") {
+            resolvedType = "TRANSLATION";
+            transMeta = {
+              direction: "VI_TO_JA",
+              sourceText: q.translationMetadata?.sourceText || q.content,
+              referenceAnswer: q.translationMetadata?.referenceAnswer || rawAnswers[0]?.content || "",
+              acceptedAnswers: q.translationMetadata?.acceptedAnswers || rawAnswers.map(a => a.content),
+              ...q.translationMetadata
+            };
+          } else if (writingMode === "SENTENCE_REORDER") {
+            resolvedType = "SENTENCE_WRITING";
+            sentenceMeta = {
+              wordTokens: q.sentenceWritingMetadata?.wordTokens || [],
+              orderedAnswer: q.sentenceWritingMetadata?.orderedAnswer || rawAnswers[0]?.content || "",
+              ...q.sentenceWritingMetadata
+            };
+          } else if (writingMode === "MIXED_WRITING") {
+            if (resolvedType === "TRANSLATION") {
+              transMeta = {
+                direction: q.translationMetadata?.direction || "JA_TO_VI",
+                sourceText: q.translationMetadata?.sourceText || q.content,
+                referenceAnswer: q.translationMetadata?.referenceAnswer || rawAnswers[0]?.content || "",
+                acceptedAnswers: q.translationMetadata?.acceptedAnswers || rawAnswers.map(a => a.content),
+                ...q.translationMetadata
+              };
+            } else if (resolvedType === "SENTENCE_WRITING") {
+              sentenceMeta = {
+                wordTokens: q.sentenceWritingMetadata?.wordTokens || [],
+                orderedAnswer: q.sentenceWritingMetadata?.orderedAnswer || rawAnswers[0]?.content || "",
+                ...q.sentenceWritingMetadata
+              };
+            } else {
+              resolvedType = "SHORT_ANSWER";
+            }
+          }
+        }
+
         return {
           id: `extracted-${Date.now()}-${idx}`,
           type: resolvedType,
@@ -335,18 +536,28 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
           answers: mappedAnswers,
           category: mappedCategory,
           needsReview: false,
+          translationMetadata: transMeta,
+          sentenceWritingMetadata: sentenceMeta,
+          errorCorrectionMetadata: q.errorCorrectionMetadata,
+          matchingMetadata: q.matchingMetadata,
         };
       });
+
+      // Filter by selected questionFormats client-side if not AUTO_DETECT
+      if (selectedMode === "IMPORT_EXISTING_QUESTIONS" && !questionFormats.includes("AUTO_DETECT")) {
+        importedQuestions = importedQuestions.filter(q => questionFormats.includes(q.type));
+      }
 
       const expectedCount = selectedMode === "GENERATE_FROM_CONTENT" ? questionCount : null;
       const isShortfall = expectedCount !== null && importedQuestions.length < expectedCount;
 
       const beWarning = response.warning || response.errorMessage;
       if (beWarning) {
-        setWarning(beWarning);
-        toast.warning(beWarning);
+        const userWarning = mapErrorCodeToMessage(response.code, beWarning, response.generatedCount, response.requestedCount);
+        setWarning(userWarning);
+        toast.warning(userWarning);
       } else if (isShortfall) {
-        const shortMsg = `AI generated ${importedQuestions.length} of ${expectedCount} valid questions. Please retry.`;
+        const shortMsg = `${importedQuestions.length} of ${expectedCount} questions were generated. Please try again.`;
         setWarning(shortMsg);
         toast.warning(shortMsg);
       }
@@ -356,20 +567,34 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       if (!isShortfall) {
         toast.success(`Generated ${importedQuestions.length} questions from PDF`);
       }
+      success = true;
     } catch (err: any) {
-      const raw = err?.message || "Failed to process PDF. Please try again.";
-      const friendly = raw.includes("aiResult") || raw.includes("Cannot invoke")
-        ? "AI could not generate questions from this PDF. Please try a different file."
-        : raw;
+      clearTimeout(timeoutId);
+      // Sanitize: prefer structured code+message from the BE, then fall back to safe defaults.
+      // Never surface raw err.message (which can contain raw provider payloads).
+      let friendly: string;
+      const errCode = err?.response?.data?.code;
+      const errMsg = err?.response?.data?.errorMessage || err?.response?.data?.message;
+      if (errCode || errMsg) {
+        friendly = mapErrorCodeToMessage(errCode, errMsg || "Failed to process PDF. Please try again.");
+      } else if (err?.name === "AbortError" || (err instanceof DOMException && err.name === "AbortError")) {
+        friendly = "The request exceeded the maximum processing time. Please try again.";
+      } else {
+        friendly = "Failed to process PDF. Please try again.";
+      }
       setError(friendly);
       setStep("upload");
       toast.error(friendly);
     } finally {
+      setIsGenerating(false);
       // Release the in-flight guard so Retry / Generate Again / re-selecting the
       // same file after a reset can re-trigger generation.
       inFlightKeyRef.current = null;
+      if (!success) {
+        setStep("upload");
+      }
     }
-  }, [selectedMode, questionCount, questionType, difficulty, level, targetSkills, difficultyPercent]);
+  }, [selectedMode, questionCount, questionType, difficulty, level, targetSkills, difficultyPercent, questionFormats]);
 
   // Stable ref that always points at the LATEST handleGenerateInternal.
   // handleSelectFile (a useEvent) reads through this ref so it does NOT
@@ -391,17 +616,17 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     await handleGenerateInternal(selectedFile);
   }, [selectedFile, selectedMode, handleGenerateInternal]);
 
-  /** Valid Question Bank category values (canonical PascalCase). */
-  const VALID_CATEGORIES = ["Vocabulary", "Grammar", "Reading", "Listening"];
+  /** Valid Question Bank category values (canonical PascalCase) - LISTENING and KANJI excluded */
+  const VALID_CATEGORIES = ["Vocabulary", "Grammar", "Reading", "Writing"];
 
   /**
    * Normalize a free-form question type string from the BE preview response
    * to the canonical value the FE {@link QuestionEditor} can render.
-   * Falls back to MULTIPLE_CHOICE so the editor never crashes on a typo.
+   * Falls back to SHORT_ANSWER so the editor can handle unknown formats.
    */
   const normalizePreviewType = (raw: string | undefined | null): PdfImportQuestionType => {
     if (!raw) return "MULTIPLE_CHOICE";
-    const norm = raw.trim().toUpperCase().replace("-", "_");
+    const norm = raw.trim().toUpperCase().replace(/-/g, "_");
     switch (norm) {
       case "TRUE_FALSE":
       case "TRUEFALSE":
@@ -416,7 +641,22 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       case "SHORT_ANSWER":
       case "SHORTANSWER":
       case "ESSAY":
+      case "WRITING":
         return "SHORT_ANSWER";
+      case "MATCHING":
+        return "MATCHING";
+      case "TRANSLATION":
+        return "TRANSLATION";
+      case "SENTENCE_WRITING":
+      case "SENTENCEWRITING":
+      case "SENTENCE_REORDER":
+      case "SENTENCEREORDER":
+        return "SENTENCE_WRITING";
+      case "ERROR_CORRECTION":
+      case "ERRORCORRECTION":
+      case "ERROR_CORRECT":
+      case "CORRECT_THE_ERROR":
+        return "ERROR_CORRECTION";
       case "MULTIPLE_CHOICE":
       case "MCQ":
       case "MC":
@@ -441,7 +681,8 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     if (lower === "vocabulary") return "Vocabulary";
     if (lower === "grammar") return "Grammar";
     if (lower === "reading") return "Reading";
-    if (lower === "listening") return "Listening";
+    if (lower === "writing") return "Writing";
+    // LISTENING and KANJI are not supported by Question Bank
     return null;
   };
 
@@ -721,18 +962,31 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                    Question Type
+                    {targetSkills.includes("WRITING") ? "Writing Mode" : "Question Type"}
                   </label>
-                  <select
-                    value={questionType}
-                    onChange={(e) => setQuestionType(e.target.value as PdfImportQuestionType)}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none cursor-pointer"
-                  >
-                    <option value="MULTIPLE_CHOICE">Multiple Choice</option>
-                    <option value="TRUE_FALSE">True/False</option>
-                    <option value="FILL_BLANK">Fill in Blank</option>
-                    <option value="SHORT_ANSWER">Short Answer</option>
-                  </select>
+                  {targetSkills.includes("WRITING") ? (
+                    <select
+                      value={writingMode}
+                      onChange={(e) => setWritingMode(e.target.value as WritingMode)}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none cursor-pointer"
+                    >
+                      <option value="MIXED_WRITING">Mixed Writing Exercises</option>
+                      <option value="JA_TO_VI_TRANSLATION">Japanese → Vietnamese Translation</option>
+                      <option value="VI_TO_JA_TRANSLATION">Vietnamese → Japanese Translation</option>
+                      <option value="SENTENCE_REORDER">Sentence Reordering</option>
+                    </select>
+                  ) : (
+                    <select
+                      value={questionType}
+                      onChange={(e) => setQuestionType(e.target.value as PdfImportQuestionType)}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none cursor-pointer"
+                    >
+                      <option value="MULTIPLE_CHOICE">Multiple Choice</option>
+                      <option value="TRUE_FALSE">True/False</option>
+                      <option value="FILL_BLANK">Fill in Blank</option>
+                      <option value="SHORT_ANSWER">Short Answer</option>
+                    </select>
+                  )}
                 </div>
 
                 <div className="space-y-1.5 md:col-span-2">
@@ -824,12 +1078,12 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
                     <input
                       type="checkbox"
                       id="select-all-skills"
-                      checked={targetSkills.length === AVAILABLE_SKILLS.length}
+                      checked={["VOCABULARY", "GRAMMAR", "READING"].every(s => targetSkills.includes(s as TargetSkill))}
                       onChange={() => {
-                        if (targetSkills.length === AVAILABLE_SKILLS.length) {
+                        if (["VOCABULARY", "GRAMMAR", "READING"].every(s => targetSkills.includes(s as TargetSkill))) {
                           setTargetSkills([]);
                         } else {
-                          setTargetSkills([...AVAILABLE_SKILLS]);
+                          setTargetSkills(["VOCABULARY", "GRAMMAR", "READING"]);
                         }
                       }}
                       className="w-4 h-4 rounded border-[var(--border)] text-primary focus:ring-primary"
@@ -887,28 +1141,29 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
                     Import Existing Questions
                   </h4>
                   <p className="text-sm text-secondary-col mb-4">
-                    AI will extract questions from your PDF. The number of questions depends on the content of your PDF.
+                    AI will extract and classify questions from your PDF. The number of questions depends on the content of your PDF.
                   </p>
                 </div>
               </div>
 
+              {/* Target Skills */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="select-all-skills-import"
-                    checked={targetSkills.length === AVAILABLE_SKILLS.length}
+                    checked={["VOCABULARY", "GRAMMAR", "READING"].every((s) => targetSkills.includes(s as TargetSkill))}
                     onChange={() => {
-                      if (targetSkills.length === AVAILABLE_SKILLS.length) {
+                      if (["VOCABULARY", "GRAMMAR", "READING"].every((s) => targetSkills.includes(s as TargetSkill))) {
                         setTargetSkills([]);
                       } else {
-                        setTargetSkills([...AVAILABLE_SKILLS]);
+                        setTargetSkills(["VOCABULARY", "GRAMMAR", "READING"]);
                       }
                     }}
                     className="w-4 h-4 rounded border-[var(--border)] text-primary focus:ring-primary"
                   />
                   <label htmlFor="select-all-skills-import" className="text-xs font-bold text-secondary-col uppercase tracking-wider cursor-pointer">
-                    Target Skills
+                    Target Skills (Optional Filter)
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-3 pl-6">
@@ -932,9 +1187,101 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
                   ))}
                 </div>
                 <p className="text-xs text-muted-col pl-6">
-                  AI will only extract or generate questions for the selected skills.
+                  Leave empty to import all skills. Select specific skills to filter questions by category.
                 </p>
               </div>
+
+              {/* Writing Mode — shown only when WRITING is the only selected skill */}
+              {isWritingOnly && (
+                <div className="space-y-1.5 border-t border-[var(--border)] pt-4">
+                  <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Writing Mode
+                  </label>
+                  <select
+                    value={writingMode}
+                    onChange={(e) => setWritingMode(e.target.value as WritingMode)}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none cursor-pointer"
+                  >
+                    <option value="MIXED_WRITING">Mixed Writing Exercises</option>
+                    <option value="JA_TO_VI_TRANSLATION">Japanese → Vietnamese Translation</option>
+                    <option value="VI_TO_JA_TRANSLATION">Vietnamese → Japanese Translation</option>
+                    <option value="SENTENCE_REORDER">Sentence Reordering</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Question Format — hidden when WRITING is selected */}
+              {!isWritingOnly && (
+                <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Question Format
+                    </label>
+                    <p className="text-xs text-muted-col mb-2">
+                      Select formats to filter imported questions. Leave Auto Detect to import all formats.
+                    </p>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer hover:bg-[var(--accent)]/30 rounded-lg p-2 transition">
+                        <input
+                          type="checkbox"
+                          checked={questionFormats.includes("AUTO_DETECT")}
+                          onChange={() => handleFormatToggle("AUTO_DETECT")}
+                          className="w-4 h-4 rounded border-[var(--border)] text-[var(--primary-col)] focus:ring-[var(--primary-col)]"
+                          disabled={selectedMode !== "IMPORT_EXISTING_QUESTIONS"}
+                        />
+                        <span className="text-sm text-primary-col">Auto Detect (Recommended)</span>
+                      </label>
+                      <div className="pl-6 space-y-1">
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-[var(--accent)]/30 rounded-lg p-2 transition">
+                          <input
+                            type="checkbox"
+                            checked={questionFormats.includes("MULTIPLE_CHOICE")}
+                            onChange={() => handleFormatToggle("MULTIPLE_CHOICE")}
+                            className="w-4 h-4 rounded border-[var(--border)] text-[var(--primary-col)] focus:ring-[var(--primary-col)]"
+                            disabled={isFormatDisabled("MULTIPLE_CHOICE")}
+                          />
+                          <span className="text-sm text-primary-col">Multiple Choice</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-[var(--accent)]/30 rounded-lg p-2 transition">
+                          <input
+                            type="checkbox"
+                            checked={questionFormats.includes("TRUE_FALSE")}
+                            onChange={() => handleFormatToggle("TRUE_FALSE")}
+                            className="w-4 h-4 rounded border-[var(--border)] text-[var(--primary-col)] focus:ring-[var(--primary-col)]"
+                            disabled={isFormatDisabled("TRUE_FALSE")}
+                          />
+                          <span className="text-sm text-primary-col">True / False</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-[var(--accent)]/30 rounded-lg p-2 transition">
+                          <input
+                            type="checkbox"
+                            checked={questionFormats.includes("FILL_BLANK")}
+                            onChange={() => handleFormatToggle("FILL_BLANK")}
+                            className="w-4 h-4 rounded border-[var(--border)] text-[var(--primary-col)] focus:ring-[var(--primary-col)]"
+                            disabled={isFormatDisabled("FILL_BLANK")}
+                          />
+                          <span className="text-sm text-primary-col">Fill in the Blank</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-[var(--accent)]/30 rounded-lg p-2 transition">
+                          <input
+                            type="checkbox"
+                            checked={questionFormats.includes("SHORT_ANSWER")}
+                            onChange={() => handleFormatToggle("SHORT_ANSWER")}
+                            className="w-4 h-4 rounded border-[var(--border)] text-[var(--primary-col)] focus:ring-[var(--primary-col)]"
+                            disabled={isFormatDisabled("SHORT_ANSWER")}
+                          />
+                          <span className="text-sm text-primary-col">Short Answer</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-col mt-2">
+                    {questionFormats.includes("AUTO_DETECT")
+                      ? "AI will automatically detect the original format of each question from the PDF."
+                      : `Selected formats: ${questionFormats.map((f) => f.replace(/_/g, " ")).join(", ") || "None"}`}
+                  </p>
+                </div>
+              )}
 
               <div className="pt-2">
                 <button
@@ -1106,7 +1453,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
             <button
               type="button"
               onClick={handleGenerate}
-              disabled={!selectedFile}
+              disabled={!selectedFile || isGenerating}
               data-testid="ai-pdf-generate-button"
               className={`px-6 py-2.5 rounded-xl text-sm font-bold shadow-md transition ${
                 !selectedFile
@@ -1119,9 +1466,22 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
           </div>
 
           {error && (
-            <div className="px-4 py-3 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span>{error}</span>
+            <div className="flex flex-col gap-3">
+              <div className="px-4 py-3 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span className="flex-1 text-left">{error}</span>
+              </div>
+              {selectedFile && (
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold bg-primary text-white hover:bg-primary/90 transition flex items-center justify-center gap-2 self-start"
+                  data-testid="ai-pdf-retry-button"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Retry Generation
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-import type { ApiResponse } from "./types";
+﻿import type { ApiResponse } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 const TOKEN_KEY = "midori_access_token";
@@ -43,12 +43,13 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const isFormData = body instanceof FormData;
   const options: RequestInit = {
     method,
     headers: buildHeaders(isFormData),
+    signal,
   };
 
   if (body !== undefined) {
@@ -113,8 +114,8 @@ export const api = {
     return request<T>("GET", path);
   },
 
-  post<T>(path: string, body?: unknown): Promise<T> {
-    return request<T>("POST", path, body);
+  post<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+    return request<T>("POST", path, body, signal);
   },
 
   put<T>(path: string, body?: unknown): Promise<T> {

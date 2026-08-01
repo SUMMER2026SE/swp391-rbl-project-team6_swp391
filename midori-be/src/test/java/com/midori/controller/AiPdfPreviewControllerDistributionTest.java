@@ -4,6 +4,7 @@ import com.midori.ai.core.AiCoreService;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.service.AiLearningContentService;
 import com.midori.service.PdfTextExtractor;
+import com.midori.validation.QuestionBankCompatibilityValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,11 +46,13 @@ public class AiPdfPreviewControllerDistributionTest {
     private AiLearningContentService aiLearningContentService;
 
     private AiPdfPreviewController controller;
+    private QuestionBankCompatibilityValidator compatibilityValidator;
 
     @BeforeEach
     void setUp() throws Exception {
+        compatibilityValidator = new QuestionBankCompatibilityValidator();
         controller = new AiPdfPreviewController(
-                pdfTextExtractor, aiCoreService, aiLearningContentService);
+                pdfTextExtractor, aiCoreService, aiLearningContentService, compatibilityValidator);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
         // Stub the extractor with a valid result so controller-side validations
         // never NPE before reaching the distribution check.
@@ -79,10 +82,10 @@ public class AiPdfPreviewControllerDistributionTest {
                 .andExpect(status().isOk());
 
         verify(aiLearningContentService).generateQuestionsWithDistribution(
-                eq("lesson.pdf"), any(), eq(10), eq("FILL_BLANK"),
+                eq("lesson.pdf"), any(), any(), eq(10), eq("FILL_BLANK"),
                 eq(30), eq(50), eq(20), any(), any());
         verify(aiLearningContentService, never())
-                .generateQuestions(any(), any(), anyInt(), any(), any(), any());
+                .generateQuestions(any(), any(), any(), anyInt(), any(), any(), any());
     }
 
     @Test
@@ -98,7 +101,7 @@ public class AiPdfPreviewControllerDistributionTest {
                         .param("targetSkills", "VOCABULARY"))
                 .andExpect(status().isBadRequest());
         verify(aiLearningContentService, never())
-                .generateQuestionsWithDistribution(any(), any(), anyInt(), any(),
+                .generateQuestionsWithDistribution(any(), any(), any(), anyInt(), any(),
                         anyInt(), anyInt(), anyInt(), any(), any());
     }
 
@@ -187,7 +190,7 @@ public class AiPdfPreviewControllerDistributionTest {
                 .andExpect(status().isOk());
 
         verify(aiLearningContentService).generateQuestionsWithDistribution(
-                any(), any(), eq(3), eq("SHORT_ANSWER"),
+                any(), any(), any(), eq(3), eq("SHORT_ANSWER"),
                 eq(30), eq(50), eq(20), any(), any());
     }
 
@@ -206,7 +209,7 @@ public class AiPdfPreviewControllerDistributionTest {
                 .andExpect(status().isOk());
 
         verify(aiLearningContentService).generateQuestionsWithDistribution(
-                any(), any(), eq(5), eq("TRUE_FALSE"),
+                any(), any(), any(), eq(5), eq("TRUE_FALSE"),
                 eq(0), eq(100), eq(0), any(), any());
     }
 
@@ -223,9 +226,9 @@ public class AiPdfPreviewControllerDistributionTest {
                 .andExpect(status().isOk());
 
         verify(aiLearningContentService).generateQuestions(
-                any(), any(), eq(5), any(), any(), any());
+                any(), any(), any(), eq(5), any(), any(), any());
         verify(aiLearningContentService, never())
-                .generateQuestionsWithDistribution(any(), any(), anyInt(), any(),
+                .generateQuestionsWithDistribution(any(), any(), any(), anyInt(), any(),
                         anyInt(), anyInt(), anyInt(), any(), any());
     }
 
@@ -266,9 +269,9 @@ public class AiPdfPreviewControllerDistributionTest {
 
         verify(aiCoreService).parseExistingQuestionsFromText(any(), any(), any());
         verify(aiLearningContentService, never())
-                .generateQuestions(any(), any(), anyInt(), any(), any(), any());
+                .generateQuestions(any(), any(), any(), anyInt(), any(), any(), any());
         verify(aiLearningContentService, never())
-                .generateQuestionsWithDistribution(any(), any(), anyInt(), any(),
+                .generateQuestionsWithDistribution(any(), any(), any(), anyInt(), any(),
                         anyInt(), anyInt(), anyInt(), any(), any());
     }
 
@@ -311,10 +314,10 @@ public class AiPdfPreviewControllerDistributionTest {
         resp.setQuestions(List.of(q));
 
         when(aiLearningContentService.generateQuestionsWithDistribution(
-                any(), any(), anyInt(), any(), anyInt(), anyInt(), anyInt(), any(), any()))
+                any(), any(), any(), anyInt(), any(), anyInt(), anyInt(), anyInt(), any(), any()))
                 .thenReturn(resp);
         when(aiLearningContentService.generateQuestions(
-                any(), any(), anyInt(), any(), any(), any()))
+                any(), any(), any(), anyInt(), any(), any(), any()))
                 .thenReturn(resp);
     }
 }

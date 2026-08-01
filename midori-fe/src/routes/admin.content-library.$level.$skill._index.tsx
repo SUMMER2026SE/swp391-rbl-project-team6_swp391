@@ -147,14 +147,12 @@ const getSkillBg = (skill: string) => SKILL_CONFIG[skill]?.bg || "bg-primary/15"
 // ─── Status Badge Component ───────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status?: string }) {
-  const s = status || "active";
+  const s = status || "published";
   const styles: Record<string, { color: string; bg: string }> = {
-    active: { color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
-    inactive: { color: "text-muted-col", bg: "bg-muted" },
-    pending: { color: "text-[var(--status-pending)]", bg: "bg-[var(--status-pending)]" },
+    published: { color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
     draft: { color: "text-[var(--status-pending)]", bg: "bg-[var(--status-pending)]" },
   };
-  const cfg = styles[s] || styles.active;
+  const cfg = styles[s] || styles.published;
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${cfg.color}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.bg}`} />
@@ -211,7 +209,7 @@ function Modal({
   );
 }
 
-// ─── Delete Confirmation (Match Question Bank AlertDialog) ─────────────────────
+// ─── Delete/Publish Confirmation Dialog ─────────────────────────────────────
 
 function ConfirmDialog({
   open,
@@ -219,14 +217,43 @@ function ConfirmDialog({
   onConfirm,
   title,
   message,
+  confirmText = "Delete",
+  confirmVariant = "destructive",
 }: {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
   title: string;
   message: string;
+  confirmText?: string;
+  confirmVariant?: "destructive" | "primary" | "warning";
 }) {
   if (!open) return null;
+
+  const isPrimary = confirmVariant === "primary";
+  const isWarning = confirmVariant === "warning";
+
+  let iconBg = "bg-red-500/10";
+  let iconColor = "text-red-500";
+  let Icon = Trash2;
+
+  if (isPrimary) {
+    iconBg = "bg-emerald-500/10";
+    iconColor = "text-emerald-500";
+    Icon = Cloud;
+  } else if (isWarning) {
+    iconBg = "bg-amber-500/10";
+    iconColor = "text-amber-500";
+    Icon = CloudOff;
+  }
+
+  let btnClass = "flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow-md hover:bg-red-600 transition";
+  if (isPrimary) {
+    btnClass = "flex-1 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-bold shadow-md hover:bg-emerald-600 transition";
+  } else if (isWarning) {
+    btnClass = "flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold shadow-md hover:bg-amber-600 transition";
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <motion.div
@@ -236,8 +263,8 @@ function ConfirmDialog({
         className="relative z-10 w-full max-w-md glass-modal rounded-2xl shadow-2xl overflow-hidden"
       >
         <div className="p-6 space-y-4">
-          <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
-            <Trash2 className="w-6 h-6 text-red-500" />
+          <div className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center mx-auto`}>
+            <Icon className={`w-6 h-6 ${iconColor}`} />
           </div>
           <h3 className="font-display font-bold text-primary-col text-lg text-center">{title}</h3>
           <p className="text-secondary-col text-sm text-center">{message}</p>
@@ -251,9 +278,9 @@ function ConfirmDialog({
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow-md hover:bg-red-600 transition"
+            className={btnClass}
           >
-            Delete
+            {confirmText}
           </button>
         </div>
       </motion.div>
@@ -3851,8 +3878,8 @@ function LegacySkillDetailPage() {
         contentOrder: idx + 1,
         pattern: item.grammarPoint || "",
         meaning: item.meaningVietnamese || "",
-        structure: item.meaningJapanese || "",
-        usage: item.explanation || "",
+        structure: item.explanation || "",
+        usage: item.meaningJapanese || "",
         examples: item.exampleSentence ? [{
           exampleOrder: 1,
           japanese: item.exampleSentence,
@@ -3877,29 +3904,44 @@ function LegacySkillDetailPage() {
         id: `temp-p-${pIdx + 1}`,
         passageOrder: pIdx + 1,
         title: p.title || `Passage ${pIdx + 1}`,
-        content: p.content || "",
-        questions: (p.questions || []).map((q: any, qIdx: number) => ({
-          id: `temp-q-${pIdx}-${qIdx}`,
-          questionOrder: qIdx + 1,
-          question: q.questionText || "",
-          explanation: q.explanation || "",
-          optionA: q.options?.[0]?.optionText || "",
-          optionB: q.options?.[1]?.optionText || "",
-          optionC: q.options?.[2]?.optionText || "",
-          optionD: q.options?.[3]?.optionText || "",
-          correctAnswer: q.options?.findIndex((o: any) => o.isCorrect) === 1 ? "B" :
-                         q.options?.findIndex((o: any) => o.isCorrect) === 2 ? "C" :
-                         q.options?.findIndex((o: any) => o.isCorrect) === 3 ? "D" : "A",
-        })),
+        passage: p.content || "",
+        questions: (p.questions || []).map((q: any, qIdx: number) => {
+          const correctIdx = q.options?.findIndex((o: any) => o.isCorrect);
+          const correctAnswer =
+            correctIdx === 0 ? "A" :
+            correctIdx === 1 ? "B" :
+            correctIdx === 2 ? "C" :
+            correctIdx === 3 ? "D" : "A";
+          return {
+            id: `temp-q-${pIdx}-${qIdx}`,
+            questionOrder: qIdx + 1,
+            question: q.questionText || "",
+            optionA: q.options?.[0]?.optionText || "",
+            optionB: q.options?.[1]?.optionText || "",
+            optionC: q.options?.[2]?.optionText || "",
+            optionD: q.options?.[3]?.optionText || "",
+            correctAnswer,
+            explanation: q.explanation || "",
+          };
+        }),
       }));
 
-      handleReadSave({
-        title: draft.title || "AI Generated Reading Lesson",
-        description: draft.description || "",
-        lessonNumber: draft.lessonNumber || (readingLessons.length || 0) + 1,
-        isActive: false, // Default status: DRAFT
-        passages: passages,
-      });
+      const payload = {
+        lesson: {
+          jlptLevel: upperLevel,
+          lessonNumber: draft.lessonNumber || (readingLessons.length || 0) + 1,
+          title: draft.title || "AI Generated Reading Lesson",
+          description: draft.description || "",
+          isActive: false,
+        },
+        passages,
+      };
+
+      if (readingEditMode === "edit" && readingSelectedLesson?.id) {
+        updateReadingMutation.mutate(readingSelectedLesson.id, payload);
+      } else {
+        createReadingMutation.mutate(payload);
+      }
     }
   };
 
@@ -4032,13 +4074,18 @@ function LegacySkillDetailPage() {
         /* ── Backend-driven Table (Reading, Listening, Vocabulary) ── */
         <div className="card-base overflow-hidden">
           {/* Table Header */}
-          <div className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-3 border-b separator items-center">
+          <div className={`grid ${skill === "listening" ? "grid-cols-[60px_1fr_auto]" : "grid-cols-[60px_1fr_120px_auto]"} gap-4 px-5 py-3 border-b separator items-center`}>
             <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Lesson #
             </div>
             <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Title
             </div>
+            {skill !== "listening" && (
+              <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+                Status
+              </div>
+            )}
             <div className="text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Actions
             </div>
@@ -4068,13 +4115,31 @@ function LegacySkillDetailPage() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
+                    className="grid grid-cols-[60px_1fr_120px_auto] gap-4 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
                   >
                     <div className="text-sm font-medium text-muted-col whitespace-nowrap">
                       #{item.lessonNumber}
                     </div>
                     <div className="font-medium text-sm text-primary-col">{item.title}</div>
+                    <div className="flex items-center">
+                      <StatusBadge status={item.isActive ? "published" : "draft"} />
+                    </div>
                     <div className="flex items-center gap-1.5">
+                      {item.isActive ? (
+                        <button
+                          onClick={() => handleReadUnpublish(item)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
+                        >
+                          Unpublish
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleReadPublish(item)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition text-xs font-medium"
+                        >
+                          Publish
+                        </button>
+                      )}
                       <button
                         onClick={() => handleReadEdit(item)}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
@@ -4164,13 +4229,31 @@ function LegacySkillDetailPage() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-4 hover:bg-sakura/5 transition items-center"
+                    className="grid grid-cols-[60px_1fr_120px_auto] gap-4 px-5 py-4 hover:bg-sakura/5 transition items-center"
                   >
                     <div className="text-sm font-medium text-muted-col whitespace-nowrap">
                       #{item.lessonNumber}
                     </div>
                     <div className="font-medium text-sm text-primary-col">{item.title}</div>
+                    <div className="flex items-center">
+                      <StatusBadge status={(item.isActive && item.isPublished) ? "published" : "draft"} />
+                    </div>
                     <div className="flex items-center gap-1.5">
+                      {(item.isActive && item.isPublished) ? (
+                        <button
+                          onClick={() => handleVocabularyUnpublish(item)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
+                        >
+                          Unpublish
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleVocabularyPublish(item)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition text-xs font-medium"
+                        >
+                          Publish
+                        </button>
+                      )}
                       <button
                         onClick={() => handleVocabularyEdit(item)}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
@@ -4323,6 +4406,8 @@ function LegacySkillDetailPage() {
                 ? `Are you sure you want to publish "${vocabularySelectedLesson?.title}"? It will become available to students.`
                 : ""
         }
+        confirmText="Publish"
+        confirmVariant="primary"
       />
 
       <ConfirmDialog
@@ -4360,6 +4445,8 @@ function LegacySkillDetailPage() {
                 ? `Are you sure you want to unpublish "${vocabularySelectedLesson?.title}"? It will no longer be available to students.`
                 : ""
         }
+        confirmText="Unpublish"
+        confirmVariant="warning"
       />
 
       {/* Edit Modal */}
@@ -4609,7 +4696,7 @@ function ReadingDetailModal({
                   </>
                 )}
                 <span className="text-xs text-muted-col">•</span>
-                <StatusBadge status={lesson.isActive ? "active" : "inactive"} />
+                <StatusBadge status={lesson.isActive ? "published" : "draft"} />
               </div>
             )}
           </div>
@@ -5757,7 +5844,7 @@ function VocabularyDetailModal({
                   </>
                 )}
                 <span className="text-xs text-muted-col">•</span>
-                <StatusBadge status={lesson.isActive ? "active" : "inactive"} />
+                <StatusBadge status={(lesson.isActive && lesson.isPublished) ? "published" : "draft"} />
               </div>
             )}
           </div>

@@ -1,5 +1,9 @@
 package com.midori.dto.questiondto;
 
+import com.midori.dto.ai.ErrorCorrectionMetadata;
+import com.midori.dto.ai.MatchingMetadata;
+import com.midori.dto.ai.SentenceWritingMetadata;
+import com.midori.dto.ai.TranslationMetadata;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +14,7 @@ import lombok.Data;
 public class CreateTeacherQuestionRequest {
     private String topicId;
     private String level;
+    @NotBlank(message = "Question skill is required.")
     private String skill;
     private Integer lessonId;
     private String source;
@@ -24,9 +29,15 @@ public class CreateTeacherQuestionRequest {
     private String explanation;
     private String tags;
     private Integer points;
-    @NotEmpty
     private List<String> options;
     private String audioUrl;
     private String audioFileName;
     private Integer audioDuration;
+
+    // Format-specific metadata for new question types
+    private TranslationMetadata translationMetadata;
+    private SentenceWritingMetadata sentenceWritingMetadata;
+    private ErrorCorrectionMetadata errorCorrectionMetadata;
+    private MatchingMetadata matchingMetadata;
+    private String formatMetadata; // JSON string fallback for any future format
 }

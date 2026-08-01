@@ -16,13 +16,21 @@ import type {
 
 export type PdfImportMode = "IMPORT_EXISTING_QUESTIONS" | "GENERATE_FROM_CONTENT";
 
-export type TargetSkill = "VOCABULARY" | "GRAMMAR" | "READING";
+export type TargetSkill = "VOCABULARY" | "GRAMMAR" | "READING" | "WRITING";
 
+export type WritingMode = "MIXED_WRITING" | "JA_TO_VI_TRANSLATION" | "VI_TO_JA_TRANSLATION" | "SENTENCE_REORDER";
+
+// AUTO_DETECT is only valid for IMPORT_EXISTING_QUESTIONS mode
 export type PdfImportQuestionType =
   | "MULTIPLE_CHOICE"
   | "TRUE_FALSE"
   | "FILL_BLANK"
-  | "SHORT_ANSWER";
+  | "SHORT_ANSWER"
+  | "MATCHING"
+  | "TRANSLATION"
+  | "SENTENCE_WRITING"
+  | "ERROR_CORRECTION"
+  | "AUTO_DETECT";
 
 export interface DifficultyPercentages {
   easy: number;
@@ -37,6 +45,17 @@ export interface AiPdfPreviewRequest {
   count?: number;
   questionType?: PdfImportQuestionType;
   /**
+   * Single question format filter.
+   * @deprecated Use questionFormats instead for multiple format support.
+   */
+  questionFormat?: PdfImportQuestionType;
+  /**
+   * Multiple question format filters for IMPORT_EXISTING_QUESTIONS mode.
+   * AUTO_DETECT cannot be combined with other formats.
+   * Empty array means no format filtering (preserve all detected formats).
+   */
+  questionFormats?: PdfImportQuestionType[];
+  /**
    * Legacy single-difficulty hint (only used in IMPORT_EXISTING_QUESTIONS
    * or when the caller does not supply percentage breakdowns). For new
    * GENERATE_FROM_CONTENT requests, use {@link #difficultyPercent} instead.
@@ -48,6 +67,7 @@ export interface AiPdfPreviewRequest {
    */
   difficultyPercent?: DifficultyPercentages;
   targetSkills?: TargetSkill[];
+  writingMode?: WritingMode;
 }
 
 export interface AiPdfPreviewResponse {
@@ -100,13 +120,14 @@ export const aiApi = {
   generateQuestions: (request: GenerateQuizRequest): Promise<GenerateQuizResponse> =>
     api.post<GenerateQuizResponse>("/ai/generate-questions", request),
 
-  generateQuestionsFromPdf: (request: AiPdfPreviewRequest): Promise<AiPdfPreviewResponse> => {
+  generateQuestionsFromPdf: (request: AiPdfPreviewRequest, signal?: AbortSignal): Promise<AiPdfPreviewResponse> => {
     const formData = new FormData();
     formData.append("file", request.file);
     formData.append("mode", request.mode);
     if (request.level) formData.append("level", request.level);
     if (request.count !== undefined) formData.append("count", String(request.count));
     if (request.questionType) formData.append("questionType", request.questionType);
+    if (request.writingMode) formData.append("writingMode", request.writingMode);
     if (request.difficulty) formData.append("difficulty", request.difficulty);
     if (request.difficultyPercent) {
       // Strict distribution path — always send all three so the BE has a
@@ -125,7 +146,7 @@ export const aiApi = {
       formData.append("targetSkill", request.targetSkills.join(","));
       formData.append("targetSkills", request.targetSkills.join(","));
     }
-    return api.post<AiPdfPreviewResponse>("/ai/questions/generate-from-pdf", formData);
+    return api.post<AiPdfPreviewResponse>("/ai/questions/generate-from-pdf", formData, signal);
   },
 
   /**

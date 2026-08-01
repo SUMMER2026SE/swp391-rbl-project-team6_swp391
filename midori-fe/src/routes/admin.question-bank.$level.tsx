@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, Plus, X, Eye, Loader2, ArrowLeft, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { questionBankService, useQuestionBank } from "../services/questionBankService";
+import { questionBankService, useAdminQuestionBankLessons } from "../services/questionBankService";
 import type { Lesson, Question } from "../services/questionBankService";
 import type { JLPTLevel } from "../services/questionBank.types";
 
@@ -41,6 +41,68 @@ function StatusBadge({ status }: { status: "Active" | "Draft" }) {
   );
 }
 
+// ─── Memoized Lesson Row & Constants ──────────────────────────────────────────
+
+const JLPT_LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
+
+interface LessonRowProps {
+  lesson: Lesson;
+  level: JLPTLevel;
+  onView: (lesson: Lesson) => void;
+  onEdit: (lesson: Lesson) => void;
+  onDelete: (lessonId: number) => void;
+}
+
+const LessonRow = memo(function LessonRow({
+  lesson,
+  level,
+  onView,
+  onEdit,
+  onDelete,
+}: LessonRowProps) {
+  return (
+    <div className="grid grid-cols-12 gap-4 px-5 py-4 hover:bg-[var(--accent)]/50 transition items-center">
+      <div className="col-span-5">
+        <div className="flex items-center gap-3">
+          <span className="w-8 h-8 rounded-lg bg-[oklch(0.62_0.18_270)]/10 flex items-center justify-center text-sm font-bold text-[oklch(0.62_0.18_270)]">
+            {lesson.lessonNumber}
+          </span>
+          <p className="text-sm text-primary-col font-medium">{lesson.lessonName}</p>
+        </div>
+      </div>
+      <div className="col-span-2 text-center">
+        <span className="text-sm font-medium text-muted-col">{lesson.questionCount ?? 0}</span>
+      </div>
+      <div className="col-span-2 flex justify-center">
+        <StatusBadge status={lesson.status} />
+      </div>
+      <div className="col-span-3 flex justify-end gap-2">
+        <button
+          onClick={() => onView(lesson)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          View
+        </button>
+        <button
+          onClick={() => onEdit(lesson)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          Edit
+        </button>
+        <button
+          onClick={() => onDelete(lesson.id)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/admin/question-bank/$level")({
@@ -52,17 +114,28 @@ function QuestionBankLessonListPage() {
   const navigate = useNavigate();
   const level = (params.level?.toUpperCase() || "N5") as JLPTLevel;
 
-  const { lessons, questions, isLoading, createLesson, updateLesson, deleteLesson } =
-    useQuestionBank(level);
+  const {
+    lessons,
+    isLoading,
+    isFetching,
+    createLesson,
+    updateLesson,
+    deleteLesson,
+    prefetchLessons,
+  } = useAdminQuestionBankLessons(level);
 
-  // Calculate question count per lesson
-  const getLessonStats = (lessonId: number) => {
-    return questions.filter((q) => q.lesson === lessonId).length;
-  };
+  const totalQuestionsCount = lessons.reduce((sum, l) => sum + (l.questionCount ?? 0), 0);
+  const activeLessonsCount = lessons.filter((l) => (l.questionCount ?? 0) > 0).length;
 
-  const totalQuestionsForLevel = questions;
+  const handleViewLesson = useCallback(
+    (lesson: Lesson) => {
+      navigate({
+        to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lesson.id}`,
+      });
+    },
+    [navigate, level],
+  );
 
-  // ─── Create/Edit Lesson ──────────────────────────────────────────────────────
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLessonNumber, setNewLessonNumber] = useState("");
   const [newLessonName, setNewLessonName] = useState("");
@@ -70,13 +143,13 @@ function QuestionBankLessonListPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
 
-  const handleStartEdit = (lesson: Lesson) => {
+  const handleStartEdit = useCallback((lesson: Lesson) => {
     setEditingLesson(lesson);
     setNewLessonNumber(lesson.lessonNumber.toString());
     setNewLessonName(lesson.lessonName);
     setNewLessonStatus(lesson.status);
     setShowCreateModal(true);
-  };
+  }, []);
 
   const handleCloseModal = () => {
     setShowCreateModal(false);
@@ -130,6 +203,11 @@ function QuestionBankLessonListPage() {
   const [deleteLessonId, setDeleteLessonId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const handlePromptDelete = useCallback((id: number) => {
+    setDeleteLessonId(id);
+    setShowDeleteConfirm(true);
+  }, []);
+
   const handleDeleteLesson = async () => {
     if (deleteLessonId === null) return;
 
@@ -159,12 +237,20 @@ function QuestionBankLessonListPage() {
         Back to Question Bank
       </Link>
 
-      {/* Header - Title and Actions grouped */}
+      {/* Header & JLPT Level Selector */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-display font-black text-primary-col">{pageTitle}</h1>
-            <p className="text-sm text-secondary-col mt-0.5">Select a lesson to manage questions</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-2xl font-display font-black text-primary-col">{pageTitle}</h1>
+              <p className="text-sm text-secondary-col mt-0.5">Select a lesson to manage questions</p>
+            </div>
+            {isFetching && !isLoading && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[oklch(0.62_0.18_270)]/10 border border-[oklch(0.62_0.18_270)]/20 text-[oklch(0.62_0.18_270)] text-xs font-semibold">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Updating...</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -175,6 +261,33 @@ function QuestionBankLessonListPage() {
               Create Lesson
             </button>
           </div>
+        </div>
+
+        {/* JLPT Level Tabs with Prefetching on Hover/Focus */}
+        <div className="flex items-center gap-2 border-b separator pb-3 overflow-x-auto">
+          {JLPT_LEVELS.map((lvl) => {
+            const isActive = level === lvl;
+            return (
+              <button
+                key={lvl}
+                onClick={() =>
+                  navigate({
+                    to: "/admin/question-bank/$level",
+                    params: { level: lvl.toLowerCase() },
+                  })
+                }
+                onMouseEnter={() => prefetchLessons(lvl)}
+                onFocus={() => prefetchLessons(lvl)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                  isActive
+                    ? "bg-[oklch(0.62_0.18_270)] text-white shadow-sm"
+                    : "bg-[var(--card)] text-muted-col hover:text-primary-col hover:bg-[var(--accent)]/50 border border-[var(--border)]"
+                }`}
+              >
+                {lvl} Question Bank
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -200,7 +313,7 @@ function QuestionBankLessonListPage() {
               Total Questions
             </p>
             <p className="font-display font-black text-lg text-primary-col">
-              {totalQuestionsForLevel.length}
+              {totalQuestionsCount}
             </p>
           </div>
         </div>
@@ -213,7 +326,7 @@ function QuestionBankLessonListPage() {
               Active Lessons
             </p>
             <p className="font-display font-black text-lg text-primary-col">
-              {lessons.filter((l) => getLessonStats(l.id) > 0).length}
+              {activeLessonsCount}
             </p>
           </div>
         </div>
@@ -221,8 +334,45 @@ function QuestionBankLessonListPage() {
 
       {/* Lesson List */}
       {isLoading ? (
-        <div className="card-base p-12 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <div className="card-base overflow-hidden">
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
+            <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Lesson
+            </div>
+            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Questions
+            </div>
+            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Status
+            </div>
+            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Actions
+            </div>
+          </div>
+          <div className="divide-y divide-[var(--border)]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-12 gap-4 px-5 py-4 items-center animate-pulse"
+              >
+                <div className="col-span-5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[oklch(0.62_0.18_270)]/10 shrink-0" />
+                  <div className="h-4 w-36 rounded bg-[var(--accent)]/60" />
+                </div>
+                <div className="col-span-2 flex justify-center">
+                  <div className="h-4 w-8 rounded bg-[var(--accent)]/60" />
+                </div>
+                <div className="col-span-2 flex justify-center">
+                  <div className="h-6 w-16 rounded-full bg-[var(--accent)]/60" />
+                </div>
+                <div className="col-span-3 flex justify-end gap-2">
+                  <div className="h-8 w-14 rounded-lg bg-[var(--accent)]/60" />
+                  <div className="h-8 w-14 rounded-lg bg-[var(--accent)]/60" />
+                  <div className="h-8 w-16 rounded-lg bg-[var(--accent)]/60" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : lessons.length === 0 ? (
         <div className="card-base p-12 flex flex-col items-center justify-center">
@@ -257,60 +407,16 @@ function QuestionBankLessonListPage() {
           </div>
           {/* Table Rows */}
           <div className="divide-y divide-[var(--border)]">
-            {lessons.map((lesson, index) => {
-              const stats = getLessonStats(lesson.id);
-              return (
-                <div
-                  key={lesson.id}
-                  className="grid grid-cols-12 gap-4 px-5 py-4 hover:bg-[var(--accent)]/50 transition items-center"
-                >
-                  <div className="col-span-5">
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-lg bg-[oklch(0.62_0.18_270)]/10 flex items-center justify-center text-sm font-bold text-[oklch(0.62_0.18_270)]">
-                        {lesson.lessonNumber}
-                      </span>
-                      <p className="text-sm text-primary-col font-medium">{lesson.lessonName}</p>
-                    </div>
-                  </div>
-                  <div className="col-span-2 text-center">
-                    <span className="text-sm font-medium text-muted-col">{stats}</span>
-                  </div>
-                  <div className="col-span-2 flex justify-center">
-                    <StatusBadge status={lesson.status} />
-                  </div>
-                  <div className="col-span-3 flex justify-end gap-2">
-                    <button
-                      onClick={() =>
-                        navigate({
-                          to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lesson.id}`,
-                        })
-                      }
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View
-                    </button>
-                    <button
-                      onClick={() => handleStartEdit(lesson)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setDeleteLessonId(lesson.id);
-                        setShowDeleteConfirm(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {lessons.map((lesson) => (
+              <LessonRow
+                key={lesson.id}
+                lesson={lesson}
+                level={level}
+                onView={handleViewLesson}
+                onEdit={handleStartEdit}
+                onDelete={handlePromptDelete}
+              />
+            ))}
           </div>
         </div>
       )}

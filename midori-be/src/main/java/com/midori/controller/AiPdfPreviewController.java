@@ -13,41 +13,53 @@ import com.midori.entity.Difficulty;
 import com.midori.entity.QuestionType;
 import com.midori.service.PdfTextExtractor;
 import com.midori.service.AiLearningContentService;
+import com.midori.validation.QuestionBankCompatibilityValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/ai")
 public class AiPdfPreviewController {
+    public static final String ERROR_CODE_PDF_UNREADABLE = "PDF_UNREADABLE";
 
     private static final Logger log = LoggerFactory.getLogger(AiPdfPreviewController.class);
 
-    private static final Set<String> VALID_SKILLS = Set.of("VOCABULARY", "GRAMMAR", "READING");
+    private final QuestionBankCompatibilityValidator compatibilityValidator;
 
     private final PdfTextExtractor pdfTextExtractor;
     private final AiCoreService aiCoreService;
     private final AiLearningContentService aiLearningContentService;
     private final ObjectMapper objectMapper;
 
-    public AiPdfPreviewController(PdfTextExtractor pdfTextExtractor, AiCoreService aiCoreService, AiLearningContentService aiLearningContentService) {
+    public AiPdfPreviewController(PdfTextExtractor pdfTextExtractor, AiCoreService aiCoreService,
+                                  AiLearningContentService aiLearningContentService,
+                                  QuestionBankCompatibilityValidator compatibilityValidator) {
         this.pdfTextExtractor = pdfTextExtractor;
         this.aiCoreService = aiCoreService;
         this.aiLearningContentService = aiLearningContentService;
         this.objectMapper = new ObjectMapper();
+        this.compatibilityValidator = compatibilityValidator;
+    }
+
+    @Autowired
+    public AiPdfPreviewController(PdfTextExtractor pdfTextExtractor, AiCoreService aiCoreService,
+                                  AiLearningContentService aiLearningContentService,
+                                  QuestionBankCompatibilityValidator compatibilityValidator,
+                                  ObjectMapper objectMapper) {
+        this.pdfTextExtractor = pdfTextExtractor;
+        this.aiCoreService = aiCoreService;
+        this.aiLearningContentService = aiLearningContentService;
+        this.objectMapper = objectMapper;
+        this.compatibilityValidator = compatibilityValidator;
     }
 
     @PostMapping(value = "/questions/generate-from-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -58,6 +70,9 @@ public class AiPdfPreviewController {
             @RequestParam(value = "level", required = false) String level,
             @RequestParam(value = "count", defaultValue = "10") Integer count,
             @RequestParam(value = "questionType", defaultValue = "MULTIPLE_CHOICE") String questionType,
+            @RequestParam(value = "writingMode", required = false) String writingMode,
+            @RequestParam(value = "questionFormat", required = false) String questionFormat,
+            @RequestParam(value = "questionFormats", required = false) List<String> questionFormats,
             @RequestParam(value = "difficulty", required = false) String difficulty,
             @RequestParam(value = "easyPct", required = false) Integer easyPct,
             @RequestParam(value = "mediumPct", required = false) Integer mediumPct,
@@ -99,18 +114,44 @@ public class AiPdfPreviewController {
             for (String skill : targetSkills) {
                 if (skill == null || skill.isBlank()) continue;
                 String normalized = skill.toUpperCase().trim();
-                if (!VALID_SKILLS.contains(normalized)) {
+                if (!compatibilityValidator.getValidSkills().contains(normalized)) {
                     return ResponseEntity.badRequest()
-                            .body(ApiResponse.error("Invalid target skill: " + skill + ". Must be one of: VOCABULARY, GRAMMAR, READING"));
+                            .body(ApiResponse.error("Invalid target skill: " + skill + ". Must be one of: " + compatibilityValidator.getValidSkills()));
                 }
                 normalizedSkills.add(normalized);
             }
         }
 
-        if ("GENERATE_FROM_CONTENT".equals(normalizedMode) && normalizedSkills.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("At least one target skill is required."));
+        if ("GENERATE_FROM_CONTENT".equals(normalizedMode)) {
+            if (normalizedSkills.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("At least one target skill is required."));
+            }
+            if (normalizedSkills.contains("WRITING") && normalizedSkills.size() > 1) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("WRITING must be generated separately from Vocabulary, Grammar, and Reading."));
+            }
         }
+
+        // Validate questionFormat for GENERATE_FROM_CONTENT mode
+        if ("GENERATE_FROM_CONTENT".equals(normalizedMode) && !normalizedSkills.contains("WRITING")) {
+            if (questionFormat != null && !questionFormat.isBlank() && !"AUTO_DETECT".equalsIgnoreCase(questionFormat)) {
+                String normalizedFormat = questionFormat.toUpperCase().trim();
+                if (!compatibilityValidator.getValidFormats().contains(normalizedFormat)) {
+                    return ResponseEntity.badRequest()
+                            .body(ApiResponse.error("Invalid questionFormat: " + questionFormat + ". Must be one of: " + compatibilityValidator.getValidFormats()));
+                }
+                // Validate skill-format compatibility using shared validator
+                String compatibilityError = compatibilityValidator.validateSkillsAndFormats(normalizedSkills, normalizedFormat);
+                if (compatibilityError != null) {
+                    return ResponseEntity.badRequest()
+                            .body(ApiResponse.error(compatibilityError));
+                }
+            }
+        }
+
+        // Resolve question formats for IMPORT mode
+        List<String> resolvedFormats = resolveQuestionFormats(questionFormat, questionFormats);
 
         // Convert Set to List for passing to methods
         List<String> selectedSkills = new ArrayList<>(normalizedSkills);
@@ -126,19 +167,51 @@ public class AiPdfPreviewController {
                     .body(ApiResponse.error("Only PDF files are accepted"));
         }
 
+        com.midori.ai.core.AiCoreService.startRequestTimer();
         try {
-            // Step 1: Extract text from PDF
-            PdfTextExtractor.ExtractionResult extraction = pdfTextExtractor.extract(file);
+            // Reset the thread-local call count at start of user request
+            com.midori.ai.core.AiCoreService.resetProviderCallCount();
+
+            // Step 1: Extract text from PDF using Cache
+            byte[] fileBytes = file.getBytes();
+            String fileHash = computeHash(fileBytes);
+
+            com.midori.util.PdfCacheManager.CacheData cached = com.midori.util.PdfCacheManager.get(fileHash);
+            PdfTextExtractor.ExtractionResult extraction;
+            List<AiLearningContentService.SourceRecord> sourceRecords;
+
+            if (cached != null) {
+                extraction = new PdfTextExtractor.ExtractionResult(
+                        cached.extractedText,
+                        new ArrayList<>(),
+                        cached.likelyScanned,
+                        cached.pageCount
+                );
+                sourceRecords = cached.sourceRecords != null ? cached.sourceRecords : new ArrayList<>();
+            } else {
+                extraction = pdfTextExtractor.extract(file);
+
+                // Parse source records to cache them
+                sourceRecords = aiLearningContentService.extractSourceRecords(extraction.fullText());
+
+                com.midori.util.PdfCacheManager.CacheData newCache = new com.midori.util.PdfCacheManager.CacheData();
+                newCache.extractedText = extraction.fullText();
+                newCache.sourceRecords = sourceRecords;
+                newCache.likelyScanned = extraction.likelyScanned();
+                newCache.pageCount = extraction.pageCount();
+                com.midori.util.PdfCacheManager.put(fileHash, newCache);
+            }
+
             log.info("PDF extracted: {} chars from {} pages, scanned={}",
                     extraction.fullText().length(), extraction.pageCount(), extraction.likelyScanned());
 
             // Check for empty or scanned PDF
             if (extraction.fullText() == null || extraction.fullText().trim().isEmpty()) {
-                return buildErrorResponse(mode, "PDF may be scanned or contains no readable text. Please try a text-based PDF.");
+                return buildErrorResponse(mode, ERROR_CODE_PDF_UNREADABLE, "PDF may be scanned or contains no readable text. Please try a text-based PDF.");
             }
 
             if (extraction.likelyScanned() && extraction.fullText().length() < 100) {
-                return buildErrorResponse(mode, "PDF appears to be scanned with little or no extractable text. Please try a different PDF.");
+                return buildErrorResponse(mode, ERROR_CODE_PDF_UNREADABLE, "PDF appears to be scanned with little or no extractable text. Please try a different PDF.");
             }
 
             // Step 2: Generate questions based on mode
@@ -149,11 +222,18 @@ public class AiPdfPreviewController {
                                 + "easyPct={}, mediumPct={}, hardPct={}, selectedSkills={}",
                         count, questionType, difficulty, easyPct, mediumPct, hardPct, selectedSkills);
 
-                QuestionType normalizedType = QuestionTypeValidator.normalize(questionType);
-                if (normalizedType == null) {
-                    return ResponseEntity.badRequest()
-                            .body(ApiResponse.error("Unsupported questionType: " + questionType
-                                    + ". Must be MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK, SHORT_ANSWER, or MATCHING."));
+                boolean isWriting = selectedSkills.contains("WRITING");
+                String effectiveType;
+                if (isWriting) {
+                    effectiveType = (writingMode != null && !writingMode.isBlank()) ? writingMode : (com.midori.ai.dto.WritingMode.parse(questionType) != null ? questionType : "MIXED_WRITING");
+                } else {
+                    QuestionType normalizedType = QuestionTypeValidator.normalize(questionType);
+                    if (normalizedType == null) {
+                        return ResponseEntity.badRequest()
+                                .body(ApiResponse.error("Unsupported questionType: " + questionType
+                                        + ". Must be MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK, SHORT_ANSWER, or MATCHING."));
+                    }
+                    effectiveType = normalizedType.name();
                 }
 
                 boolean hasDistribution = easyPct != null || mediumPct != null || hardPct != null;
@@ -173,14 +253,14 @@ public class AiPdfPreviewController {
                                 .body(ApiResponse.error(ex.getMessage()));
                     }
                     response = generateFromContentWithDistribution(
-                            extraction, mode, filename, count,
-                            normalizedType.name(), easyPct, mediumPct, hardPct,
+                            extraction, sourceRecords, mode, filename, count,
+                            effectiveType, easyPct, mediumPct, hardPct,
                             level, selectedSkills);
                 } else {
                     // Legacy path: single-difficulty prompt for backwards
                     // compatibility with callers that don't yet send percentages.
-                    response = generateFromContent(extraction, mode, filename, count,
-                            questionType, difficulty, level, selectedSkills);
+                    response = generateFromContent(extraction, sourceRecords, mode, filename, count,
+                            effectiveType, difficulty, level, selectedSkills);
                 }
             } else {
                 // Import existing questions from PDF — uses the language-neutral prompt so
@@ -207,10 +287,10 @@ public class AiPdfPreviewController {
                             .errorMessage(msg)
                             .build();
                 } else {
-                    log.info("Importing existing questions from PDF (provider={}, selectedSkills={})",
+                    log.info("Importing existing questions from PDF (provider={}, selectedSkills={}, questionFormats={})",
                             aiCoreService.getCurrentProvider() != null ? aiCoreService.getCurrentProvider().getName() : "unknown",
-                            selectedSkills);
-                    response = importExistingQuestions(extraction, mode, filename, selectedSkills);
+                            selectedSkills, resolvedFormats);
+                    response = importExistingQuestions(extraction, mode, filename, selectedSkills, resolvedFormats);
                 }
             }
 
@@ -219,15 +299,93 @@ public class AiPdfPreviewController {
                 response.setWarning("PDF may be scanned. Results may be incomplete.");
             }
 
+            // Return error wrapper if the inner response signals failure,
+            // so the outer ApiResponse.success field correctly reflects the actual state.
+            if (response != null && !response.isSuccess()) {
+                return ResponseEntity.ok(ApiResponse.<AiPdfPreviewResponse>builder()
+                        .success(false)
+                        .message(response.getErrorMessage() != null ? response.getErrorMessage() : "AI processing failed")
+                        .data(response)
+                        .build());
+            }
             return ResponseEntity.ok(ApiResponse.success(response));
-
         } catch (Exception e) {
             log.error("PDF preview failed: {}", e.getMessage(), e);
-            String errorPrefix = "GENERATE_FROM_CONTENT".equals(mode)
-                    ? "Failed to generate questions. Please try again. (" + e.getMessage() + ")"
-                    : "Failed to process PDF: " + e.getMessage();
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error(errorPrefix));
+            String errorCode = "AI_PROVIDER_UNAVAILABLE";
+
+            // Map common exception keywords
+            Throwable current = e;
+            while (current != null) {
+                if (current instanceof com.midori.exception.AiException ae) {
+                    errorCode = ae.getCode();
+                    break;
+                }
+                current = current.getCause();
+            }
+
+            if ("AI_PROVIDER_UNAVAILABLE".equals(errorCode)) {
+                String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                if (msg.contains("429") || msg.contains("quota") || msg.contains("exhausted")) {
+                    errorCode = "AI_QUOTA_EXHAUSTED";
+                } else if (msg.contains("rate limit") || msg.contains("cooldown")) {
+                    errorCode = "AI_RATE_LIMITED";
+                } else if (msg.contains("timeout") || msg.contains("timed out")) {
+                    errorCode = "AI_PROVIDER_TIMEOUT";
+                } else if (msg.contains("request timeout") || msg.contains("exceeded the maximum")
+                        || msg.contains("max processing time") || msg.contains("processing deadline")) {
+                    errorCode = "AI_REQUEST_TIMEOUT";
+                }
+            }
+
+            String userMsg = "AI service is currently unavailable. Please try again later.";
+            if ("AI_QUOTA_EXHAUSTED".equals(errorCode)) {
+                userMsg = "AI quota is temporarily exhausted. Please try again later.";
+            } else if ("AI_RATE_LIMITED".equals(errorCode)) {
+                userMsg = "AI providers are temporarily rate-limited. Please try again later.";
+            } else if ("AI_PROVIDER_TIMEOUT".equals(errorCode)) {
+                userMsg = "The AI provider took too long to respond. Please try again.";
+            } else if ("AI_PROVIDER_UNAVAILABLE".equals(errorCode)) {
+                userMsg = "AI providers are temporarily unavailable. Please try again later.";
+            } else if ("AI_REQUEST_TIMEOUT".equals(errorCode)) {
+                userMsg = "The request exceeded the maximum processing time. Please try again.";
+            } else if ("AI_INVALID_RESPONSE".equals(errorCode)) {
+                userMsg = "AI service returned an invalid response. Please retry.";
+            } else if ("AI_INVALID_API_KEY".equals(errorCode)
+                    || "AI_PROVIDER_FORBIDDEN".equals(errorCode)
+                    || "AI_PROVIDER_CALL_LIMIT_REACHED".equals(errorCode)) {
+                userMsg = "AI service is temporarily unavailable. Please try again later.";
+            }
+
+            AiPdfPreviewResponse failedResponse = AiPdfPreviewResponse.builder()
+                    .mode(mode)
+                    .title(filename != null ? filename : "unknown")
+                    .success(false)
+                    .partial(false)
+                    .code(errorCode)
+                    .message(userMsg)
+                    .errorMessage(userMsg)
+                    .requestedCount(count != null ? count : 10)
+                    .generatedCount(0)
+                    .questions(new ArrayList<>())
+                    .build();
+            ApiResponse<AiPdfPreviewResponse> apiResponse = ApiResponse.<AiPdfPreviewResponse>builder()
+                    .success(false)
+                    .message(userMsg)
+                    .data(failedResponse)
+                    .build();
+            return ResponseEntity.ok(apiResponse);
+        } finally {
+            // Print attempt traces log summary before clearing
+            List<com.midori.ai.core.AiCoreService.AttemptTrace> traces = com.midori.ai.core.AiCoreService.getAttemptTraces();
+            if (!traces.isEmpty()) {
+                log.info("[AiCoreService] ==================== REQUEST ATTEMPT TRACE LOG ====================");
+                for (var t : traces) {
+                    log.info("[AiCoreService] Round: {}, Provider: {}, Model: {}, Key: {}, Status: {}, Action: {}, Time: {}ms",
+                            t.generationRound(), t.provider(), t.model(), t.maskedKey(), t.httpCategory(), t.action(), t.elapsedTimeMs());
+                }
+                log.info("[AiCoreService] =====================================================================");
+            }
+            com.midori.ai.core.AiCoreService.clearRequestTimer();
         }
     }
 
@@ -251,6 +409,7 @@ public class AiPdfPreviewController {
      */
     private AiPdfPreviewResponse generateFromContent(
             PdfTextExtractor.ExtractionResult extraction,
+            List<AiLearningContentService.SourceRecord> sourceRecords,
             String mode,
             String filename,
             int count,
@@ -263,6 +422,11 @@ public class AiPdfPreviewController {
         // attach it to every AI-generated Reading question.
         String sourcePassage = com.midori.ai.util.AiExistingQuestionParser
                 .extractReadingPassageFromSource(extraction.fullText());
+        // Strip metadata headings ("MIDORI - JLPT N5 ...", "Passage N - ...",
+        // "Reference question / answer", etc.) that were written by a test-material
+        // generator and must not reach the romaji-check blob or the learner UI.
+        sourcePassage = com.midori.ai.util.AiExistingQuestionParser
+                .cleanReadingPassageForStorage(sourcePassage);
         if (sourcePassage == null || sourcePassage.isBlank()) {
             log.warn("[generate-sanitize] no Reading passage detected in source PDF (filename={})", filename);
         }
@@ -273,6 +437,7 @@ public class AiPdfPreviewController {
         AiExamParseResponse parseResponse = aiLearningContentService.generateQuestions(
                 filename,
                 extraction.fullText(),
+                sourceRecords,
                 count,
                 resolvedDifficulty,
                 selectedSkills,
@@ -287,22 +452,38 @@ public class AiPdfPreviewController {
                 .extractedTextLength(extraction.fullText().length())
                 .likelyScanned(extraction.likelyScanned())
                 .questions(new ArrayList<>())
+                .success(parseResponse.isSuccess())
+                .partial(parseResponse.isPartial())
+                .code(parseResponse.getCode())
+                .message(parseResponse.getErrorMessage())
+                .requestedCount(parseResponse.getRequestedCount())
+                .generatedCount(parseResponse.getGeneratedCount())
                 .build();
 
-        if (parseResponse.getQuestions() == null || parseResponse.getQuestions().isEmpty()) {
-            response.setErrorMessage("AI returned an invalid or empty response. Please try again.");
-            return response;
+        int generatedCount = 0;
+        if (parseResponse.getQuestions() != null) {
+            for (var q : parseResponse.getQuestions()) {
+                response.getQuestions().add(toPreviewQuestion(q, questionType, resolvedDifficulty));
+            }
+            generatedCount = response.getQuestions().size();
         }
 
-        // Map sanitized questions to the preview response shape.
-        for (var q : parseResponse.getQuestions()) {
-            response.getQuestions().add(toPreviewQuestion(q, questionType, resolvedDifficulty));
-        }
-
-        if (response.getQuestions().size() < count) {
-            String shortMsg = "AI generated " + response.getQuestions().size()
-                    + " of " + count + " valid questions. Please retry.";
-            response.setWarning(shortMsg);
+        if (generatedCount == 0) {
+            response.setSuccess(false);
+            response.setErrorMessage(parseResponse.getErrorMessage() != null ? parseResponse.getErrorMessage() : "No questions were generated.");
+            response.setMessage(null);
+        } else if (generatedCount < count) {
+            response.setSuccess(true);
+            response.setPartial(true);
+            response.setErrorMessage(null);
+            String warningMsg = generatedCount + " of " + count + " questions were generated. Please try again.";
+            response.setMessage(warningMsg);
+            response.setWarning(warningMsg);
+        } else {
+            response.setSuccess(true);
+            response.setPartial(false);
+            response.setErrorMessage(null);
+            response.setMessage(null);
         }
 
         return response;
@@ -326,6 +507,7 @@ public class AiPdfPreviewController {
      */
     private AiPdfPreviewResponse generateFromContentWithDistribution(
             PdfTextExtractor.ExtractionResult extraction,
+            List<AiLearningContentService.SourceRecord> sourceRecords,
             String mode,
             String filename,
             int count,
@@ -336,6 +518,9 @@ public class AiPdfPreviewController {
 
         String sourcePassage = AiExistingQuestionParser
                 .extractReadingPassageFromSource(extraction.fullText());
+        // Strip metadata headings before attaching the passage.
+        sourcePassage = AiExistingQuestionParser
+                .cleanReadingPassageForStorage(sourcePassage);
         if (sourcePassage == null || sourcePassage.isBlank()) {
             log.warn("[generate-distribution] no Reading passage detected in source PDF (filename={})",
                     filename);
@@ -344,6 +529,7 @@ public class AiPdfPreviewController {
         AiExamParseResponse parseResponse = aiLearningContentService.generateQuestionsWithDistribution(
                 filename,
                 extraction.fullText(),
+                sourceRecords,
                 count,
                 questionType,
                 easyPct, mediumPct, hardPct,
@@ -358,23 +544,38 @@ public class AiPdfPreviewController {
                 .extractedTextLength(extraction.fullText().length())
                 .likelyScanned(extraction.likelyScanned())
                 .questions(new ArrayList<>())
+                .success(parseResponse.isSuccess())
+                .partial(parseResponse.isPartial())
+                .code(parseResponse.getCode())
+                .message(parseResponse.getErrorMessage())
+                .requestedCount(parseResponse.getRequestedCount())
+                .generatedCount(parseResponse.getGeneratedCount())
                 .build();
 
-        if (parseResponse.getQuestions() == null || parseResponse.getQuestions().isEmpty()) {
-            response.setErrorMessage(parseResponse.getErrorMessage() != null
-                    ? parseResponse.getErrorMessage()
-                    : "AI returned an invalid or empty response. Please try again.");
-            return response;
+        int generatedCount = 0;
+        if (parseResponse.getQuestions() != null) {
+            for (var q : parseResponse.getQuestions()) {
+                response.getQuestions().add(toPreviewQuestion(q, questionType, /* defaultDifficulty */ null));
+            }
+            generatedCount = response.getQuestions().size();
         }
 
-        for (var q : parseResponse.getQuestions()) {
-            response.getQuestions().add(toPreviewQuestion(q, questionType, /* defaultDifficulty */ null));
-        }
-        // Surface a warning (non-fatal) when the AI fell short.
-        if (response.getQuestions().size() < count) {
-            String shortMsg = "AI generated " + response.getQuestions().size()
-                    + " of " + count + " valid questions. Please retry.";
-            response.setWarning(shortMsg);
+        if (generatedCount == 0) {
+            response.setSuccess(false);
+            response.setErrorMessage(parseResponse.getErrorMessage() != null ? parseResponse.getErrorMessage() : "No questions were generated.");
+            response.setMessage(null);
+        } else if (generatedCount < count) {
+            response.setSuccess(true);
+            response.setPartial(true);
+            response.setErrorMessage(null);
+            String warningMsg = generatedCount + " of " + count + " questions were generated. Please try again.";
+            response.setMessage(warningMsg);
+            response.setWarning(warningMsg);
+        } else {
+            response.setSuccess(true);
+            response.setPartial(false);
+            response.setErrorMessage(null);
+            response.setMessage(null);
         }
         return response;
     }
@@ -474,13 +675,15 @@ public class AiPdfPreviewController {
      * {@code errorMessage} when the AI cannot extract any questions,
      * instead of bubbling up a NullPointerException.
      *
-     * @param selectedSkills list of target skills to filter questions (VOCABULARY, GRAMMAR, READING)
+     * @param selectedSkills list of target skills to filter questions (VOCABULARY, GRAMMAR, READING, WRITING)
+     * @param questionFormats optional format filters (AUTO_DETECT or empty means no filter)
      */
     private AiPdfPreviewResponse importExistingQuestions(
             PdfTextExtractor.ExtractionResult extraction,
             String mode,
             String filename,
-            List<String> selectedSkills) {
+            List<String> selectedSkills,
+            List<String> questionFormats) {
 
         AiExamParseResponse aiResult;
         try {
@@ -495,7 +698,8 @@ public class AiPdfPreviewController {
                     .extractedTextLength(extraction.fullText().length())
                     .likelyScanned(extraction.likelyScanned())
                     .questions(new ArrayList<>())
-                    .errorMessage("AI could not process this PDF: " + e.getMessage())
+                    .code("AI_PROVIDER_UNAVAILABLE")
+                    .errorMessage("AI providers are temporarily unavailable. Please try again later.")
                     .build();
         }
 
@@ -513,8 +717,24 @@ public class AiPdfPreviewController {
                     .build();
         }
 
-        log.info("AI parsed: {} questions from provider {}",
-                aiResult.getQuestions() != null ? aiResult.getQuestions().size() : 0,
+        if (!aiResult.isSuccess() || "PARSER_BLOCK_SEGMENTATION_FAILED".equals(aiResult.getCode())) {
+            log.warn("AI parseExistingQuestionsFromText failed with code: {}, message: {}", aiResult.getCode(), aiResult.getErrorMessage());
+            return AiPdfPreviewResponse.builder()
+                    .mode(mode)
+                    .title(filename)
+                    .description("Failed to parse PDF.")
+                    .pageCount(extraction.pageCount())
+                    .extractedTextLength(extraction.fullText().length())
+                    .likelyScanned(extraction.likelyScanned())
+                    .questions(new ArrayList<>())
+                    .code(aiResult.getCode() != null ? aiResult.getCode() : "PARSER_BLOCK_SEGMENTATION_FAILED")
+                    .errorMessage(aiResult.getErrorMessage() != null ? aiResult.getErrorMessage() : "Failed to segment question blocks from the PDF.")
+                    .build();
+        }
+
+        int rawAiCount = aiResult.getQuestions() != null ? aiResult.getQuestions().size() : 0;
+        log.info("[Import] Stage 2 (AI raw): {} questions from provider {}",
+                rawAiCount,
                 aiCoreService.getCurrentProvider() != null ? aiCoreService.getCurrentProvider().getName() : "unknown");
 
         // EVIDENCE GUARD: drop any question that did not actually come from
@@ -522,14 +742,12 @@ public class AiPdfPreviewController {
         // "Tanaka" reading passage) and surface it as an extracted question.
         AiExamParseResponse filtered = AiExistingQuestionParser.filterByEvidence(
                 aiResult, extraction.fullText(), filename);
-        int dropped = (aiResult.getQuestions() != null ? aiResult.getQuestions().size() : 0)
-                - (filtered.getQuestions() != null ? filtered.getQuestions().size() : 0);
-        if (dropped > 0) {
-            log.info("Evidence filter dropped {} question(s) without source evidence", dropped);
-        }
+        int afterEvidence = filtered.getQuestions() != null ? filtered.getQuestions().size() : 0;
+        int droppedByEvidence = rawAiCount - afterEvidence;
+        log.info("[Import] Stage 3 (evidence filter): {} accepted, {} dropped", afterEvidence, droppedByEvidence);
 
         if (filtered.getQuestions() == null || filtered.getQuestions().isEmpty()) {
-            log.warn("No evidence-backed questions for {}", filename);
+            log.warn("[Import] No evidence-backed questions for {}", filename);
             AiPdfPreviewResponse empty = AiPdfPreviewResponse.builder()
                     .mode(mode)
                     .title(filtered.getTitle() != null && !filtered.getTitle().isBlank() ? filtered.getTitle() : filename)
@@ -545,9 +763,82 @@ public class AiPdfPreviewController {
             return empty;
         }
 
-        AiPdfPreviewResponse response = mapParseExamResponse(filtered, mode, extraction, selectedSkills);
+        // Apply format filter if specified (not AUTO_DETECT, not empty)
+        AiExamParseResponse formatFiltered = applyFormatFilter(filtered, questionFormats);
+        int afterFormat = formatFiltered.getQuestions() != null ? formatFiltered.getQuestions().size() : 0;
+        log.info("[Import] Stage 4 (format filter): {} accepted (formats={})", afterFormat, questionFormats);
+
+        AiPdfPreviewResponse response = mapParseExamResponse(formatFiltered, mode, extraction, selectedSkills);
+        int finalCount = response.getQuestions() != null ? response.getQuestions().size() : 0;
+        // Log per-skill and per-format breakdown
+        if (response.getQuestions() != null && !response.getQuestions().isEmpty()) {
+            java.util.Map<String, Long> bySkill = response.getQuestions().stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                            q -> q.getCategory() != null ? q.getCategory() : "unknown",
+                            java.util.stream.Collectors.counting()));
+            java.util.Map<String, Long> byFormat = response.getQuestions().stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                            q -> q.getType() != null ? q.getType() : "unknown",
+                            java.util.stream.Collectors.counting()));
+            log.info("[Import] Stage 5 (sanitize+skill): {} final questions | by-skill={} | by-format={}",
+                    finalCount, bySkill, byFormat);
+        } else {
+            log.info("[Import] Stage 5 (sanitize+skill): 0 final questions");
+        }
+        log.info("[Import] SUMMARY file={} raw={} evidence_accepted={} evidence_dropped={} format_accepted={} final={}",
+                filename, rawAiCount, afterEvidence, droppedByEvidence, afterFormat, finalCount);
+
         applyReadingOnlyWarningIfApplicable(response, extraction.fullText(), selectedSkills);
         return response;
+    }
+
+    /**
+     * Apply format filter to questions if specific formats are requested.
+     * AUTO_DETECT or empty means no filter is applied.
+     */
+    private AiExamParseResponse applyFormatFilter(AiExamParseResponse aiResult, List<String> questionFormats) {
+        if (aiResult == null || aiResult.getQuestions() == null) return aiResult;
+
+        // No filter if formats is null, empty, or contains only AUTO_DETECT
+        if (questionFormats == null || questionFormats.isEmpty()) {
+            return aiResult;
+        }
+
+        boolean hasAutoDetect = questionFormats.stream().anyMatch("AUTO_DETECT"::equalsIgnoreCase);
+        if (hasAutoDetect) {
+            return aiResult; // No filter
+        }
+
+        // Normalize formats to a set for filtering
+        Set<String> normalizedFormats = new HashSet<>();
+        for (String format : questionFormats) {
+            if (format != null && !format.isBlank() && !format.equalsIgnoreCase("AUTO_DETECT")) {
+                normalizedFormats.add(format.toUpperCase().trim());
+            }
+        }
+
+        if (normalizedFormats.isEmpty()) {
+            return aiResult; // No valid formats to filter by
+        }
+
+        log.info("Applying format filter: {} (filtered from {} questions)",
+                normalizedFormats, aiResult.getQuestions().size());
+
+        List<AiExamParseResponse.AiQuestionDto> filteredQuestions = aiResult.getQuestions().stream()
+                .filter(q -> {
+                    String qType = q.getType();
+                    if (qType == null) return false;
+                    return normalizedFormats.contains(qType.toUpperCase().trim());
+                })
+                .toList();
+
+        log.info("Format filter result: {} of {} questions match {}", filteredQuestions.size(), aiResult.getQuestions().size(), normalizedFormats);
+
+        AiExamParseResponse result = new AiExamParseResponse();
+        result.setTitle(aiResult.getTitle());
+        result.setDescription(aiResult.getDescription());
+        result.setQuestions(filteredQuestions);
+        return result;
     }
 
     /**
@@ -633,6 +924,8 @@ public class AiPdfPreviewController {
             qp.setDifficulty(qdto.getDifficulty());
             qp.setExplanation(qdto.getExplanation() != null ? qdto.getExplanation() : "");
             qp.setCategory(qdto.getCategory());
+            qp.setReadingPassage(qdto.getReadingPassage());
+            qp.setSourcePassage(qdto.getSourcePassage());
 
             List<AiPdfPreviewResponse.AnswerPreview> answers = new ArrayList<>();
             if (qdto.getAnswers() != null) {
@@ -707,13 +1000,78 @@ public class AiPdfPreviewController {
         return new ArrayList<>(seen);
     }
 
-    private ResponseEntity<ApiResponse<AiPdfPreviewResponse>> buildErrorResponse(String mode, String message) {
+    /**
+     * Resolve question formats from either the single questionFormat parameter
+     * or the multiple questionFormats parameter.
+     * Rules:
+     * - If questionFormats contains AUTO_DETECT, return AUTO_DETECT only
+     * - If questionFormats has other values, return them (normalized)
+     * - If questionFormats is empty, fall back to questionFormat
+     * - AUTO_DETECT cannot be combined with other formats
+     */
+    private List<String> resolveQuestionFormats(String questionFormat, List<String> questionFormats) {
+        List<String> result = new ArrayList<>();
+
+        // Priority 1: questionFormats parameter (multiple)
+        if (questionFormats != null && !questionFormats.isEmpty()) {
+            boolean hasAutoDetect = questionFormats.stream()
+                    .anyMatch(f -> "AUTO_DETECT".equalsIgnoreCase(f));
+
+            if (hasAutoDetect) {
+                // AUTO_DETECT cannot be combined with other formats
+                if (questionFormats.size() > 1) {
+                    // Has both AUTO_DETECT and other formats - this is an error
+                    // Return empty to indicate validation error, or just AUTO_DETECT
+                    return List.of("AUTO_DETECT");
+                }
+                return List.of("AUTO_DETECT");
+            }
+
+            // Normalize and return the formats
+            for (String format : questionFormats) {
+                if (format != null && !format.isBlank()) {
+                    result.add(format.toUpperCase().trim());
+                }
+            }
+            return result;
+        }
+
+        // Priority 2: questionFormat parameter (single, legacy)
+        if (questionFormat != null && !questionFormat.isBlank()) {
+            result.add(questionFormat.toUpperCase().trim());
+            return result;
+        }
+
+        // No format specified - return empty (no filtering)
+        return Collections.emptyList();
+    }
+
+    private ResponseEntity<ApiResponse<AiPdfPreviewResponse>> buildErrorResponse(String mode, String errorCode, String message) {
         AiPdfPreviewResponse response = AiPdfPreviewResponse.builder()
                 .mode(mode)
+                .success(false)
+                .code(errorCode)
                 .errorMessage(message)
                 .questions(new ArrayList<>())
                 .build();
+        // Keep ApiResponse.success so FE receives {data: {...}} structure it expects
         return ResponseEntity.badRequest()
                 .body(ApiResponse.success(response));
+    }
+
+    private String computeHash(byte[] bytes) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(bytes);
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return UUID.randomUUID().toString();
+        }
     }
 }

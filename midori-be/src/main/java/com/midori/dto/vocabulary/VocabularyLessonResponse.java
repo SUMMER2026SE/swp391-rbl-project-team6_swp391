@@ -23,6 +23,7 @@ public class VocabularyLessonResponse {
     private Integer estimatedMinutes;
     private String difficulty;
     private Boolean isActive;
+    private Boolean isPublished;
     private Instant createdAt;
     private Instant updatedAt;
 }

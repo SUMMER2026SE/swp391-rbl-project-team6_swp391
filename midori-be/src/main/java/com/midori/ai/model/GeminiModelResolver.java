@@ -310,19 +310,18 @@ public class GeminiModelResolver {
 
     private void logModelSelection(GeminiModel model, AiTaskType taskType, 
                                    String caller, String operation, String reason) {
-        log.info("========================================");
-        log.info("[GeminiModelResolver] MODEL SELECTED");
-        log.info("========================================");
-        log.info("  Model: {}", model.getApiModelName());
-        log.info("  Display Name: {}", model.getDisplayName());
-        log.info("  Task Type: {}", taskType);
-        log.info("  Caller: {}", caller);
-        log.info("  Operation: {}", operation);
-        log.info("  Reason: {}", reason);
-        log.info("  Capability Level: {}/5", model.getCapabilityLevel());
-        log.info("  Cost Level: {}/5", model.getCostLevel());
-        log.info("  Context Window: {} tokens", model.getContextWindow());
-        log.info("========================================");
+        log.info("[GeminiModelResolver] Model selected: {} for task: {} (reason: {})", model.getApiModelName(), taskType, reason);
+        if (log.isDebugEnabled()) {
+            log.debug("========================================");
+            log.debug("[GeminiModelResolver] MODEL SELECTED DETAILS");
+            log.debug("  Display Name: {}", model.getDisplayName());
+            log.debug("  Caller: {}", caller);
+            log.debug("  Operation: {}", operation);
+            log.debug("  Capability Level: {}/5", model.getCapabilityLevel());
+            log.debug("  Cost Level: {}/5", model.getCostLevel());
+            log.debug("  Context Window: {} tokens", model.getContextWindow());
+            log.debug("========================================");
+        }
     }
 
     /**

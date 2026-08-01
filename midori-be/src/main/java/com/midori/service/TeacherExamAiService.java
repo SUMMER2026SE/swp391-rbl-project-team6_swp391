@@ -28,7 +28,8 @@ public class TeacherExamAiService {
      * Fetches lesson metadata, delegates content building to AiLearningContentService,
      * then sanitizes and returns the preview.
      *
-     * @param request the generation request with level, lesson, skills, difficulty, count
+     * @param request the generation request with level, lesson, skills, difficulty, count,
+     *                and optionally writingMode / questionFormat
      * @return AiExamParseResponse containing sanitized questions ready for preview
      */
     @Transactional(readOnly = true)
@@ -63,13 +64,36 @@ public class TeacherExamAiService {
 
         log.info("[TeacherExamAi] Built content of {} chars from lesson", learningContent.length());
 
-        // 3. Delegate AI generation and sanitization to the shared service
-        return aiLearningContentService.generateQuestions(
-                materialTitle,
-                learningContent,
-                request.getQuestionCount(),
-                request.getDifficulty(),
-                request.getSkills()
-        );
+        // 3. Delegate AI generation and sanitization to the shared service.
+        //    When WRITING is the only skill, pass writingMode; otherwise pass questionFormat.
+        boolean isWritingOnly = request.getSkills().size() == 1
+                && request.getSkills().stream()
+                        .anyMatch(s -> "WRITING".equalsIgnoreCase(s));
+
+        if (isWritingOnly) {
+            // Use the writing flow with the specified mode (defaults to MIXED_WRITING if null)
+            return aiLearningContentService.generateQuestions(
+                    materialTitle,
+                    learningContent,
+                    request.getQuestionCount(),
+                    request.getDifficulty(),
+                    request.getSkills(),
+                    null,     // sourcePassage
+                    request.getWritingMode()
+            );
+        } else {
+            // Use the standard flow with the specified question format.
+            // Falls back to MULTIPLE_CHOICE if questionFormat is null (backward-compatible default).
+            String questionFormat = request.getQuestionFormat();
+            return aiLearningContentService.generateQuestions(
+                    materialTitle,
+                    learningContent,
+                    request.getQuestionCount(),
+                    request.getDifficulty(),
+                    request.getSkills(),
+                    null,     // sourcePassage
+                    questionFormat
+            );
+        }
     }
 }

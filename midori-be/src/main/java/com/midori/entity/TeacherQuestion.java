@@ -88,6 +88,9 @@ public class TeacherQuestion {
     @Builder.Default
     private List<String> options = new ArrayList<>();
 
+    @Column(name = "format_metadata", columnDefinition = "TEXT")
+    private String formatMetadata;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -31,7 +31,7 @@ import {
   useQuestionBank,
   type Question,
 } from "../services/questionBankService";
-import { isListeningQuestion, formatDuration } from "../services/questionBank.types";
+import { formatDuration } from "../services/questionBank.types";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -437,28 +437,9 @@ function QuestionBankLessonDetailPage() {
                           </div>
                           <div className="col-span-7 flex items-center">
                             <div className="min-w-0">
-                              {/* Listening audio badge */}
-                              {isListeningQuestion(q) && q.audio?.audioUrl && (
-                                <div className="flex items-center gap-2 mb-1.5">
-                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-500/12 text-pink-600 text-xs font-medium">
-                                    <Music className="w-3 h-3" />
-                                    Listening
-                                  </span>
-                                  <span className="flex items-center gap-1 text-xs text-muted-col">
-                                    <Clock className="w-3 h-3" />
-                                    {formatDuration(q.audio.audioDuration)}
-                                  </span>
-                                </div>
-                              )}
                               <p className="text-sm text-primary-col font-medium line-clamp-2">
                                 {q.questionText}
                               </p>
-                              {/* Show audio file name for listening */}
-                              {isListeningQuestion(q) && q.audio?.audioFileName && (
-                                <p className="text-xs text-muted-col mt-1 truncate">
-                                  {q.audio.audioFileName}
-                                </p>
-                              )}
                             </div>
                           </div>
                           <div className="col-span-1 flex items-center justify-center">

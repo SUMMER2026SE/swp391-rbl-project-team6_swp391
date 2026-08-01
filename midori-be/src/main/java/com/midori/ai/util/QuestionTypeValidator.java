@@ -20,11 +20,17 @@ import java.util.List;
  *   <li>{@code TRUE_FALSE} — exactly 2 options, exactly one correct,
  *       option texts equivalent to True/False (case-insensitive).</li>
  *   <li>{@code FILL_BLANK} — question text must contain a blank marker
- *       ({@code ___}, {@code (blank)}, or the {@code \u3010\u7b54\u3048\u3011}
+ *       ({@code ___}, {@code (blank)}, or the {@code 【答え】}
  *       Japanese bracket); the answer is a single text value.</li>
  *   <li>{@code SHORT_ANSWER} — question text is required; the answer is a
  *       single text value (no options).</li>
- *   <li>{@code MATCHING} — kept for historical schema; treated permissively.</li>
+ *   <li>{@code MATCHING} — leftItems, rightItems, correctPairs metadata.</li>
+ *   <li>{@code TRANSLATION} — translationMetadata with direction, sourceText,
+ *       referenceAnswer.</li>
+ *   <li>{@code SENTENCE_WRITING} — sentenceWritingMetadata with requiredVocabulary
+ *       or requiredGrammar or referenceAnswer.</li>
+ *   <li>{@code ERROR_CORRECTION} — errorCorrectionMetadata with incorrectText,
+ *       correctedText, explanation.</li>
  * </ul>
  */
 public final class QuestionTypeValidator {
@@ -49,6 +55,12 @@ public final class QuestionTypeValidator {
                 return validateShortAnswer(content, answers);
             case MATCHING:
                 return validateMatching(answers);
+            case TRANSLATION:
+                return validateTranslation(q);
+            case SENTENCE_WRITING:
+                return validateSentenceWriting(q);
+            case ERROR_CORRECTION:
+                return validateErrorCorrection(q);
             default:
                 return false;
         }
@@ -114,6 +126,24 @@ public final class QuestionTypeValidator {
                 }
                 break;
             }
+            case TRANSLATION: {
+                if (q.getTranslationMetadata() == null) {
+                    actions.add("suppress_translation_no_metadata");
+                }
+                break;
+            }
+            case SENTENCE_WRITING: {
+                if (q.getSentenceWritingMetadata() == null) {
+                    actions.add("suppress_sentence_writing_no_metadata");
+                }
+                break;
+            }
+            case ERROR_CORRECTION: {
+                if (q.getErrorCorrectionMetadata() == null) {
+                    actions.add("suppress_error_correction_no_metadata");
+                }
+                break;
+            }
         }
         return actions;
     }
@@ -155,6 +185,9 @@ public final class QuestionTypeValidator {
                             first.setContent("");
                         }
                         first.setIsCorrect(true);
+                        if (answers.size() > 1) {
+                            answers.subList(1, answers.size()).clear();
+                        }
                     }
                     break;
                 }
@@ -166,6 +199,9 @@ public final class QuestionTypeValidator {
                     break;
                 }
                 case "suppress":
+                case "suppress_translation_no_metadata":
+                case "suppress_sentence_writing_no_metadata":
+                case "suppress_error_correction_no_metadata":
                     if (answers != null) answers.clear();
                     break;
                 default:
@@ -209,7 +245,6 @@ public final class QuestionTypeValidator {
 
     public static boolean validateShortAnswer(String content, List<AiExamParseResponse.AiAnswerDto> answers) {
         if (content == null || content.isBlank()) return false;
-        // Short-answer accepts zero or one answer slot containing reference text.
         if (answers == null) return true;
         if (answers.size() > 1) return false;
         if (answers.size() == 1) {
@@ -223,25 +258,67 @@ public final class QuestionTypeValidator {
         return answers != null && answers.size() >= 2;
     }
 
+    public static boolean validateTranslation(AiExamParseResponse.AiQuestionDto q) {
+        if (q.getTranslationMetadata() == null) return false;
+        var meta = q.getTranslationMetadata();
+        if (meta.getDirection() == null || meta.getDirection().isBlank()) return false;
+        if (meta.getReferenceAnswer() == null || meta.getReferenceAnswer().isBlank()) return false;
+        if (meta.getSourceText() == null || meta.getSourceText().isBlank()) return false;
+        return true;
+    }
+
+    public static boolean validateSentenceWriting(AiExamParseResponse.AiQuestionDto q) {
+        if (q.getSentenceWritingMetadata() == null) return false;
+        var meta = q.getSentenceWritingMetadata();
+        boolean hasVocabulary = meta.getRequiredVocabulary() != null && !meta.getRequiredVocabulary().isEmpty();
+        boolean hasGrammar = meta.getRequiredGrammar() != null && !meta.getRequiredGrammar().isEmpty();
+        boolean hasReference = meta.getReferenceAnswer() != null && !meta.getReferenceAnswer().isBlank();
+        return hasVocabulary || hasGrammar || hasReference;
+    }
+
+    public static boolean validateErrorCorrection(AiExamParseResponse.AiQuestionDto q) {
+        if (q.getErrorCorrectionMetadata() == null) return false;
+        var meta = q.getErrorCorrectionMetadata();
+        if (meta.getIncorrectText() == null || meta.getIncorrectText().isBlank()) return false;
+        if (meta.getCorrectedText() == null || meta.getCorrectedText().isBlank()) return false;
+        if (meta.getExplanation() == null || meta.getExplanation().isBlank()) return false;
+        return !meta.getIncorrectText().trim().equals(meta.getCorrectedText().trim());
+    }
+
     public static boolean hasBlankMarker(String content) {
         if (content == null) return false;
         return content.contains("___")
                 || content.toLowerCase().contains("(blank)")
-                || content.contains("\u3010\u7b54\u3048\u3011") // 【答え】
-                || content.contains("\u7b54\u3048\u3092\u5165\u308c\u3066\u304f\u3060\u3055\u3044") // 答えを入れてください
+                || content.contains("\u3010\u7b54\u3048\u3011")
+                || content.contains("\u7b54\u3048\u3092\u5165\u308c\u3066\u304f\u3060\u3055\u3044")
                 || content.toLowerCase().contains("fill in")
                 || content.toLowerCase().contains("fill the blank")
                 || content.toLowerCase().contains("fill in the blank");
     }
 
-    private static boolean isTrue(String lower) {
-        return lower.equals("true") || lower.equals("\u0111\u00fang") || lower.equals("\u6b63")
-                || lower.equals("t") || lower.equals("yes");
+    public static boolean isTrue(String lower) {
+        if (lower == null) return false;
+        String val = lower.trim().toLowerCase();
+        return val.equals("true") || val.equals("\u0111\u00fang") || val.equals("\u6b63")
+                || val.equals("t") || val.equals("yes");
     }
 
-    private static boolean isFalse(String lower) {
-        return lower.equals("false") || lower.equals("sai") || lower.equals("\u8aa4")
-                || lower.equals("f") || lower.equals("no");
+    public static boolean isFalse(String lower) {
+        if (lower == null) return false;
+        String val = lower.trim().toLowerCase();
+        return val.equals("false") || val.equals("sai") || val.equals("\u8aa4")
+                || val.equals("f") || val.equals("no");
+    }
+
+    public static String canonicalizeTrueFalse(String val) {
+        if (val == null) return null;
+        if (isTrue(val)) {
+            return "True";
+        }
+        if (isFalse(val)) {
+            return "False";
+        }
+        return val;
     }
 
     /** Normalize the free-form type string to the canonical {@link QuestionType}.
@@ -249,7 +326,6 @@ public final class QuestionTypeValidator {
     public static QuestionType normalize(String raw) {
         if (raw == null) return null;
         String norm = raw.trim().toUpperCase().replace('-', '_').replace('/', '_').replace(' ', '_');
-        // Common aliases.
         switch (norm) {
             case "MULTIPLE_CHOICE":
             case "MCQ":
@@ -275,6 +351,20 @@ public final class QuestionTypeValidator {
             case "MATCHING":
             case "MATCH":
                 return QuestionType.MATCHING;
+            case "TRANSLATION":
+            case "TRANSLATE":
+            case "DICH":
+                return QuestionType.TRANSLATION;
+            case "SENTENCE_WRITING":
+            case "SENTENCEWRITING":
+            case "SENTENCE_CONSTRUCTION":
+            case "WRITE_SENTENCE":
+                return QuestionType.SENTENCE_WRITING;
+            case "ERROR_CORRECTION":
+            case "ERRORCORRECTION":
+            case "CORRECTION":
+            case "FIX_THE_ERROR":
+                return QuestionType.ERROR_CORRECTION;
             default:
                 return null;
         }

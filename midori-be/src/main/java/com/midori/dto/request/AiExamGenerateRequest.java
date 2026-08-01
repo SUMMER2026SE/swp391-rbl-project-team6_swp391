@@ -32,4 +32,21 @@ public class AiExamGenerateRequest {
     @Min(value = 1, message = "Question count must be at least 1")
     @Max(value = 50, message = "Question count cannot exceed 50")
     private Integer questionCount;
+
+    /**
+     * Writing mode for WRITING skill.
+     * When WRITING is the only selected skill, one of:
+     * MIXED_WRITING, JA_TO_VI_TRANSLATION, VI_TO_JA_TRANSLATION, SENTENCE_REORDER.
+     * Null or absent means MIXED_WRITING (backward-compatible default).
+     */
+    private String writingMode;
+
+    /**
+     * Question type/format to generate.
+     * When non-WRITING skills are selected, one of:
+     * MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK, SHORT_ANSWER,
+     * MATCHING, TRANSLATION, SENTENCE_WRITING, ERROR_CORRECTION.
+     * Null means MULTIPLE_CHOICE (backward-compatible default for non-writing skills).
+     */
+    private String questionFormat;
 }

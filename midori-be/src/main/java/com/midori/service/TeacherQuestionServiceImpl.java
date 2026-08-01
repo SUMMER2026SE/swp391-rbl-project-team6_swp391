@@ -28,6 +28,12 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
 
     @Override
     @Transactional
+    public List<TeacherQuestion> createQuestions(List<TeacherQuestion> questions) {
+        return teacherQuestionRepository.saveAll(questions);
+    }
+
+    @Override
+    @Transactional
     public TeacherQuestion updateQuestion(UUID id, TeacherQuestion questionDetails, UUID teacherId) {
         TeacherQuestion question = teacherQuestionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("TeacherQuestion", "id", id));
@@ -54,6 +60,7 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
         question.setStatus(questionDetails.getStatus());
         question.setPoints(questionDetails.getPoints());
         question.setOptions(questionDetails.getOptions());
+        question.setFormatMetadata(questionDetails.getFormatMetadata());
         question.setAudioUrl(questionDetails.getAudioUrl());
         question.setAudioFileName(questionDetails.getAudioFileName());
         question.setAudioDuration(questionDetails.getAudioDuration());

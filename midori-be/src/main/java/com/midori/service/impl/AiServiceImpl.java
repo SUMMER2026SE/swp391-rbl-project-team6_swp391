@@ -749,10 +749,10 @@ public class AiServiceImpl implements AiService {
             return GeneratedQuestionDto.builder()
                     .id(qId)
                     .type("TRUE_FALSE")
-                    .questionText("Bạn đã học nội dung '" + topic + "' chưa?")
-                    .options(List.of("Đúng", "Sai"))
-                    .correctAnswer("Đúng")
-                    .explanation("Câu này chỉ nhắc lại chủ đề để bạn xác nhận tiến độ học.")
+                    .questionText("Chủ đề học tập hiện tại là '" + topic + "'.")
+                    .options(List.of("True", "False"))
+                    .correctAnswer("True")
+                    .explanation("Câu này xác nhận chủ đề học tập hiện tại là '" + topic + "'.")
                     .difficulty(difficulty)
                     .build();
         }
@@ -805,17 +805,17 @@ public class AiServiceImpl implements AiService {
             String correct;
             if (isTrue) {
                 statement = "「" + japanese + "」" + (reading.isEmpty() ? "" : " (" + reading + ")") + " nghĩa là " + meaning + ".";
-                correct = "Đúng";
+                correct = "True";
             } else {
                 String wrongMeaning = otherMeanings.isEmpty() ? "không rõ" : otherMeanings.get(0);
                 statement = "「" + japanese + "」" + (reading.isEmpty() ? "" : " (" + reading + ")") + " nghĩa là " + wrongMeaning + ".";
-                correct = "Sai";
+                correct = "False";
             }
             result.add(GeneratedQuestionDto.builder()
                     .id(qId)
                     .type("TRUE_FALSE")
                     .questionText(statement)
-                    .options(List.of("Đúng", "Sai"))
+                    .options(List.of("True", "False"))
                     .correctAnswer(correct)
                     .explanation(japanese + " (" + reading + ") nghĩa là " + meaning + ".")
                     .difficulty(difficulty)
@@ -894,16 +894,16 @@ public class AiServiceImpl implements AiService {
             String statement, correct;
             if (isTrue) {
                 statement = "Mẫu 「" + pattern + "」 dùng để diễn đạt: " + meaning + ".";
-                correct = "Đúng";
+                correct = "True";
             } else {
                 statement = "Mẫu 「" + pattern + "」 dùng để: ăn uống.";
-                correct = "Sai";
+                correct = "False";
             }
             result.add(GeneratedQuestionDto.builder()
                     .id(qId)
                     .type("TRUE_FALSE")
                     .questionText(statement)
-                    .options(List.of("Đúng", "Sai"))
+                    .options(List.of("True", "False"))
                     .correctAnswer(correct)
                     .explanation("「" + pattern + "」 dùng để diễn đạt: " + meaning + ".")
                     .difficulty(difficulty)
@@ -1336,7 +1336,7 @@ public class AiServiceImpl implements AiService {
                     // question. For TRUE_FALSE we force the canonical pair.
                     List<String> finalOptions = cleanOptions;
                     if ("TRUE_FALSE".equals(resolvedType)) {
-                        finalOptions = List.of("Đúng", "Sai");
+                        finalOptions = List.of("True", "False");
                     } else if ("FILL_BLANK".equals(resolvedType)) {
                         finalOptions = List.of();
                     }
@@ -1354,6 +1354,7 @@ public class AiServiceImpl implements AiService {
                         } else if (finalCorrectIndex < 0) {
                             finalCorrectIndex = 1;
                         }
+                        correctAnswer = finalOptions.get(finalCorrectIndex);
                     }
 
                     GeneratedQuestionDto dto = GeneratedQuestionDto.builder()
@@ -1459,8 +1460,8 @@ public class AiServiceImpl implements AiService {
         boolean isTrueFalseCanonical = "TRUE_FALSE".equals(type)
                 && q.getOptions() != null
                 && q.getOptions().size() == 2
-                && "Đúng".equalsIgnoreCase(q.getOptions().get(0))
-                && "Sai".equalsIgnoreCase(q.getOptions().get(1));
+                && (("Đúng".equalsIgnoreCase(q.getOptions().get(0)) && "Sai".equalsIgnoreCase(q.getOptions().get(1)))
+                    || ("True".equalsIgnoreCase(q.getOptions().get(0)) && "False".equalsIgnoreCase(q.getOptions().get(1))));
 
         if (!isTrueFalseCanonical && q.getOptions() != null) {
             for (String opt : q.getOptions()) {

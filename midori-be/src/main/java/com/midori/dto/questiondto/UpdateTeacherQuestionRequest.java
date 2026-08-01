@@ -1,5 +1,9 @@
 package com.midori.dto.questiondto;
 
+import com.midori.dto.ai.ErrorCorrectionMetadata;
+import com.midori.dto.ai.MatchingMetadata;
+import com.midori.dto.ai.SentenceWritingMetadata;
+import com.midori.dto.ai.TranslationMetadata;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -24,9 +28,14 @@ public class UpdateTeacherQuestionRequest {
     private String tags;
     private Integer points;
     private String status;
-    @NotEmpty
     private List<String> options;
     private String audioUrl;
     private String audioFileName;
     private Integer audioDuration;
+    // Format-specific metadata
+    private TranslationMetadata translationMetadata;
+    private SentenceWritingMetadata sentenceWritingMetadata;
+    private ErrorCorrectionMetadata errorCorrectionMetadata;
+    private MatchingMetadata matchingMetadata;
+    private String formatMetadata;
 }

@@ -64,6 +64,17 @@ public class GeminiProvider implements AiProvider {
     private final ThreadLocal<Integer> lastPromptTokens = new ThreadLocal<>();
     private final ThreadLocal<Integer> lastCompletionTokens = new ThreadLocal<>();
     private final ThreadLocal<Integer> lastTotalTokens = new ThreadLocal<>();
+    private final ThreadLocal<Integer> lastKeyIndex = ThreadLocal.withInitial(() -> 0);
+    private final ThreadLocal<String> lastKeyId = new ThreadLocal<>();
+
+    @Override
+    public int getLastKeyIndex() {
+        return lastKeyIndex.get();
+    }
+    @Override
+    public String getLastKeyId() {
+        return lastKeyId.get();
+    }
 
     // Global request counter for monitoring
     private static final AtomicInteger globalRequestCounter = new AtomicInteger(0);
@@ -152,6 +163,48 @@ public class GeminiProvider implements AiProvider {
     }
 
     @Override
+    public boolean hasAvailableRoute(AiTaskType taskType) {
+        if (!isConfigured()) return false;
+        List<String> models = getCandidateModels(taskType);
+        if (models == null || models.isEmpty()) return false;
+
+        String[] apiKeys = config.getGemini().getApiKeys();
+        if (apiKeys == null || apiKeys.length == 0) return false;
+
+        for (String model : models) {
+            if (com.midori.ai.core.AiProviderStateManager.isModelInCooldown("GEMINI", model)) {
+                continue;
+            }
+            for (int ki = 0; ki < apiKeys.length; ki++) {
+                String apiKey = apiKeys[ki];
+                String keyMasked = GeminiKeyManager.mask(apiKey);
+                if (com.midori.ai.core.AiProviderStateManager.isKeyInCooldown("GEMINI", keyMasked)) {
+                    continue;
+                }
+                com.midori.ai.core.AiCoreService.RouteMetadata route =
+                        new com.midori.ai.core.AiCoreService.RouteMetadata("GEMINI", model, ki, keyMasked);
+                if (com.midori.ai.core.AiCoreService.isRouteFailedInRequest(route)) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<String> getCandidateModels(AiTaskType taskType) {
+        List<String> list = modelResolver.getConfiguredModels();
+        if (list == null || list.isEmpty()) {
+            String single = config.getGemini().getModel();
+            if (single != null && !single.isBlank() && !"AUTO".equalsIgnoreCase(single)) {
+                return List.of(single);
+            }
+            return List.of(com.midori.ai.model.GeminiModel.GEMINI_25_FLASH.getApiModelName());
+        }
+        return list;
+    }
+
+    @Override
     public boolean isConfigured() {
         return config.getGemini().isConfigured();
     }
@@ -209,7 +262,7 @@ public class GeminiProvider implements AiProvider {
      * @return the result from the successful call
      * @throws RuntimeException on all errors after exhausting all keys
      */
-    private <T> T executeWithKeyRetry(String operationLabel, RetryableCall<T> call) {
+    private <T> T executeWithKeyRetry(String operationLabel, String model, RetryableCall<T> call) {
         int maxRetries = Math.max(1, keyManager.getKeyCount());
         RuntimeException lastError = null;
 
@@ -225,12 +278,28 @@ public class GeminiProvider implements AiProvider {
                     }
                 }
             }
-            String keyMasked = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
+            String keyMasked = GeminiKeyManager.mask(apiKey);
+            com.midori.ai.core.AiCoreService.RouteMetadata route =
+                    new com.midori.ai.core.AiCoreService.RouteMetadata("GEMINI", model, currentKeyIndex, keyMasked);
+
+            if (com.midori.ai.core.AiCoreService.isRouteFailedInRequest(route)) {
+                log.info("[GeminiProvider] Skipping route GEMINI:{}:{} - already failed in this request", model, currentKeyIndex);
+                if (attempt < maxRetries - 1) {
+                    keyManager.markKeyFailedAndGetNext();
+                    continue;
+                }
+                break;
+            }
+
+            com.midori.ai.core.AiCoreService.setCurrentExecutingModel(model);
+
             log.info("[GeminiProvider] Using Gemini key {}/{} (index={}, key={}) for {}",
                     attempt + 1, maxRetries, currentKeyIndex, keyMasked, operationLabel);
 
             try {
                 T result = call.execute(apiKey);
+                lastKeyIndex.set(currentKeyIndex);
+                lastKeyId.set(keyMasked);
                 log.info("[GeminiProvider] {} succeeded with key {}/{}", operationLabel, attempt + 1, maxRetries);
                 return result;
 
@@ -238,6 +307,17 @@ public class GeminiProvider implements AiProvider {
                 int status = e.getStatusCode().value();
                 String responseBody = e.getResponseBodyAsString();
                 log.error("[GeminiProvider] HTTP ERROR - Status: {}, Response: {}", status, responseBody);
+
+                com.midori.ai.core.AiFailureKind failureKind = null;
+                if (status == 429) {
+                    failureKind = com.midori.ai.core.AiCoreService.classify429(responseBody);
+                } else {
+                    // Do not invent failure kind for other status codes
+                }
+                if (failureKind != null) {
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, failureKind);
+                }
+
                 // API_KEY_INVALID is a permanent error — do NOT retry or rotate
                 if (isApiKeyInvalid(status, responseBody)) {
                     log.error("[GeminiProvider] API_KEY_INVALID — key is permanently invalid. Skipping rotation and failing fast.");
@@ -247,6 +327,9 @@ public class GeminiProvider implements AiProvider {
 
                 // 429/401/403/400 = temporary (rate limit / auth / bad request) → rotate to next key
                 if ((status == 429 || status == 401 || status == 403 || status == 400) && attempt < maxRetries - 1) {
+                    if (status == 429) {
+                        com.midori.ai.core.AiProviderStateManager.recordKeyCooldown("GEMINI", null, currentKeyIndex, keyMasked, com.midori.ai.core.AiProviderStateManager.COOLDOWN_5_MINUTES_MS, "HTTP 429 Rate Limit");
+                    }
                     log.warn("[GeminiProvider] HTTP {} received on {} with key {}/{} — rotating to next key", status, operationLabel, attempt + 1, maxRetries);
                     keyManager.markKeyFailedAndGetNext();
                     continue;
@@ -254,6 +337,10 @@ public class GeminiProvider implements AiProvider {
                 lastError = new RuntimeException("Gemini API error (" + status + "): " + responseBody, e);
 
             } catch (Exception e) {
+                String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                if (msg.contains("timeout") || msg.contains("time out") || e instanceof java.util.concurrent.TimeoutException || e.getCause() instanceof java.util.concurrent.TimeoutException) {
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.TIMEOUT);
+                }
                 if (attempt < maxRetries - 1) {
                     log.warn("[GeminiProvider] {} failed with key {}/{}: {} — trying next key", operationLabel, attempt + 1, maxRetries, e.getMessage());
                     keyManager.markKeyFailedAndGetNext();
@@ -306,17 +393,10 @@ public class GeminiProvider implements AiProvider {
         
         // Enhanced logging with model metadata
         GeminiModel model = result.getSelectedModelEnum();
-        log.info("[GeminiProvider] =============================================");
-        log.info("[GeminiProvider] MODELS RESOLVED for {} (selected: {})", operation, model.getApiModelName());
-        log.info("[GeminiProvider]   Resolved Models list: {}", models);
-        log.info("[GeminiProvider] =============================================");
-        log.info("[GeminiProvider]   Task Type: {}", result.taskType());
-        log.info("[GeminiProvider]   Selected Model: {}", model.getApiModelName());
-        log.info("[GeminiProvider]   Display Name: {}", model.getDisplayName());
-        log.info("[GeminiProvider]   Reason: {}", result.reason());
-        log.info("[GeminiProvider]   Capability: {}/5", model.getCapabilityLevel());
-        log.info("[GeminiProvider]   Cost Level: {}/5", model.getCostLevel());
-        log.info("[GeminiProvider] =============================================");
+        log.info("[GeminiProvider] Resolved models for {} -> selected: {}, fallback queue: {}", operation, model.getApiModelName(), models);
+        if (log.isDebugEnabled()) {
+            log.debug("[GeminiProvider] Task: {}, Reason: {}, Capability: {}/5, Cost: {}/5", result.taskType(), result.reason(), model.getCapabilityLevel(), model.getCostLevel());
+        }
         
         return models;
     }
@@ -345,11 +425,15 @@ public class GeminiProvider implements AiProvider {
 
         for (int i = 0; i < models.size(); i++) {
             String model = models.get(i);
+            if (com.midori.ai.core.AiProviderStateManager.isModelInCooldown("GEMINI", model)) {
+                log.debug("[GeminiProvider] [FALLBACK-LOOP] Skipping model {} because it is in cooldown", model);
+                continue;
+            }
             log.info("[GeminiProvider] [FALLBACK-LOOP] Attempting {} with model {} (attempt {}/{})",
                     operationLabel, model, i + 1, models.size());
 
             try {
-                T result = executeWithKeyRetry(operationLabel, (apiKey) -> {
+                T result = executeWithKeyRetry(operationLabel, model, (apiKey) -> {
                     return action.execute(model, apiKey);
                 });
 
@@ -360,7 +444,12 @@ public class GeminiProvider implements AiProvider {
             } catch (Exception e) {
                 Integer status = null;
                 String body = null;
-                String msg = e.getMessage();
+                String msg = e.getMessage() != null ? e.getMessage() : e.toString();
+                if (msg.toLowerCase().contains("timeout") || msg.toLowerCase().contains("time out") || e.getCause() instanceof java.util.concurrent.TimeoutException) {
+                    log.warn("[GeminiProvider] [FALLBACK-LOOP] Timeout observed on model {} for {}: {}", model, operationLabel, msg);
+                    com.midori.ai.core.AiProviderStateManager.recordModelCooldown("GEMINI", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, "Provider timeout");
+                    throw new com.midori.exception.AiException.ProviderTimeoutException("Gemini call timed out on " + model + ": " + msg, e);
+                }
 
                 Throwable cause = e;
                 while (cause != null && !(cause instanceof WebClientResponseException)) {
@@ -370,6 +459,10 @@ public class GeminiProvider implements AiProvider {
                 if (cause instanceof WebClientResponseException wcre) {
                     status = wcre.getStatusCode().value();
                     body = wcre.getResponseBodyAsString();
+                }
+
+                if ((status != null && (status == 429 || status == 503 || status == 500)) || msg.toLowerCase().contains("quota") || msg.toLowerCase().contains("rate limit") || msg.toLowerCase().contains("overloaded")) {
+                    com.midori.ai.core.AiProviderStateManager.recordModelCooldown("GEMINI", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, msg);
                 }
 
                 log.warn("[GeminiProvider] [FALLBACK-LOOP] {} failed with model {}. Status: {}, Error: {}",
@@ -471,7 +564,7 @@ public class GeminiProvider implements AiProvider {
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .timeout(Duration.ofMillis(com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(config.getTimeoutSeconds() * 1000L, taskType)))
                     .block();
 
             long latencyMs = System.currentTimeMillis() - callStartTime;
@@ -517,7 +610,7 @@ public class GeminiProvider implements AiProvider {
 
         Map<String, Object> generationConfig = new HashMap<>();
         generationConfig.put("temperature", 0.25);
-        generationConfig.put("maxOutputTokens", 4096);
+        generationConfig.put("maxOutputTokens", "TRUE_FALSE".equalsIgnoreCase(questionType) ? 1500 : 4096);
         generationConfig.put("topP", 0.8);
         requestBody.put("generationConfig", generationConfig);
 
@@ -532,7 +625,7 @@ public class GeminiProvider implements AiProvider {
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .timeout(Duration.ofMillis(com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(config.getTimeoutSeconds() * 1000L, taskType)))
                     .block();
 
             return extractTextFromResponse(rawResponse);
@@ -563,7 +656,7 @@ public class GeminiProvider implements AiProvider {
 
         try {
             Map<String, Object> response = executeWithFallback("exam parsing", (model, apiKey) -> {
-                return callGeminiApi(model, apiKey, prompt);
+                return callGeminiApi(model, apiKey, prompt, taskType);
             }, taskType);
             long latencyMs = System.currentTimeMillis() - startMs;
             log.info("Gemini API responded in {}ms for model {}", latencyMs, lastModelUsed);
@@ -578,7 +671,7 @@ public class GeminiProvider implements AiProvider {
     // Helper Methods
     // ============================================================
 
-    private Map<String, Object> callGeminiApi(String model, String apiKey, String prompt) {
+    private Map<String, Object> callGeminiApi(String model, String apiKey, String prompt, com.midori.ai.AiTaskType taskType) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("contents", List.of(createContentPart("user", prompt)));
 
@@ -597,7 +690,7 @@ public class GeminiProvider implements AiProvider {
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .timeout(Duration.ofMillis(com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(config.getTimeoutSeconds() * 1000L, taskType)))
                 .block();
 
         try {

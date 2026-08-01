@@ -13,10 +13,17 @@ class OpenRouterKeyManagerTest {
     @Test
     @DisplayName("Mask: first 4 + ... + last 4 chars")
     void maskWorks() {
-        assertEquals("sk-o...test", OpenRouterKeyManager.mask("sk-or-v1-test123456789abcdefghijklmnop"));
+        // mask() returns: first 4 chars + "..." + last 4 chars
+        // For "sk-or-v1-test123456789abcdefghijklmnop" (31 chars):
+        //   first 4: "sk-o", last 4: "mnop" -> "sk-o...mnop"
+        assertEquals("sk-o...mnop", OpenRouterKeyManager.mask("sk-or-v1-test123456789abcdefghijklmnop"));
         assertEquals("***", OpenRouterKeyManager.mask("short"));
         assertEquals("***", OpenRouterKeyManager.mask(null));
         assertEquals("***", OpenRouterKeyManager.mask(""));
+        // Edge case: exactly 8 chars -> "***" (not enough chars for masking)
+        assertEquals("***", OpenRouterKeyManager.mask("12345678"));
+        // 9 chars: "1234...6789"
+        assertEquals("1234...6789", OpenRouterKeyManager.mask("123456789"));
     }
 
     @Test

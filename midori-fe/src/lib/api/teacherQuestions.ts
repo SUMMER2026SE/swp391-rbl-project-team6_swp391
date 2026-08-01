@@ -1,4 +1,42 @@
 import { api } from "./client";
+import type {
+  TranslationMetadata,
+  SentenceWritingMetadata,
+  ErrorCorrectionMetadata,
+  MatchingMetadata,
+} from "@/types/question";
+
+// Shared format metadata shapes
+export interface TranslationMetadata {
+  direction?: string;
+  sourceText?: string;
+  referenceAnswer?: string;
+  acceptedAnswers?: string[];
+  sourceLanguage?: string;
+  targetLanguage?: string;
+}
+
+export interface SentenceWritingMetadata {
+  requiredVocabulary?: string[];
+  requiredGrammar?: string[];
+  referenceAnswer?: string;
+  acceptedAnswers?: string[];
+  rubric?: string;
+  prompt?: string;
+}
+
+export interface ErrorCorrectionMetadata {
+  incorrectText?: string;
+  correctedText?: string;
+  explanation?: string;
+  errorType?: string;
+}
+
+export interface MatchingMetadata {
+  leftItems?: string[];
+  rightItems?: string[];
+  correctPairs?: { leftIndex: number; rightIndex: number }[];
+}
 
 export interface TeacherQuestionResponse {
   id: string;
@@ -23,6 +61,11 @@ export interface TeacherQuestionResponse {
   audioDuration?: number;
   createdAt: string;
   updatedAt: string;
+  // Format-specific metadata (populated by the backend when saved/loaded)
+  translationMetadata?: TranslationMetadata;
+  sentenceWritingMetadata?: SentenceWritingMetadata;
+  errorCorrectionMetadata?: ErrorCorrectionMetadata;
+  matchingMetadata?: MatchingMetadata;
 }
 
 export interface CreateTeacherQuestionRequest {
@@ -43,6 +86,11 @@ export interface CreateTeacherQuestionRequest {
   audioUrl?: string;
   audioFileName?: string;
   audioDuration?: number;
+  // Format-specific metadata for new question types
+  translationMetadata?: TranslationMetadata;
+  sentenceWritingMetadata?: SentenceWritingMetadata;
+  errorCorrectionMetadata?: ErrorCorrectionMetadata;
+  matchingMetadata?: MatchingMetadata;
 }
 
 export interface UpdateTeacherQuestionRequest {
@@ -84,9 +132,21 @@ export interface QuestionBankGeneratorLessonResponse {
   questionCount: number;
 }
 
+export interface BatchCreateQuestionsRequest {
+  questions: CreateTeacherQuestionRequest[];
+}
+
+export interface BatchQuestionsResponse {
+  requestedCount: number;
+  savedCount: number;
+  savedQuestions: TeacherQuestionResponse[];
+}
+
 export const teacherQuestionsApi = {
   createQuestion: (req: CreateTeacherQuestionRequest) =>
     api.post<TeacherQuestionResponse>("/teacher/questions", req),
+  createQuestionsBatch: (req: BatchCreateQuestionsRequest) =>
+    api.post<BatchQuestionsResponse>("/teacher/questions/batch", req),
   updateQuestion: (id: string, req: UpdateTeacherQuestionRequest) =>
     api.put<TeacherQuestionResponse>(`/teacher/questions/${id}`, req),
   deleteQuestion: (id: string) => api.delete<void>(`/teacher/questions/${id}`),

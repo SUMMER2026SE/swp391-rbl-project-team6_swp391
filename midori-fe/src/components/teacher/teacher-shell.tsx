@@ -640,7 +640,7 @@ export function TeacherShell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-3 md:p-6 pb-24 lg:pb-6">{children}</main>
+        <main className="flex-1 p-3 md:p-6 py-8 pb-24 lg:pb-6">{children}</main>
         <TeacherFooter />
       </div>
     </div>

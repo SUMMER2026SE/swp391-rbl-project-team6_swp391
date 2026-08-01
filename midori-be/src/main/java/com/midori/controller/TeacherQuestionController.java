@@ -1,6 +1,12 @@
 package com.midori.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.common.ApiResponse;
+import com.midori.dto.ai.ErrorCorrectionMetadata;
+import com.midori.dto.ai.MatchingMetadata;
+import com.midori.dto.ai.SentenceWritingMetadata;
+import com.midori.dto.ai.TranslationMetadata;
 import com.midori.dto.questiondto.CreateTeacherQuestionRequest;
 import com.midori.dto.questiondto.TeacherQuestionResponse;
 import com.midori.dto.questiondto.UpdateTeacherQuestionRequest;
@@ -19,6 +25,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.ArrayList;
+import com.midori.dto.questiondto.BatchCreateQuestionsRequest;
+import com.midori.dto.questiondto.BatchQuestionsResponse;
+import com.midori.exception.BadRequestException;
+import com.midori.validation.QuestionBankCompatibilityValidator;
 
 @RestController
 @RequestMapping("/api/teacher/questions")
@@ -31,6 +42,92 @@ public class TeacherQuestionController {
     private final com.midori.repository.TeacherQuestionRepository teacherQuestionRepository;
     private final com.midori.repository.QuestionBankLessonRepository questionBankLessonRepository;
     private final com.midori.service.QuestionBankLessonService questionBankLessonService;
+    private final QuestionBankCompatibilityValidator compatibilityValidator;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private String serializeMetadata(Object metadata) {
+        if (metadata == null) return null;
+        try {
+            return objectMapper.writeValueAsString(metadata);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    private String determineAndSerializeFormatMetadata(CreateTeacherQuestionRequest request) {
+        // Determine which format metadata to use based on question type
+        String questionType = request.getQuestionType();
+        Object metadata = null;
+
+        if (questionType != null) {
+            switch (questionType.toUpperCase()) {
+                case "TRANSLATION":
+                    metadata = request.getTranslationMetadata();
+                    break;
+                case "SENTENCE_WRITING":
+                    metadata = request.getSentenceWritingMetadata();
+                    break;
+                case "ERROR_CORRECTION":
+                    metadata = request.getErrorCorrectionMetadata();
+                    break;
+                case "MATCHING":
+                    metadata = request.getMatchingMetadata();
+                    break;
+                default:
+                    // For other types, use the fallback formatMetadata if provided
+                    if (request.getFormatMetadata() != null && !request.getFormatMetadata().isEmpty()) {
+                        return request.getFormatMetadata();
+                    }
+                    break;
+            }
+        }
+
+        if (metadata != null) {
+            return serializeMetadata(metadata);
+        }
+        return null;
+    }
+
+    private String determineAndSerializeUpdateFormatMetadata(UpdateTeacherQuestionRequest request) {
+        String questionType = request.getQuestionType();
+        Object metadata = null;
+
+        if (questionType != null) {
+            switch (questionType.toUpperCase()) {
+                case "TRANSLATION":
+                    metadata = request.getTranslationMetadata();
+                    break;
+                case "SENTENCE_WRITING":
+                    metadata = request.getSentenceWritingMetadata();
+                    break;
+                case "ERROR_CORRECTION":
+                    metadata = request.getErrorCorrectionMetadata();
+                    break;
+                case "MATCHING":
+                    metadata = request.getMatchingMetadata();
+                    break;
+                default:
+                    if (request.getFormatMetadata() != null && !request.getFormatMetadata().isEmpty()) {
+                        return request.getFormatMetadata();
+                    }
+                    break;
+            }
+        }
+
+        if (metadata != null) {
+            return serializeMetadata(metadata);
+        }
+        return null;
+    }
+
+    private <T> T deserializeMetadata(String json, Class<T> clazz) {
+        if (json == null || json.isEmpty()) return null;
+        try {
+            return objectMapper.readValue(json, clazz);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
 
     private boolean isAdmin(CustomUserDetails userDetails) {
         if (userDetails == null) return false;
@@ -39,11 +136,42 @@ public class TeacherQuestionController {
                 .orElse(false);
     }
 
+    private void validateOptionsByQuestionType(String questionType, List<String> options) {
+        if (questionType == null || questionType.trim().isEmpty()) {
+            throw new BadRequestException("Question type must not be blank.");
+        }
+        String upper = questionType.toUpperCase().trim();
+        if ("MULTIPLE_CHOICE".equals(upper) || "TRUE_FALSE".equals(upper)) {
+            if (options == null || options.isEmpty()) {
+                throw new BadRequestException("Options must not be empty for MULTIPLE_CHOICE or TRUE_FALSE questions.");
+            }
+        }
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TeacherQuestionResponse>> createQuestion(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateTeacherQuestionRequest request) {
+
+        if (request.getSkill() == null || request.getSkill().trim().isEmpty()) {
+            throw new BadRequestException("Question skill is required.");
+        }
+        if (request.getQuestionType() == null || request.getQuestionType().trim().isEmpty()) {
+            throw new BadRequestException("Question type must not be blank.");
+        }
+
+        validateOptionsByQuestionType(request.getQuestionType(), request.getOptions());
+
+        // Validate skill-format compatibility before saving
+        String error = compatibilityValidator.validateSkillsAndFormats(
+                List.of(request.getSkill()),
+                request.getQuestionType()
+        );
+        if (error != null) {
+            throw new BadRequestException("Skill-format validation failed: " + error);
+        }
+
         User teacher = userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userDetails.getId()));
 
@@ -67,11 +195,13 @@ public class TeacherQuestionController {
                 .explanation(request.getExplanation())
                 .tags(request.getTags())
                 .points(request.getPoints() != null ? request.getPoints() : 1)
-                .options(request.getOptions())
+                .options(request.getOptions() != null ? request.getOptions() : new ArrayList<>())
                 .status(com.midori.entity.UserStatus.ACTIVE.name())
                 .audioUrl(request.getAudioUrl())
                 .audioFileName(request.getAudioFileName())
                 .audioDuration(request.getAudioDuration())
+                // Format metadata serialization
+                .formatMetadata(determineAndSerializeFormatMetadata(request))
                 .build();
 
         TeacherQuestion saved = teacherQuestionService.createQuestion(question);
@@ -84,7 +214,9 @@ public class TeacherQuestionController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateTeacherQuestionRequest request) {
-        
+
+        validateOptionsByQuestionType(request.getQuestionType(), request.getOptions());
+
         com.midori.entity.QuestionBankLesson lesson = null;
         if (request.getLessonId() != null) {
             lesson = questionBankLessonRepository.findById(request.getLessonId()).orElse(null);
@@ -103,11 +235,12 @@ public class TeacherQuestionController {
                 .explanation(request.getExplanation())
                 .tags(request.getTags())
                 .points(request.getPoints() != null ? request.getPoints() : 1)
-                .options(request.getOptions())
+                .options(request.getOptions() != null ? request.getOptions() : new ArrayList<>())
                 .status(request.getStatus() != null ? request.getStatus().toUpperCase() : com.midori.entity.UserStatus.ACTIVE.name())
                 .audioUrl(request.getAudioUrl())
                 .audioFileName(request.getAudioFileName())
                 .audioDuration(request.getAudioDuration())
+                .formatMetadata(determineAndSerializeUpdateFormatMetadata(request))
                 .build();
 
         TeacherQuestion updated = teacherQuestionService.updateQuestion(id, details, userDetails.getId());
@@ -123,34 +256,100 @@ public class TeacherQuestionController {
         return ResponseEntity.ok(ApiResponse.success("Question deleted successfully", null));
     }
 
+    @PostMapping("/batch")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<BatchQuestionsResponse>> createQuestionsBatch(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody BatchCreateQuestionsRequest batchRequest) {
+
+        User teacher = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userDetails.getId()));
+
+        List<CreateTeacherQuestionRequest> requests = batchRequest.getQuestions();
+        int requestedCount = requests.size();
+
+        // Validate skill-format compatibility for the entire batch before saving
+        for (CreateTeacherQuestionRequest request : requests) {
+            if (request.getSkill() == null || request.getSkill().trim().isEmpty()) {
+                throw new BadRequestException("Question skill is required.");
+            }
+            if (request.getQuestionType() == null || request.getQuestionType().trim().isEmpty()) {
+                throw new BadRequestException("Question type must not be blank.");
+            }
+            String error = compatibilityValidator.validateSkillsAndFormats(
+                    List.of(request.getSkill()),
+                    request.getQuestionType()
+            );
+            if (error != null) {
+                throw new BadRequestException("Skill-format validation failed: " + error);
+            }
+        }
+
+        List<TeacherQuestion> questionsToSave = new ArrayList<>();
+        java.util.Map<Integer, com.midori.entity.QuestionBankLesson> lessonCache = new java.util.HashMap<>();
+
+        for (CreateTeacherQuestionRequest request : requests) {
+            validateOptionsByQuestionType(request.getQuestionType(), request.getOptions());
+
+            com.midori.entity.QuestionBankLesson lesson = null;
+            if (request.getLessonId() != null) {
+                Integer lessonId = request.getLessonId();
+                if (!lessonCache.containsKey(lessonId)) {
+                    lessonCache.put(lessonId, questionBankLessonRepository.findById(lessonId).orElse(null));
+                }
+                lesson = lessonCache.get(lessonId);
+            }
+
+            TeacherQuestion question = TeacherQuestion.builder()
+                    .teacher(teacher)
+                    .topicId(request.getTopicId())
+                    .level(request.getLevel())
+                    .skill(request.getSkill())
+                    .lesson(lesson)
+                    .source(request.getSource() != null ? request.getSource() : "HOMEWORK")
+                    .prompt(request.getPrompt())
+                    .jpPrompt(request.getJpPrompt())
+                    .questionType(request.getQuestionType())
+                    .difficulty(request.getDifficulty() != null ? request.getDifficulty().toUpperCase() : "MEDIUM")
+                    .correctAnswerIndex(request.getCorrectAnswerIndex())
+                    .explanation(request.getExplanation())
+                    .tags(request.getTags())
+                    .points(request.getPoints() != null ? request.getPoints() : 1)
+                    .options(request.getOptions() != null ? request.getOptions() : new ArrayList<>())
+                    .status(com.midori.entity.UserStatus.ACTIVE.name())
+                    .audioUrl(request.getAudioUrl())
+                    .audioFileName(request.getAudioFileName())
+                    .audioDuration(request.getAudioDuration())
+                    .formatMetadata(determineAndSerializeFormatMetadata(request))
+                    .build();
+
+            questionsToSave.add(question);
+        }
+
+        // Save atomically in a single transactional service call
+        List<TeacherQuestion> saved = teacherQuestionService.createQuestions(questionsToSave);
+
+        List<TeacherQuestionResponse> responses = saved.stream()
+                .map(this::mapToResponse)
+                .toList();
+
+        BatchQuestionsResponse responseBody = BatchQuestionsResponse.builder()
+                .requestedCount(requestedCount)
+                .savedCount(saved.size())
+                .savedQuestions(responses)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success("Batch questions created successfully", responseBody));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<TeacherQuestionResponse>>> getQuestions(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<TeacherQuestion> questions = isAdmin(userDetails)
-                ? teacherQuestionRepository.findAll()
+                ? teacherQuestionRepository.findAllWithOptions()
                 : teacherQuestionService.findQuestionsForTeacherView(userDetails.getId());
-        
-        java.util.Map<String, TeacherQuestion> uniqueMap = new java.util.LinkedHashMap<>();
-        java.util.List<TeacherQuestion> duplicatesToDelete = new java.util.ArrayList<>();
-        
-        for (TeacherQuestion q : questions) {
-            String key = q.getPrompt() != null ? q.getPrompt().trim() : "";
-            if (!uniqueMap.containsKey(key)) {
-                uniqueMap.put(key, q);
-            } else {
-                duplicatesToDelete.add(q);
-            }
-        }
-        
-        if (!duplicatesToDelete.isEmpty()) {
-            try {
-                teacherQuestionRepository.deleteAll(duplicatesToDelete);
-            } catch (Exception e) {
-                // Ignore silent delete errors
-            }
-        }
-        
-        List<TeacherQuestionResponse> responses = uniqueMap.values().stream().map(this::mapToResponse).toList();
+
+        List<TeacherQuestionResponse> responses = questions.stream().map(this::mapToResponse).toList();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -203,6 +402,27 @@ public class TeacherQuestionController {
 
     private TeacherQuestionResponse mapToResponse(TeacherQuestion question) {
         if (question == null) return null;
+
+        String questionType = question.getQuestionType();
+        TranslationMetadata translationMetadata = null;
+        SentenceWritingMetadata sentenceWritingMetadata = null;
+        ErrorCorrectionMetadata errorCorrectionMetadata = null;
+        MatchingMetadata matchingMetadata = null;
+
+        // Deserialize format metadata based on question type
+        String formatMetadata = question.getFormatMetadata();
+        if (formatMetadata != null && !formatMetadata.isEmpty()) {
+            if ("TRANSLATION".equalsIgnoreCase(questionType)) {
+                translationMetadata = deserializeMetadata(formatMetadata, TranslationMetadata.class);
+            } else if ("SENTENCE_WRITING".equalsIgnoreCase(questionType)) {
+                sentenceWritingMetadata = deserializeMetadata(formatMetadata, SentenceWritingMetadata.class);
+            } else if ("ERROR_CORRECTION".equalsIgnoreCase(questionType)) {
+                errorCorrectionMetadata = deserializeMetadata(formatMetadata, ErrorCorrectionMetadata.class);
+            } else if ("MATCHING".equalsIgnoreCase(questionType)) {
+                matchingMetadata = deserializeMetadata(formatMetadata, MatchingMetadata.class);
+            }
+        }
+
         return TeacherQuestionResponse.builder()
                 .id(question.getId())
                 .teacherId(question.getTeacher().getId())
@@ -226,6 +446,11 @@ public class TeacherQuestionController {
                 .audioDuration(question.getAudioDuration())
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
+                // Format-specific metadata
+                .translationMetadata(translationMetadata)
+                .sentenceWritingMetadata(sentenceWritingMetadata)
+                .errorCorrectionMetadata(errorCorrectionMetadata)
+                .matchingMetadata(matchingMetadata)
                 .build();
     }
 }

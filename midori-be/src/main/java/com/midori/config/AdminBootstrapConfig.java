@@ -43,7 +43,14 @@ public class AdminBootstrapConfig {
 
             java.util.Optional<User> existingUserOpt = userRepository.findByEmail(adminEmail);
             if (existingUserOpt.isPresent()) {
-                log.info("[AdminBootstrap] Admin {} already exists. Skipping bootstrap.", adminEmail);
+                User existing = existingUserOpt.get();
+                if (!passwordEncoder.matches(adminPassword, existing.getPasswordHash())) {
+                    log.info("[AdminBootstrap] Admin {} already exists but password hash is outdated. Re-encoding and updating password hash.", adminEmail);
+                    existing.setPasswordHash(passwordEncoder.encode(adminPassword));
+                    userRepository.save(existing);
+                } else {
+                    log.info("[AdminBootstrap] Admin {} already exists with correct password. Skipping bootstrap.", adminEmail);
+                }
                 return;
             }
 

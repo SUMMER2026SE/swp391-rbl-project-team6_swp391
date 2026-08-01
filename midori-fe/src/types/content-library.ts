@@ -103,6 +103,7 @@ export interface AdminVocabularyLesson {
   estimatedMinutes: number | null;
   difficulty: string | null;
   isActive: boolean;
+  isPublished: boolean;
   createdAt: string;
   updatedAt: string;
   items: AdminVocabularyItem[];

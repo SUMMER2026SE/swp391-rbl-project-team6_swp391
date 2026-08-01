@@ -13,6 +13,25 @@ public class AiPdfPreviewResponse {
     private String warning;
     private String errorMessage;
     private List<QuestionPreview> questions;
+    private boolean success = true;
+    private boolean partial = false;
+    private String code;
+    private String message;
+    private int requestedCount;
+    private int generatedCount;
+
+    public boolean isSuccess() { return success; }
+    public void setSuccess(boolean v) { this.success = v; }
+    public boolean isPartial() { return partial; }
+    public void setPartial(boolean v) { this.partial = v; }
+    public String getCode() { return code; }
+    public void setCode(String v) { this.code = v; }
+    public String getMessage() { return message; }
+    public void setMessage(String v) { this.message = v; }
+    public int getRequestedCount() { return requestedCount; }
+    public void setRequestedCount(int v) { this.requestedCount = v; }
+    public int getGeneratedCount() { return generatedCount; }
+    public void setGeneratedCount(int v) { this.generatedCount = v; }
 
     public String getMode() { return mode; }
     public void setMode(String v) { this.mode = v; }
@@ -40,6 +59,8 @@ public class AiPdfPreviewResponse {
         private String explanation;
         private List<AnswerPreview> answers;
         private String category;
+        private String readingPassage;
+        private String sourcePassage;
 
         public String getType() { return type; }
         public void setType(String v) { this.type = v; }
@@ -53,6 +74,10 @@ public class AiPdfPreviewResponse {
         public void setAnswers(List<AnswerPreview> v) { this.answers = v; }
         public String getCategory() { return category; }
         public void setCategory(String v) { this.category = v; }
+        public String getReadingPassage() { return readingPassage; }
+        public void setReadingPassage(String v) { this.readingPassage = v; }
+        public String getSourcePassage() { return sourcePassage; }
+        public void setSourcePassage(String v) { this.sourcePassage = v; }
     }
 
     public static class AnswerPreview {
@@ -78,6 +103,12 @@ public class AiPdfPreviewResponse {
         public Builder warning(String v) { r.warning = v; return this; }
         public Builder errorMessage(String v) { r.errorMessage = v; return this; }
         public Builder questions(List<QuestionPreview> v) { r.questions = v; return this; }
+        public Builder success(boolean v) { r.success = v; return this; }
+        public Builder partial(boolean v) { r.partial = v; return this; }
+        public Builder code(String v) { r.code = v; return this; }
+        public Builder message(String v) { r.message = v; return this; }
+        public Builder requestedCount(int v) { r.requestedCount = v; return this; }
+        public Builder generatedCount(int v) { r.generatedCount = v; return this; }
         public AiPdfPreviewResponse build() { return r; }
     }
 }

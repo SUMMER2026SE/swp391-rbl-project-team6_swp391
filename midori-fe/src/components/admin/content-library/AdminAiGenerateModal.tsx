@@ -189,7 +189,8 @@ export function AdminAiGenerateModal({
       toast.error("Please enter a lesson title");
       return false;
     }
-    if (!formData.topic.trim()) {
+    const topicToCheck = skillType === "GRAMMAR" ? formData.grammarTopic : formData.topic;
+    if (!topicToCheck.trim()) {
       toast.error("Please enter a topic or keywords");
       return false;
     }
@@ -210,14 +211,14 @@ export function AdminAiGenerateModal({
         lessonTitle: formData.lessonTitle,
         lessonDescription: formData.lessonDescription,
         level: formData.level,
-        topic: formData.topic,
+        topic: skillType === "GRAMMAR" ? formData.grammarTopic : formData.topic,
       };
 
       // Add skill-specific fields
       if (skillType === "VOCABULARY" || skillType === "GRAMMAR") {
         request.itemCount = formData.itemCount;
         if (skillType === "GRAMMAR") {
-          request.grammarTopic = formData.grammarTopic || formData.topic;
+          request.grammarTopic = formData.grammarTopic;
         }
       } else if (skillType === "READING") {
         request.passageCount = formData.passageCount;

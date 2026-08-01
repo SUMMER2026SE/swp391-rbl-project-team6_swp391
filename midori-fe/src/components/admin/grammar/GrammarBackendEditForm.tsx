@@ -67,12 +67,13 @@ export function GrammarBackendEditForm({
     description: lesson?.description || "",
     estimatedMinutes: lesson?.estimatedMinutes ?? null,
     difficulty: lesson?.difficulty || "EASY",
-    isActive: lesson?.isActive ?? true,
+    isActive: lesson?.isActive ?? false,
     contents: [],
   }));
 
   useEffect(() => {
     if (!lesson) return;
+    const contents = lesson.contents ?? [];
     setForm({
       lessonNumber: lesson.lessonNumber,
       title: lesson.title,
@@ -80,24 +81,28 @@ export function GrammarBackendEditForm({
       estimatedMinutes: lesson.estimatedMinutes ?? null,
       difficulty: lesson.difficulty || "EASY",
       isActive: lesson.isActive,
-      contents: lesson.contents.map((c) => ({
-        id: c.id,
-        contentOrder: c.contentOrder,
-        pattern: c.pattern ?? "",
-        meaning: c.meaning ?? "",
-        structure: c.structure ?? "",
-        usage: c.usage ?? "",
-        examples: c.examples.length > 0
-          ? c.examples.map((ex) => ({
-              id: ex.id,
-              japanese: ex.japanese,
-              vietnameseMeaning: ex.vietnameseMeaning ?? "",
-            }))
-          : [EMPTY_EXAMPLE],
-        isExpanded: true,
-      })),
+      contents: contents.map((c) => {
+        const examples = c.examples ?? [];
+        return {
+          id: c.id,
+          contentOrder: c.contentOrder,
+          pattern: c.pattern ?? "",
+          meaning: c.meaning ?? "",
+          structure: c.structure ?? "",
+          usage: c.usage ?? "",
+          examples: examples.length > 0
+            ? examples.map((ex) => ({
+                id: ex.id,
+                japanese: ex.japanese,
+                vietnameseMeaning: ex.vietnameseMeaning ?? "",
+              }))
+            : [EMPTY_EXAMPLE],
+          isExpanded: true,
+        };
+      }),
     });
   }, [lesson]);
+
 
   const addGrammarPoint = () => {
     const newPoint: GrammarPointForm = {

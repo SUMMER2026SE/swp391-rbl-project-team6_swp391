@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { GraduationCap } from "lucide-react";
+import { useAdminQuestionBankLessons } from "../services/questionBankService";
+import type { JLPTLevel } from "../services/questionBank.types";
 
 export const Route = createFileRoute("/admin/question-bank/_index")({
   component: QuestionBankIndexPage,
@@ -60,6 +62,8 @@ const levels = [
 ];
 
 function QuestionBankIndexPage() {
+  const { prefetchLessons } = useAdminQuestionBankLessons("N5");
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -81,6 +85,8 @@ function QuestionBankIndexPage() {
             <Link
               to="/admin/question-bank/$level"
               params={{ level: level.id.toLowerCase() }}
+              onMouseEnter={() => prefetchLessons(level.id as JLPTLevel)}
+              onFocus={() => prefetchLessons(level.id as JLPTLevel)}
               className="group block h-full"
             >
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--card)] to-[var(--card)] border border-[var(--border)] p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30 h-full flex flex-col justify-between min-h-[250px]">

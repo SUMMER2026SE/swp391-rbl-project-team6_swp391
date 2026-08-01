@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
 import { examsApi } from "@/lib/api/exams";
-import { AiExamGenerate } from "@/components/teacher/AiExamGenerate";
+import { AiPdfImportWorkflow } from "@/components/admin/AiPdfImportWorkflow";
 import {
   Select,
   SelectContent,
@@ -17,11 +16,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { teacherQuestionsApi, type TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
-import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { SuccessBanner } from "@/components/teacher/dialogs";
-import { QuestionEditor, ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
+import type { ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
+import { QuestionEditor } from "@/components/question-builder/QuestionEditor";
+import { QuestionPreview } from "@/components/question-builder/QuestionPreview";
+import type { BuilderQuestion } from "@/types/question";
+import {
+  mapTeacherQuestionResponsesToBuilderQuestions,
+  mapBuilderQuestionToRequest,
+  normalizeImportedQuestionType,
+} from "@/lib/teacherHomeworkMapping";
 import {
   ArrowLeft,
+  Copy,
+  Trash2,
   FileText,
   HelpCircle,
   Send,
@@ -29,14 +37,17 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
-  Upload,
   ArrowRight,
   Plus,
+  Save,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ClassLockNotice } from "@/components/teacher/ClassLockNotice";
+import { TeacherMethodLayout } from "@/components/teacher/TeacherMethodLayout";
 
-type Method = "ai-pdf" | "question-bank" | "ai-generate";
+type Method = "ai-pdf" | "question-bank";
 
 export const Route = createFileRoute("/teacher/exams/create")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -104,43 +115,29 @@ function CreateExam() {
 
   if (!method) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader
-          eyebrow="New exam"
-          title="How do you want to create this exam?"
-          subtitle="Pick the source of the questions and content."
-          showBack={true}
-          onBack={handleBack}
-        />
-        <div className="grid gap-3 md:grid-cols-2">
+      <TeacherMethodLayout
+        eyebrow="New exam"
+        title="How do you want to create this exam?"
+        subtitle="Pick the source of the questions and content."
+        showBack={true}
+        onBack={handleBack}
+        lockedClass={lockedClass}
+      >
+        <div className="grid gap-5 md:grid-cols-2 w-full max-w-4xl mx-auto">
           <MethodCard
             icon={Sparkles}
             title="AI PDF Exam"
             desc="Upload a PDF and let AI generate exam questions automatically."
-            badge="AI Generator"
             onClick={() => setMethod("ai-pdf")}
-          />
-          <MethodCard
-            icon={Sparkles}
-            title="AI Generate Exam"
-            desc="Select a lesson and AI will generate exam questions from the content library."
-            badge="AI · Smart"
-            onClick={() => setMethod("ai-generate")}
           />
           <MethodCard
             icon={HelpCircle}
             title="From Question Bank"
             desc="Generate exam questions by selecting topics and difficulty."
-            badge="Generator"
             onClick={() => setMethod("question-bank")}
           />
         </div>
-        {lockedClass && (
-          <p className="text-center text-xs text-muted-foreground">
-            Class locked: <b>{lockedClass.name}</b>
-          </p>
-        )}
-      </div>
+      </TeacherMethodLayout>
     );
   }
 
@@ -150,9 +147,11 @@ function CreateExam() {
         <ArrowLeft className="mr-1 h-4 w-4" />
         Change method
       </Button>
-      {method === "ai-pdf" && <ExamAiPdfFlow lockedClass={lockedClass} onDone={handleDone} />}
-      {method === "ai-generate" && (
-        <AiExamGenerate lockedClass={lockedClass} onDone={handleDone} />
+      {method === "ai-pdf" && (
+        <ExamAiPdf
+          lockedClass={lockedClass}
+          onDone={handleDone}
+        />
       )}
       {method === "question-bank" && (
         <QuestionBankExam lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />
@@ -171,7 +170,7 @@ function MethodCard({
   icon: React.ElementType;
   title: string;
   desc: string;
-  badge: string;
+  badge?: string;
   onClick: () => void;
 }) {
   return (
@@ -183,9 +182,11 @@ function MethodCard({
         <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
           <Icon className="h-5 w-5" />
         </div>
-        <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {badge}
-        </span>
+        {badge && (
+          <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {badge}
+          </span>
+        )}
       </div>
       <h3 className="font-display text-base font-semibold">{title}</h3>
       <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
@@ -235,8 +236,13 @@ function QuestionBankExam({
 
   const [preview, setPreview] = useState<TeacherQuestionResponse[] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
+
+  // Editable preview state (BuilderQuestions)
+  const [editableQuestions, setEditableQuestions] = useState<BuilderQuestion[]>([]);
+  const [showQuestionPreview, setShowQuestionPreview] = useState(false);
 
   const {
     data: availableSkills = [],
@@ -299,6 +305,40 @@ function QuestionBankExam({
     });
   };
 
+  // ─── Question Editing Handlers ───────────────────────────────────────────────
+
+  const handleUpdateQuestion = (idx: number, updated: Partial<BuilderQuestion>) => {
+    setEditableQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, ...updated } : q)));
+  };
+
+  const handleDeleteQuestion = (idx: number) => {
+    setEditableQuestions((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleDuplicateQuestion = (idx: number) => {
+    const q = editableQuestions[idx];
+    const dup: BuilderQuestion = {
+      ...q,
+      id: `bank-q-dup-${Date.now()}`,
+      content: q.content + " (copy)",
+    };
+    setEditableQuestions((prev) => {
+      const next = [...prev];
+      next.splice(idx + 1, 0, dup);
+      return next;
+    });
+  };
+
+  const handleMoveQuestion = (idx: number, direction: "up" | "down") => {
+    setEditableQuestions((prev) => {
+      const next = [...prev];
+      const target = direction === "up" ? idx - 1 : idx + 1;
+      if (target < 0 || target >= next.length) return prev;
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
+  };
+
   const easyCount = Math.round((difficultyPercent.easy * totalQuestionsInput) / 100);
   const mediumCount = Math.round((difficultyPercent.medium * totalQuestionsInput) / 100);
   const hardCount = Math.max(0, totalQuestionsInput - (easyCount + mediumCount));
@@ -331,8 +371,10 @@ function QuestionBankExam({
         },
       });
       setPreview(res);
+      // Convert to editable BuilderQuestions
+      setEditableQuestions(mapTeacherQuestionResponsesToBuilderQuestions(res));
       setStep(5);
-      toast.success(`Generated preview of ${res.length} questions successfully!`);
+      toast.success(`Generated ${res.length} questions. Review and edit before saving.`);
     } catch (err: any) {
       const errMsg = err?.message || "Failed to generate randomized questions.";
       setBackendError(errMsg);
@@ -343,7 +385,7 @@ function QuestionBankExam({
   };
 
   const handleAssign = async () => {
-    if (!preview || preview.length === 0) return;
+    if (editableQuestions.length === 0) return;
     if (!metadata.classId || !metadata.dueDate || !metadata.title) {
       toast.error("Please fill in target class, title, and due date.");
       return;
@@ -355,30 +397,68 @@ function QuestionBankExam({
 
     setIsSaving(true);
     try {
-      const questionIds = preview.map((q) => q.id);
+      // 1. Save editable questions to the teacher question bank
+      const batchQuestions = editableQuestions.map((q) =>
+        mapBuilderQuestionToRequest(q, level, "EXAM")
+      );
+      const batchRes = await teacherQuestionsApi.createQuestionsBatch({
+        questions: batchQuestions,
+      });
+      const savedQuestionIds = batchRes.savedQuestions.map((q) => q.id);
 
+      // 2. Create exam with saved question IDs
       await examsApi.createExam({
         title: metadata.title,
         level: level,
-        totalQuestions: preview.length,
+        totalQuestions: savedQuestionIds.length,
         timeLimit: metadata.duration,
         classIds: metadata.classId ? [metadata.classId] : [],
-        questionIds: questionIds,
+        questionIds: savedQuestionIds,
         status: "PUBLISHED",
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["exams"] });
-      if (metadata.classId) {
-        await queryClient.invalidateQueries({ queryKey: ["examsByClass", metadata.classId] });
-        await queryClient.invalidateQueries({ queryKey: ["classExams", metadata.classId] });
-      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["exams"] }),
+        queryClient.invalidateQueries({ queryKey: ["teacherQuestions"] }),
+        ...(metadata.classId
+          ? [
+              queryClient.invalidateQueries({ queryKey: ["examsByClass", metadata.classId] }),
+              queryClient.invalidateQueries({ queryKey: ["classExams", metadata.classId] }),
+            ]
+          : []),
+      ]);
 
       toast.success("Exam published successfully!");
       onDone(metadata.title, metadata.classId);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to assign exam.");
+      toast.error(err?.message || "Failed to publish exam.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (editableQuestions.length === 0) return;
+    if (!metadata.title) {
+      toast.error("Please enter a title before saving as draft.");
+      return;
+    }
+
+    setIsSavingDraft(true);
+    try {
+      const batchQuestions = editableQuestions.map((q) =>
+        mapBuilderQuestionToRequest(q, level, "EXAM")
+      );
+      await teacherQuestionsApi.createQuestionsBatch({ questions: batchQuestions });
+
+      await queryClient.invalidateQueries({ queryKey: ["teacherQuestions"] });
+
+      toast.success("Draft saved to question bank!");
+      onDone(metadata.title, metadata.classId);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save draft.");
+    } finally {
+      setIsSavingDraft(false);
     }
   };
 
@@ -760,86 +840,85 @@ function QuestionBankExam({
             </Card>
           )}
 
-          {step === 5 && preview && (
-            <Card className="border-[var(--border)] bg-card shadow-sm">
-              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)] flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  Generated Preview ({preview.length} Questions)
-                </CardTitle>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs flex items-center gap-1"
-                  disabled={isGenerating}
-                  onClick={handleGeneratePreview}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Generate Again
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0 divide-y divide-[var(--border)]">
-                {preview.map((q, i) => (
-                  <div
-                    key={q.id}
-                    className="p-4 flex items-start gap-4 transition-all hover:bg-[var(--accent)]/10"
-                  >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground text-xs font-bold">
-                      {i + 1}
-                    </span>
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                          {q.skill}
-                        </span>
-                        <DifficultyBadge
-                          d={
-                            q.difficulty === "EASY"
-                              ? "Easy"
-                              : q.difficulty === "HARD"
-                                ? "Hard"
-                                : "Medium"
-                          }
-                        />
-                        <span className="ml-auto text-xs text-muted-col font-bold">
-                          {q.points || 1} pt(s)
-                        </span>
-                      </div>
-                      <p className="text-sm font-semibold text-primary-col leading-relaxed">
-                        {q.prompt}
-                      </p>
-                      {q.options && q.options.length > 0 && (
-                        <div className="grid gap-1.5 sm:grid-cols-2 mt-2 pl-2 border-l-2 border-[var(--border)]">
-                          {q.options.map((opt, optIdx) => (
-                            <div
-                              key={optIdx}
-                              className={cn(
-                                "text-xs px-2.5 py-1.5 rounded-md border",
-                                optIdx === q.correctAnswerIndex
-                                  ? "bg-green-500/10 border-green-500/30 text-green-700 font-bold"
-                                  : "bg-[var(--accent)] border-[var(--border)] text-secondary-col",
-                              )}
-                            >
-                              <span className="font-bold mr-1.5">
-                                {String.fromCharCode(65 + optIdx)}.
-                              </span>
-                              {opt}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+          {/* Step 5: Edit Generated Questions */}
+          {step === 5 && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between flex-wrap gap-4 bg-[var(--accent)]/50 p-4 rounded-xl border border-[var(--border)]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <h3 className="font-display font-bold text-primary-col">
+                      {editableQuestions.length} Questions Ready to Edit
+                    </h3>
                   </div>
-                ))}
-
-                <div className="flex justify-between p-4 border-t">
-                  <Button variant="outline" onClick={() => setStep(4)}>
-                    Back
-                  </Button>
-                  <Button onClick={() => setStep(6)}>Next</Button>
+                  <p className="text-xs text-muted-col mt-0.5">
+                    Review, edit, reorder, duplicate, or delete questions before publishing.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowQuestionPreview(true)}
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    Preview
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isGenerating}
+                    onClick={handleGeneratePreview}
+                  >
+                    <Sparkles className="w-4 h-4 mr-1" />
+                    Regenerate
+                  </Button>
+                  <Button size="sm" onClick={() => setStep(6)}>
+                    Next
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {editableQuestions.map((q, idx) => (
+                  <QuestionEditor
+                    key={q.id}
+                    question={q}
+                    index={idx}
+                    totalQuestions={editableQuestions.length}
+                    onUpdateQuestion={handleUpdateQuestion}
+                    onDeleteQuestion={handleDeleteQuestion}
+                    onDuplicateQuestion={handleDuplicateQuestion}
+                    onMoveQuestion={handleMoveQuestion}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showQuestionPreview && (
+            <div
+              className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+              onClick={() => setShowQuestionPreview(false)}
+            >
+              <div
+                className="bg-background rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between">
+                  <h2 className="font-display text-lg font-bold">
+                    {metadata.title || "Exam Preview"}
+                  </h2>
+                  <Button variant="ghost" size="sm" onClick={() => setShowQuestionPreview(false)}>
+                    Close
+                  </Button>
+                </div>
+                <div className="p-6">
+                  <QuestionPreview questions={editableQuestions} />
+                </div>
+              </div>
+            </div>
           )}
 
           {step === 6 && (
@@ -968,25 +1047,35 @@ function QuestionBankExam({
 
                 <div className="flex justify-between mt-6 pt-4 border-t">
                   <Button variant="outline" onClick={() => setStep(5)}>
-                    Back
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Questions
                   </Button>
-                  <Button
-                    className="flex items-center gap-1.5"
-                    disabled={!preview || isSaving}
-                    onClick={handleAssign}
-                  >
-                    {isSaving ? (
-                      <>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={editableQuestions.length === 0 || isSavingDraft}
+                      onClick={handleSaveDraft}
+                    >
+                      {isSavingDraft ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      {isSavingDraft ? "Saving..." : "Save Draft"}
+                    </Button>
+                    <Button
+                      className="flex items-center gap-1.5"
+                      disabled={editableQuestions.length === 0 || isSaving}
+                      onClick={handleAssign}
+                    >
+                      {isSaving ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Publishing...
-                      </>
-                    ) : (
-                      <>
+                      ) : (
                         <Send className="w-4 h-4" />
-                        Publish Exam
-                      </>
-                    )}
-                  </Button>
+                      )}
+                      {isSaving ? "Publishing..." : "Publish Exam"}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1037,11 +1126,11 @@ function QuestionBankExam({
   );
 }
 
-function ExamAiPdfFlow({
+function ExamAiPdf({
   lockedClass,
   onDone,
 }: {
-  lockedClass: any | null;
+  lockedClass: { id: string; name: string; level: string } | null;
   onDone: (t: string, classId: string) => void;
 }) {
   const queryClient = useQueryClient();
@@ -1050,486 +1139,299 @@ function ExamAiPdfFlow({
     queryFn: () => classesApi.getSelectableClasses(),
   });
 
-  const [step, setStep] = useState<"upload" | "preview" | "assign">("upload");
-  const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<ImportedQuestion[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [fileName, setFileName] = useState<string>("");
-
   const [metadata, setMetadata] = useState({
     classId: lockedClass?.id ?? classes[0]?.id ?? "",
     title: "",
     dueDate: "",
     duration: 60,
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
-  const handleUpdateQuestion = (idx: number, updatedFields: Partial<ImportedQuestion>) => {
-    setQuestions((prev) => {
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], ...updatedFields };
-      return copy;
-    });
+  useEffect(() => {
+    if (!metadata.classId) {
+      const targetId = lockedClass?.id ?? classes[0]?.id;
+      if (targetId) {
+        setMetadata((prev) => ({ ...prev, classId: targetId }));
+      }
+    }
+  }, [lockedClass, classes, metadata.classId]);
+
+  const selectedClass =
+    lockedClass ?? classes.find((c) => c.id === metadata.classId) ?? null;
+  const targetLevel = selectedClass?.level || "N5";
+
+  const [savedQuestionIds, setSavedQuestionIds] = useState<string[]>([]);
+  const [savingQuestions, setSavingQuestions] = useState(false);
+
+  const persistQuestionsToBank = async (items: ImportedQuestion[]): Promise<string[]> => {
+    if (items.length === 0) throw new Error("No questions to save.");
+
+    const hasUnresolved = items.some(
+      (q) => q.answers.findIndex((a) => a.isCorrect) === -1
+    );
+    if (hasUnresolved) {
+      toast({
+        title: "Validation Error",
+        description: "One or more questions are missing a correct answer. Please resolve them first.",
+        variant: "destructive",
+      });
+      throw new Error("Unresolved correct answers");
+    }
+
+    const savedIds: string[] = [];
+    for (const q of items) {
+      const correctIndex = q.answers.findIndex((a) => a.isCorrect);
+      const res = await teacherQuestionsApi.createQuestion({
+        prompt: q.content,
+        options: q.answers.map((a) => a.content),
+        correctAnswerIndex: correctIndex,
+        points: 1,
+        questionType: normalizeImportedQuestionType(q.type),
+        difficulty: q.difficulty as "EASY" | "MEDIUM" | "HARD",
+        explanation: q.explanation || "",
+        level: targetLevel,
+        skill: (q.category || "Vocabulary").toUpperCase(),
+        source: "EXAM",
+      });
+      savedIds.push(res.id);
+    }
+    return savedIds;
   };
 
-  const handleDeleteQuestion = (idx: number) => {
-    setQuestions((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleDuplicateQuestion = (idx: number) => {
-    setQuestions((prev) => {
-      const copy = [...prev];
-      const target = copy[idx];
-      const duplicated = {
-        ...target,
-        id: `extracted-${Date.now()}-dup`,
-        content: `${target.content} (Copy)`,
-        answers: target.answers.map((ans: { content: string; isCorrect: boolean }) => ({ ...ans })),
-      };
-      copy.splice(idx + 1, 0, duplicated);
-      return copy;
-    });
-  };
-
-  const handleMoveQuestion = (idx: number, direction: "up" | "down") => {
-    setQuestions((prev) => {
-      const copy = [...prev];
-      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
-      if (targetIdx < 0 || targetIdx >= copy.length) return prev;
-      const temp = copy[idx];
-      copy[idx] = copy[targetIdx];
-      copy[targetIdx] = temp;
-      return copy;
-    });
-  };
-
-  const handleReAnalyze = (_idx: number) => {
-    // Disabled (Coming Soon)
-  };
-
-  const handleAddQuestion = () => {
-    const newQuestion: ImportedQuestion = {
-      id: `extracted-${Date.now()}-manual`,
-      type: "MULTIPLE_CHOICE",
-      content: "",
-      difficulty: "MEDIUM",
-      explanation: "",
-      answers: [
-        { content: "", isCorrect: true },
-        { content: "", isCorrect: false },
-      ],
-      category: "Vocabulary",
-    };
-    setQuestions((prev) => [...prev, newQuestion]);
-  };
-
-  const handleFileUpload = () => {
-    // Simulate AI parsing with sample questions
-    const sampleQuestions: ImportedQuestion[] = [
-      {
-        id: "sample-1",
-        type: "MULTIPLE_CHOICE",
-        content: "What is the meaning of 学校 (がっこう)?",
-        difficulty: "EASY",
-        explanation: "School in Japanese",
-        answers: [
-          { content: "School", isCorrect: true },
-          { content: "Hospital", isCorrect: false },
-          { content: "Library", isCorrect: false },
-          { content: "Park", isCorrect: false },
-        ],
-        category: "Vocabulary",
-      },
-      {
-        id: "sample-2",
-        type: "MULTIPLE_CHOICE",
-        content: "Which particle is used to mark the topic of a sentence?",
-        difficulty: "MEDIUM",
-        explanation: "は (wa) is the topic marker particle",
-        answers: [
-          { content: "は (wa)", isCorrect: true },
-          { content: "を (wo)", isCorrect: false },
-          { content: "で (de)", isCorrect: false },
-          { content: "に (ni)", isCorrect: false },
-        ],
-        category: "Grammar",
-      },
-      {
-        id: "sample-3",
-        type: "MULTIPLE_CHOICE",
-        content: "Choose the correct reading for 山 (mountain):",
-        difficulty: "EASY",
-        explanation: "The kanji 山 can be read as やま (yama) or さん (san)",
-        answers: [
-          { content: "やま (yama)", isCorrect: true },
-          { content: "かわ (kawa)", isCorrect: false },
-          { content: "そら (sora)", isCorrect: false },
-          { content: "うみ (umi)", isCorrect: false },
-        ],
-        category: "Vocabulary",
-      },
-    ];
-    setFileName("sample-jlpt-n5.pdf");
-    setQuestions(sampleQuestions);
-    setStep("preview");
+  const handleCreateQuestions = async (items: ImportedQuestion[]) => {
+    setQuestions(items);
+    setAssignError(null);
+    setSavingQuestions(true);
+    try {
+      const ids = await persistQuestionsToBank(items);
+      setSavedQuestionIds(ids);
+      toast.success(`Saved ${items.length} questions to your question bank.`);
+    } catch (err: any) {
+      setAssignError(
+        err?.message || "Failed to save questions to your question bank."
+      );
+      toast.error(err?.message || "Failed to save questions to your question bank.");
+      setSavedQuestionIds([]);
+    } finally {
+      setSavingQuestions(false);
+    }
   };
 
   const handleAssign = async () => {
+    setAssignError(null);
+    let idsToUse = savedQuestionIds;
+
+    if (idsToUse.length === 0 && questions.length > 0) {
+      setSavingQuestions(true);
+      try {
+        idsToUse = await persistQuestionsToBank(questions);
+        setSavedQuestionIds(idsToUse);
+      } catch (err: any) {
+        setSavingQuestions(false);
+        setAssignError(
+          err?.message || "Failed to save questions to your question bank."
+        );
+        toast.error(err?.message || "Failed to save questions to your question bank.");
+        return;
+      }
+      setSavingQuestions(false);
+    }
+
+    if (idsToUse.length === 0) {
+      const msg = "Generate and save at least one question before assigning.";
+      setAssignError(msg);
+      toast.error(msg);
+      return;
+    }
+
     if (!metadata.classId || !metadata.title || !metadata.dueDate) {
-      toast.error("Please fill in all required fields.");
+      const msg = "Please fill in target class, title, and due date before assigning.";
+      setAssignError(msg);
+      toast.error(msg);
       return;
     }
     if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
-      toast.error("Due date cannot be in the past.");
+      const msg = "Due date cannot be in the past.";
+      setAssignError(msg);
+      toast.error(msg);
       return;
     }
-    if (questions.length === 0) {
-      toast.error("No questions to assign.");
-      return;
-    }
-
-    const hasUnresolved = questions.some(q => q.answers.findIndex(ans => ans.isCorrect) === -1);
-    if (hasUnresolved) {
-      toast.error("One or more questions are missing a correct answer. Please resolve them first.");
-      return;
-    }
-
-    const selectedClass = lockedClass || classes.find((c) => c.id === metadata.classId);
-    const targetLevel = selectedClass?.level || "N5";
 
     setSubmitting(true);
     try {
-      const savedQuestionIds: string[] = [];
-      for (const q of questions) {
-        const correctIndex = q.answers.findIndex((ans) => ans.isCorrect);
-        const res = await teacherQuestionsApi.createQuestion({
-          prompt: q.content,
-          options: q.answers.map((ans) => ans.content),
-          correctAnswerIndex: correctIndex,
-          points: 1,
-          questionType: "MULTIPLE_CHOICE",
-          difficulty: q.difficulty as "EASY" | "MEDIUM" | "HARD",
-          explanation: q.explanation || "",
-          level: targetLevel,
-          skill: q.category?.toUpperCase() || "VOCABULARY",
-          source: "EXAM",
-        });
-        savedQuestionIds.push(res.id);
-      }
-
-      await examsApi.createExam({
-        title: metadata.title,
+      const examTitle =
+        metadata.title || `AI PDF Exam - ${idsToUse.length} questions`;
+      const savedExam = await examsApi.createExam({
+        title: examTitle,
         level: targetLevel,
-        totalQuestions: questions.length,
+        totalQuestions: idsToUse.length,
         timeLimit: metadata.duration,
         classIds: metadata.classId ? [metadata.classId] : [],
-        questionIds: savedQuestionIds,
+        questionIds: idsToUse,
         status: "PUBLISHED",
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["exams"] });
-      if (metadata.classId) {
-        await queryClient.invalidateQueries({ queryKey: ["examsByClass", metadata.classId] });
-        await queryClient.invalidateQueries({ queryKey: ["classExams", metadata.classId] });
-      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["exams"] }),
+        queryClient.invalidateQueries({ queryKey: ["teacherExams"] }),
+        ...(metadata.classId
+          ? [
+              queryClient.invalidateQueries({ queryKey: ["examsByClass", metadata.classId] }),
+              queryClient.invalidateQueries({ queryKey: ["classExams", metadata.classId] }),
+            ]
+          : []),
+      ]);
 
       toast.success("Exam published successfully!");
-      onDone(metadata.title, metadata.classId);
+      onDone(examTitle, savedExam.id);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to assign exam.");
+      setAssignError(err?.message || "Failed to publish exam.");
+      toast.error(err?.message || "Failed to publish exam.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const stepItems = [
-    { num: 1, label: "Upload PDF" },
-    { num: 2, label: "Preview & Edit" },
-    { num: 3, label: "Assign" },
-  ];
-  const currentStepNum = step === "upload" ? 1 : step === "preview" ? 2 : 3;
-
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="AI PDF Exam Generator"
-        title="Create exam from PDF"
-        subtitle="Upload a PDF and let AI generate exam questions automatically."
+        eyebrow="AI PDF Exam · Refactored Workflow"
+        title="Generate exam from a PDF"
+        subtitle="Upload any PDF (vocabulary lists, grammar notes, reading passages) and let AI generate exam questions."
       />
 
-      {/* Stepper UI */}
-      <div className="flex items-center justify-between max-w-xl mx-auto px-4">
-        {stepItems.map((s, idx, arr) => (
-          <div key={s.num} className="flex items-center flex-1 last:flex-initial">
-            <div className="flex flex-col items-center gap-1.5 z-10">
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-display border",
-                  currentStepNum === s.num
-                    ? "bg-primary border-primary text-primary-foreground"
-                    : currentStepNum > s.num
-                      ? "bg-green-500 border-green-500 text-white"
-                      : "bg-background border-[var(--border)] text-muted-foreground",
-                )}
-              >
-                {currentStepNum > s.num ? <CheckCircle className="w-4 h-4" /> : s.num}
-              </div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                {s.label}
-              </span>
-            </div>
-            {idx < arr.length - 1 && (
-              <div className={cn("h-[2px] flex-1 -mx-2 -mt-4", currentStepNum > s.num ? "bg-green-500" : "bg-[var(--border)]")} />
-            )}
-          </div>
-        ))}
-      </div>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-4">
+          <AiPdfImportWorkflow
+            onCreate={async (items) => {
+              await handleCreateQuestions(items);
+            }}
+            title="AI PDF Exam"
+            subtitle="Upload a PDF and let AI generate exam questions automatically."
+            backHref="/teacher/exams"
+            backLabel="Back to exams"
+            enabled={true}
+            disabledReason=""
+          />
 
-      {/* Upload View */}
-      {step === "upload" && (
-        <div className="space-y-6">
-          <div className="card-base p-12 border-2 border-dashed text-center transition border-[var(--border)] hover:border-primary/50">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-              <Upload className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="font-display font-bold text-lg text-primary-col mb-1">
-              Upload PDF File
-            </h3>
-            <p className="text-sm text-secondary-col mb-6">
-              Drag and drop your PDF here, or click to browse.
-            </p>
-            <p className="text-xs text-muted-foreground mb-4">
-              Supported: PDF files with text content
-            </p>
-            <Button onClick={handleFileUpload} className="px-6 py-2.5 rounded-xl font-bold">
-              <Upload className="w-4 h-4 mr-2" />
-              Choose PDF File
-            </Button>
-          </div>
-
-          {error && (
-            <div className="p-4 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Preview View */}
-      {step === "preview" && (
-        <div className="space-y-6">
-          {/* Header bar */}
-          <div className="flex items-center justify-between flex-wrap gap-4 bg-[var(--accent)]/50 p-4 rounded-xl border border-[var(--border)] sticky top-0 z-30 backdrop-blur-md">
-            <div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <h3 className="font-display font-bold text-primary-col">
-                  {questions.length} Questions Extracted
-                </h3>
-              </div>
-              <p className="text-xs text-muted-col mt-0.5">
-                From: {fileName || "PDF Document"}
+          {questions.length > 0 && (
+            <div className="card-base p-4 border border-[var(--border)]">
+              <p className="text-xs text-muted-foreground">
+                Saved <strong>{questions.length}</strong> questions to the teacher question bank.
+                Configure the exam details and click <strong>Publish Exam</strong> to go live.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setStep("upload");
-                  setQuestions([]);
-                }}
-              >
-                Upload Another
-              </Button>
-              <Button onClick={() => setStep("assign")}>
-                Continue to Assign
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Add Question Button */}
-          <div className="flex justify-center">
-            <Button variant="outline" onClick={handleAddQuestion} className="rounded-xl">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Question
-            </Button>
-          </div>
-
-          {/* Questions List */}
-          <div className="space-y-4">
-            {questions.map((q, idx) => (
-              <QuestionEditor
-                key={q.id}
-                question={q}
-                index={idx}
-                totalQuestions={questions.length}
-                onUpdateQuestion={handleUpdateQuestion}
-                onDeleteQuestion={handleDeleteQuestion}
-                onDuplicateQuestion={handleDuplicateQuestion}
-                onMoveQuestion={handleMoveQuestion}
-                onReAnalyze={handleReAnalyze}
-                isReAnalyzing={false}
-              />
-            ))}
-          </div>
-
-          {questions.length === 0 && (
-            <div className="card-base p-12 text-center border border-[var(--border)]">
-              <p className="text-sm text-muted-foreground">No questions yet. Click "Add Question" to start.</p>
-            </div>
           )}
         </div>
-      )}
 
-      {/* Assign View */}
-      {step === "assign" && (
-        <div className="space-y-6">
-          <Card className="border-[var(--border)] bg-card shadow-sm">
-            <CardHeader className="pb-3 border-b border-[var(--border)]">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                {questions.length} Questions Ready
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                  Target class <span className="text-red-500">*</span>
-                </Label>
-                {lockedClass ? (
-                  <div className="flex items-center gap-2 rounded-lg border bg-[var(--accent)]/50 p-2.5">
-                    <LevelBadge level={lockedClass.level} />
-                    <span className="text-sm font-semibold">{lockedClass.name}</span>
-                    <span className="ml-auto text-[10px] font-bold uppercase text-muted-col bg-muted border px-1.5 py-0.5 rounded">
-                      Locked
-                    </span>
-                  </div>
-                ) : (
-                  <Select
-                    value={metadata.classId}
-                    onValueChange={(v: string) => setMetadata({ ...metadata, classId: v })}
-                  >
-                    <SelectTrigger className="w-full rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm">
-                      <SelectValue placeholder="Select a class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} ({c.level})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+        <Card className="border-[var(--border)] bg-card shadow-sm p-4 space-y-4 h-fit">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-secondary-col">
+            Exam Settings
+          </h3>
+
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+              Target class
+            </Label>
+            {lockedClass ? (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-sm">
+                <span>{lockedClass.name}</span>
+                <span className="ml-auto text-[10px] uppercase text-muted-foreground">Locked</span>
               </div>
+            ) : (
+              <Select
+                value={metadata.classId}
+                onValueChange={(v) => setMetadata({ ...metadata, classId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                  Title <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                  value={metadata.title}
-                  onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
-                  placeholder="E.g., N5 Grammar Assessment"
-                />
-              </div>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+              Title
+            </Label>
+            <Input
+              value={metadata.title}
+              onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
+              placeholder="E.g., N5 Midterm Exam"
+            />
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                    Due date <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    type="datetime-local"
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                    value={metadata.dueDate}
-                    onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
-                    min={(() => {
-                      const now = new Date();
-                      const tzOffset = now.getTimezoneOffset() * 60000;
-                      return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
-                    })()}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                    Duration (min)
-                  </Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                    value={metadata.duration}
-                    onChange={(e) =>
-                      setMetadata({
-                        ...metadata,
-                        duration: Math.max(0, Number(e.target.value) || 0),
-                      })
-                    }
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+                Due date
+              </Label>
+              <Input
+                type="date"
+                value={metadata.dueDate}
+                onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+                Duration (min)
+              </Label>
+              <Input
+                type="number"
+                value={metadata.duration}
+                onChange={(e) =>
+                  setMetadata({ ...metadata, duration: Number(e.target.value) || 60 })
+                }
+              />
+            </div>
+          </div>
 
-              <div className="flex justify-between mt-6 pt-4 border-t">
-                <Button variant="outline" onClick={() => setStep("preview")}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-                <Button
-                  className="flex items-center gap-1.5"
-                  disabled={submitting}
-                  onClick={handleAssign}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Publishing...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Publish Exam
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {assignError && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+              {assignError}
+            </div>
+          )}
 
-          {/* Questions Preview */}
-          <Card className="border-[var(--border)] bg-card shadow-sm">
-            <CardHeader className="pb-3 border-b border-[var(--border)]">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col">
-                Questions Preview
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 divide-y divide-[var(--border)]">
-              {questions.slice(0, 5).map((q, i) => (
-                <div key={q.id || i} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground text-xs font-bold">
-                      {i + 1}
-                    </span>
-                    <div className="space-y-1 flex-1">
-                      <p className="text-sm font-semibold text-primary-col">{q.content || "(Empty question)"}</p>
-                      <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
-                        {q.category || "Vocabulary"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {questions.length > 5 && (
-                <div className="p-3 text-center text-xs text-muted-foreground">
-                  +{questions.length - 5} more questions
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+          <Button
+            className="w-full"
+            disabled={
+              submitting ||
+              savingQuestions ||
+              questions.length === 0 ||
+              !metadata.classId ||
+              !metadata.title
+            }
+            onClick={handleAssign}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Publishing...
+              </>
+            ) : savingQuestions ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving questions...
+              </>
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Publish Exam
+              </>
+            )}
+          </Button>
+        </Card>
+      </div>
     </div>
   );
 }
