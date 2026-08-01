@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -21,8 +21,9 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminApi, type AdminClassResponse, type AdminClassStudentResponse } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import type { HomeworkResponse } from "@/lib/api/homework";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // The "Assignments" tab was removed — homework/exam data is still loaded
 // because the Progress tab renders one row per homework assignment
@@ -249,16 +250,39 @@ function ClassWorkspacePage() {
   const { classId } = Route.useParams();
   const [activeTab, setActiveTab] = useState<TabValue>("students");
 
-  // Class data state
-  const [classData, setClassData] = useState<AdminClassResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // React query cache invalidations
+  const queryClient = useQueryClient();
 
-  // Students data state
-  const [students, setStudents] = useState<AdminClassStudentResponse[]>([]);
-  const [studentsLoading, setStudentsLoading] = useState(false);
-  const [studentsError, setStudentsError] = useState<string | null>(null);
+  // Class data query
+  const {
+    data: classData,
+    isLoading: loading,
+    error: classErrorObj,
+    refetch: fetchClassData,
+  } = useQuery({
+    queryKey: ["admin", "class", classId],
+    queryFn: () => adminApi.getAdminClassById(classId),
+    enabled: typeof window !== "undefined",
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const error = classErrorObj ? (classErrorObj as Error).message : null;
+
+  // Students data query
   const [studentSearch, setStudentSearch] = useState("");
+  const {
+    data: students = [],
+    isLoading: studentsLoading,
+    error: studentsErrorObj,
+    refetch: fetchStudents,
+  } = useQuery({
+    queryKey: ["admin", "class", classId, "students"],
+    queryFn: () => adminApi.getClassStudents(classId),
+    enabled: typeof window !== "undefined" && activeTab === "students",
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const studentsError = studentsErrorObj ? (studentsErrorObj as Error).message : null;
 
   // Homework data state — used by the Progress tab to render per-homework
   // submitted/total/percentage/average-score. The previous "Assignments"
@@ -266,46 +290,6 @@ function ClassWorkspacePage() {
   const [homeworks, setHomeworks] = useState<HomeworkResponse[]>([]);
   const [homeworksLoading, setHomeworksLoading] = useState(false);
   const [homeworksError, setHomeworksError] = useState<string | null>(null);
-
-  // Fetch class data
-  const fetchClassData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await adminApi.getAdminClassById(classId);
-      setClassData(data);
-    } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load class.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [classId]);
-
-  // Fetch students data
-  const fetchStudents = useCallback(async () => {
-    setStudentsLoading(true);
-    setStudentsError(null);
-    try {
-      const data = await adminApi.getClassStudents(classId);
-      setStudents(data);
-    } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load students.";
-      setStudentsError(msg);
-    } finally {
-      setStudentsLoading(false);
-    }
-  }, [classId]);
 
   // Fetch homework data — used by the Progress tab. Lazily triggered
   // when the user opens the Progress tab so the Students tab is not
@@ -318,7 +302,7 @@ function ClassWorkspacePage() {
       setHomeworks(data);
     } catch (err) {
       const msg =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -617,7 +601,7 @@ function ClassWorkspacePage() {
             nearest integer to keep the UI stable. */}
         <TabsContent value="progress" className="mt-5 space-y-5">
           {/* Stats Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-card border border-border rounded-xl p-4">
               <p className="text-xs text-muted-col mb-1 flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" /> Total Students
@@ -641,30 +625,7 @@ function ClassWorkspacePage() {
                 {homeworks.reduce((sum, h) => sum + (h.submissionCount || 0), 0)}
               </p>
             </div>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <p className="text-xs text-muted-col mb-1 flex items-center gap-1.5">
-                <BarChart3 className="w-3.5 h-3.5" /> Avg Score
-              </p>
-              <p className="text-2xl font-bold text-foreground">
-                {(() => {
-                  const scored = homeworks
-                    .map((h) => h.averageScore)
-                    .filter((s): s is number => typeof s === "number");
-                  if (scored.length === 0) {
-                    return <span className="text-base text-muted-col">—</span>;
-                  }
-                  const overall = scored.reduce((a, b) => a + b, 0) / scored.length;
-                  return (
-                    <>
-                      {overall.toFixed(1)}
-                      <span className="text-base text-muted-col ml-1">
-                        /{homeworks[0]?.maxScore ?? 10}
-                      </span>
-                    </>
-                  );
-                })()}
-              </p>
-            </div>
+
           </div>
 
           {/* Loading State */}

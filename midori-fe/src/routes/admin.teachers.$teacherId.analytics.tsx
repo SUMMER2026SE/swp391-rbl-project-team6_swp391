@@ -22,7 +22,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { adminApi, type AdminTeacherResponse, type AdminClassResponse } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 function displayNameOf(t: AdminTeacherResponse): string {
   const dn = t.displayName?.trim();
@@ -80,7 +80,7 @@ function TeacherAnalyticsPage() {
       setClasses(all.filter((c) => c.teacherId === teacherId));
     } catch (err) {
       const msg =
-        err instanceof ApiError ? err.message : "Failed to load teacher analytics.";
+        isApiError(err) ? err.message : "Failed to load teacher analytics.";
       setError(msg);
     } finally {
       setLoading(false);

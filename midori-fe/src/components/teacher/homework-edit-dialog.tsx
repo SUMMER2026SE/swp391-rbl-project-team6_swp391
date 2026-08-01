@@ -393,22 +393,7 @@ export function HomeworkEditDialog({
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="hw-attempts"
-                      className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
-                    >
-                      Attempts Limit
-                    </Label>
-                    <Input
-                      id="hw-attempts"
-                      type="number"
-                      min={1}
-                      value={attempts}
-                      onChange={(e) => setAttempts(Number(e.target.value) || 1)}
-                      className="rounded-xl bg-muted/30 focus:bg-background transition"
-                    />
-                  </div>
+
                 </div>
               </div>
 

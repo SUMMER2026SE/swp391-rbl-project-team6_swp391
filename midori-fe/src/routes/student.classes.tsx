@@ -2,9 +2,25 @@ import { useState, useMemo } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Card, LevelBadge, Progress, PageHeader } from "@/components/page-ui";
 import { BookOpen, Clock, ArrowRight, GraduationCap, Award, RefreshCw, Trophy } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
-import type { DetailedClassInfo, ClassStatus } from "@/types/class-detail";
+import { homeworkApi } from "@/lib/api/homework";
+import type { ClassStatus } from "@/types/class-detail";
+
+// Lightweight class card data — what the page actually constructs from API responses.
+interface ClassCardData {
+  id: string;
+  name: string;
+  level: string;
+  classCode?: string;
+  status: ClassStatus;
+  teacher: string;
+  teacherAvatarInitials: string;
+  createdDate: string;
+  completionDate?: string;
+  finalScore?: number;
+  hasCertificate?: boolean;
+}
 
 // ==================== STUDENT ACCESSIBLE LEVELS ====================
 export const studentAccessibleLevels: string[] = ["N5", "N4", "N3", "N2", "N1"];
@@ -33,23 +49,8 @@ const statusConfig: Record<ClassStatus, { label: string; color: string; dot: str
   },
 };
 
-// ==================== HELPER FUNCTIONS ====================
-
-function getPendingAssignments(cls: DetailedClassInfo): number {
-  return cls.assignments.filter(
-    (a) => a.status === "Not Started" || a.status === "In Progress" || a.status === "Overdue",
-  ).length;
-}
-
-function getCompletedAssignments(cls: DetailedClassInfo): number {
-  return cls.assignments.filter((a) => a.status === "Submitted" || a.status === "Graded").length;
-}
-
-function getProgressPercentage(cls: DetailedClassInfo): number {
-  if (cls.assignments.length === 0) return 0;
-  const completed = getCompletedAssignments(cls);
-  return Math.round((completed / cls.assignments.length) * 100);
-}
+// (helpers below use ClassCardData directly via the parent; DetailedClassInfo helpers
+// are retained in case class-detail sub-routes import this file)
 
 function formatShortDate(date: string): string {
   if (date === "-" || !date) return "None";
@@ -86,28 +87,9 @@ function StatusBadge({ status }: { status: ClassStatus }) {
 }
 
 // ==================== ACTIVE CLASS CARD ====================
+// Card receives pre-fetched counts as props — no per-card network calls.
 
-function ActiveClassCard({ cls }: { cls: DetailedClassInfo }) {
-  const { data: homeworkList = [] } = useQuery({
-    queryKey: ["classHomework", cls.id],
-    queryFn: () => classesApi.getClassHomework(cls.id),
-    enabled: !!cls.id,
-  });
-
-  const { data: examList = [] } = useQuery({
-    queryKey: ["classExams", cls.id],
-    queryFn: () => classesApi.getClassExams(cls.id),
-    enabled: !!cls.id,
-  });
-
-  const pendingHw = homeworkList.filter(
-    (hw: any) => hw.submissionStatus !== "SUBMITTED" && hw.submissionStatus !== "GRADED",
-  ).length;
-
-  const pendingEx = examList.filter(
-    (ex: any) => ex.status !== "SUBMITTED" && ex.status !== "GRADED",
-  ).length;
-
+function ActiveClassCard({ cls, pendingHw, pendingEx }: { cls: ClassCardData; pendingHw: number; pendingEx: number }) {
   const pendingCount = pendingHw + pendingEx;
 
   return (
@@ -158,13 +140,11 @@ function ActiveClassCard({ cls }: { cls: DetailedClassInfo }) {
             <span className="text-xs text-muted-foreground">
               Created{" "}
               <span className="font-medium text-foreground">
-                {formatShortDate(cls.createdDate || cls.createdAt)}
+                {formatShortDate(cls.createdDate)}
               </span>
             </span>
           </div>
         </div>
-
-
 
         {/* CTA Button */}
         <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl btn-gradient-primary text-white text-sm font-semibold transition-colors duration-150">
@@ -178,7 +158,7 @@ function ActiveClassCard({ cls }: { cls: DetailedClassInfo }) {
 
 // ==================== COMPLETED CLASS CARD ====================
 
-function CompletedClassCard({ cls }: { cls: DetailedClassInfo }) {
+function CompletedClassCard({ cls }: { cls: ClassCardData }) {
   const score = cls.finalScore || 0;
   const gradeColor = getGradeColor(score);
 
@@ -234,7 +214,7 @@ function CompletedClassCard({ cls }: { cls: DetailedClassInfo }) {
           <GraduationCap className="w-4 h-4 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">
             Completed{" "}
-            <span className="font-medium text-foreground">{formatDate(cls.completionDate)}</span>
+            <span className="font-medium text-foreground">{formatDate(cls.completionDate ?? "")}</span>
           </span>
         </div>
 
@@ -335,30 +315,87 @@ function StudentClassesPage() {
   const isIndex =
     location.pathname === "/student/classes" || location.pathname === "/student/classes/";
 
+  // Use the canonical query key so this deduplicates with dashboard-layout and student.dashboard.
   const {
     data: dbClasses = [],
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["studentJoinedClasses"],
+    queryKey: ["studentJoinedClassesDashboard"],
     queryFn: () => classesApi.getJoinedClasses(),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  const enrolledClasses = useMemo(() => {
+  const enrolledClasses = useMemo((): ClassCardData[] => {
     return dbClasses.map((c) => ({
       id: c.id,
       name: c.name,
-      level: (c.level || "N5") as any,
+      level: c.level || "N5",
       classCode: c.classCode,
-      status: (c.status?.toLowerCase() === "active" ? "active" : "completed") as any,
+      status: (c.status?.toLowerCase() === "active" ? "active" : "completed") as ClassStatus,
       teacher: c.teacherName || "Teacher",
       teacherAvatarInitials: (c.teacherName || "T").substring(0, 2).toUpperCase(),
-      assignments: [],
       createdDate: c.createdAt ? c.createdAt.split("T")[0] : "",
-      createdAt: c.createdAt || "",
-      completionDate: c.updatedAt ? c.updatedAt.split("T")[0] : "",
+      completionDate: c.updatedAt ? c.updatedAt.split("T")[0] : undefined,
     }));
   }, [dbClasses]);
+
+  // Fetch ALL homework for the student once — backend returns classId on each item.
+  const { data: allHomework = [] } = useQuery({
+    queryKey: ["studentHomeworksDashboard"],
+    queryFn: () => homeworkApi.getStudentHomeworks(),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: isIndex && enrolledClasses.length > 0,
+  });
+
+  // Map: classId → pending homework count (computed once, not per card).
+  const pendingHwByClass = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const hw of allHomework) {
+      if ((hw as any).classId) {
+        const key = (hw as any).classId as string;
+        const isPending =
+          (hw as any).submissionStatus !== "SUBMITTED" &&
+          (hw as any).submissionStatus !== "GRADED";
+        if (isPending) {
+          map[key] = (map[key] ?? 0) + 1;
+        }
+      }
+    }
+    return map;
+  }, [allHomework]);
+
+  // Active class IDs (exam queries are per-class — there is no bulk student exam endpoint).
+  const activeClassIds = useMemo(
+    () => enrolledClasses.filter((c) => c.status === "active").map((c) => c.id),
+    [enrolledClasses],
+  );
+
+  // Fetch all exams in bulk for the student's active classes.
+  const { data: allExams = [] } = useQuery({
+    queryKey: ["student-exams"],
+    queryFn: () => classesApi.getStudentClassExams(),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: isIndex && enrolledClasses.length > 0,
+  });
+
+  // Map: classId → pending exam count.
+  const pendingExByClass = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const ex of allExams) {
+      const classId = ex.assignedClassId || ex.classId;
+      if (classId) {
+        const isPending = ex.status !== "SUBMITTED" && ex.status !== "GRADED";
+        if (isPending) {
+          map[classId] = (map[classId] ?? 0) + 1;
+        }
+      }
+    }
+    return map;
+  }, [allExams]);
 
   if (!isIndex) {
     return <Outlet />;
@@ -437,7 +474,13 @@ function StudentClassesPage() {
               className="animate-in fade-in slide-in-from-bottom-2"
               style={{ animationDelay: `${index * 50}ms`, animationFillMode: "both" }}
             >
-              {activeTab === "active" && <ActiveClassCard cls={cls} />}
+              {activeTab === "active" && (
+                <ActiveClassCard
+                  cls={cls}
+                  pendingHw={pendingHwByClass[cls.id] ?? 0}
+                  pendingEx={pendingExByClass[cls.id] ?? 0}
+                />
+              )}
               {activeTab === "completed" && <CompletedClassCard cls={cls} />}
             </div>
           ))}

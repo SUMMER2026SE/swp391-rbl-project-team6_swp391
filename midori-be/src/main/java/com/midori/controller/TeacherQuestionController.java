@@ -344,13 +344,63 @@ public class TeacherQuestionController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TeacherQuestionResponse>>> getQuestions(
+            @RequestParam(required = false) String level,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<TeacherQuestion> questions = isAdmin(userDetails)
-                ? teacherQuestionRepository.findAllWithOptions()
-                : teacherQuestionService.findQuestionsForTeacherView(userDetails.getId());
-
-        List<TeacherQuestionResponse> responses = questions.stream().map(this::mapToResponse).toList();
-        return ResponseEntity.ok(ApiResponse.success(responses));
+        long start = System.nanoTime();
+        
+        long startUser = System.nanoTime();
+        boolean admin = isAdmin(userDetails);
+        long endUser = System.nanoTime();
+        double userLookupMs = (endUser - startUser) / 1_000_000.0;
+        
+        long startRepo = System.nanoTime();
+        List<TeacherQuestion> questions;
+        if (level != null && !level.trim().isEmpty()) {
+            String upperLevel = level.trim().toUpperCase();
+            questions = admin
+                    ? teacherQuestionRepository.findByLevelWithTeacherAndLesson(upperLevel)
+                    : teacherQuestionRepository.findQuestionsForTeacherViewAndLevelWithTeacherAndLesson(userDetails.getId(), upperLevel);
+        } else {
+            questions = admin
+                    ? teacherQuestionRepository.findAllWithTeacherAndLesson()
+                    : teacherQuestionRepository.findQuestionsForTeacherViewWithTeacherAndLesson(userDetails.getId());
+        }
+        long endRepo = System.nanoTime();
+        double repositoryMs = (endRepo - startRepo) / 1_000_000.0;
+        
+        java.util.Map<String, TeacherQuestion> uniqueMap = new java.util.LinkedHashMap<>();
+        for (TeacherQuestion q : questions) {
+            String key = q.getPrompt() != null ? q.getPrompt().trim() : "";
+            if (!uniqueMap.containsKey(key)) {
+                uniqueMap.put(key, q);
+            }
+        }
+        
+        long startMap = System.nanoTime();
+        List<TeacherQuestionResponse> responses = uniqueMap.values().stream()
+                .skip((long) page * size)
+                .limit(size)
+                .map(this::mapToResponse)
+                .toList();
+        long endMap = System.nanoTime();
+        double mappingMs = (endMap - startMap) / 1_000_000.0;
+        
+        long endTotal = System.nanoTime();
+        double totalMs = (endTotal - start) / 1_000_000.0;
+        
+        System.out.printf("[PROFILING] GET /questions level=%s page=%d size=%d: userLookupMs=%.2fms, repositoryMs=%.2fms, mappingMs=%.2fms, totalMs=%.2fms, resultCount=%d\n",
+                level, page, size, userLookupMs, repositoryMs, mappingMs, totalMs, responses.size());
+        
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.add("X-User-Lookup-Time-Ms", String.format("%.2f", userLookupMs));
+        headers.add("X-Repository-Time-Ms", String.format("%.2f", repositoryMs));
+        headers.add("X-Mapping-Time-Ms", String.format("%.2f", mappingMs));
+        headers.add("X-Total-Time-Ms", String.format("%.2f", totalMs));
+        headers.add("X-Result-Count", String.valueOf(responses.size()));
+        
+        return ResponseEntity.ok().headers(headers).body(ApiResponse.success(responses));
     }
 
     @GetMapping("/{id}")
@@ -365,11 +415,21 @@ public class TeacherQuestionController {
 
     @GetMapping("/lessons")
     public ResponseEntity<ApiResponse<List<com.midori.entity.QuestionBankLesson>>> getLessons(
-            @RequestParam String level,
+            @RequestParam(required = false) String level,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<com.midori.entity.QuestionBankLesson> lessons = isAdmin(userDetails)
-                ? questionBankLessonService.findLessonsByLevel(level)
-                : questionBankLessonService.findActiveLessonsByLevel(level);
+        
+        List<com.midori.entity.QuestionBankLesson> lessons;
+        
+        if (level == null || level.trim().isEmpty()) {
+            lessons = isAdmin(userDetails)
+                    ? questionBankLessonService.findAllLessons()
+                    : questionBankLessonService.findAllActiveLessons();
+        } else {
+            lessons = isAdmin(userDetails)
+                    ? questionBankLessonService.findLessonsByLevel(level)
+                    : questionBankLessonService.findActiveLessonsByLevel(level);
+        }
+        
         return ResponseEntity.ok(ApiResponse.success(lessons));
     }
 

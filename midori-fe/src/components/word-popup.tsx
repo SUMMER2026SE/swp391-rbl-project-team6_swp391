@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Bookmark, BookmarkCheck, Loader2, ExternalLink, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dictionaryApi } from "@/lib/api/dictionary";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export interface SavedWord {
   word: string;
@@ -12,81 +14,84 @@ export interface SavedWord {
   savedAt: string;
 }
 
-const STORAGE_KEY = "midori_saved_words";
-
 // Hook to manage saved words per video or globally
 export function useSavedWords(videoId?: string) {
-  const storageKey = videoId ? `${STORAGE_KEY}_${videoId}` : STORAGE_KEY;
+  const queryClient = useQueryClient();
 
-  const [savedWords, setSavedWords] = useState<SavedWord[]>(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
+  const { data: savedWords = [], isLoading } = useQuery({
+    queryKey: ["savedWords", videoId],
+    queryFn: async () => {
+      try {
+        const list = await dictionaryApi.getSavedWords({ sourceVideoId: videoId });
+        return list.map(w => ({
+          word: w.surface,
+          reading: w.reading || w.surface,
+          meaning: w.meaning,
+          context: w.context,
+          savedAt: w.createdAt,
+        }));
+      } catch (err) {
+        console.error("Failed to load saved words from DB:", err);
+        return [];
+      }
+    },
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (word: { word: string; reading?: string; meaning?: string; context?: string; pos?: string; jlpt?: string; dictionaryForm?: string; }) => {
+      return await dictionaryApi.saveWord({
+        word: word.word,
+        reading: word.reading,
+        meaning: word.meaning,
+        context: word.context,
+        lessonId: videoId,
+        wordType: word.pos,
+        jlpt: word.jlpt,
+        dictionaryForm: word.dictionaryForm,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["savedWords"] });
+      window.dispatchEvent(new Event("midori_saved_words_changed"));
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Không thể lưu từ vựng");
     }
   });
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const stored = localStorage.getItem(storageKey);
-        setSavedWords(stored ? JSON.parse(stored) : []);
-      } catch {
-        setSavedWords([]);
-      }
-    };
-
-    window.addEventListener("midori_saved_words_changed", handleStorageChange);
-    
-    const handleWindowStorage = (e: StorageEvent) => {
-      if (e.key === storageKey) {
-        handleStorageChange();
-      }
-    };
-    window.addEventListener("storage", handleWindowStorage);
-
-    return () => {
-      window.removeEventListener("midori_saved_words_changed", handleStorageChange);
-      window.removeEventListener("storage", handleWindowStorage);
-    };
-  }, [storageKey]);
-
-  const saveWord = useCallback((word: SavedWord) => {
-    setSavedWords((prev) => {
-      const exists = prev.some(
-        (w) => w.word === word.word && w.reading === word.reading
-      );
-      if (exists) return prev;
-      const wordWithVideo = videoId ? { ...word, videoId } : word;
-      const updated = [wordWithVideo, ...prev].slice(0, 500); // Keep max 500 words
-      localStorage.setItem(storageKey, JSON.stringify(updated));
+  const removeMutation = useMutation({
+    mutationFn: async (word: string) => {
+      return await dictionaryApi.unsaveWord(word);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["savedWords"] });
       window.dispatchEvent(new Event("midori_saved_words_changed"));
-      return updated;
-    });
-  }, [storageKey, videoId]);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Không thể bỏ lưu từ vựng");
+    }
+  });
+
+  const saveWord = useCallback((word: { word: string; reading?: string; meaning?: string; context?: string; pos?: string; jlpt?: string; dictionaryForm?: string; }) => {
+    saveMutation.mutate(word);
+  }, [saveMutation]);
 
   const removeWord = useCallback((word: string, reading: string) => {
-    setSavedWords((prev) => {
-      const updated = prev.filter(
-        (w) => !(w.word === word && w.reading === reading)
-      );
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      window.dispatchEvent(new Event("midori_saved_words_changed"));
-      return updated;
-    });
-  }, [storageKey]);
+    removeMutation.mutate(word);
+  }, [removeMutation]);
 
   const isWordSaved = useCallback(
     (word: string, reading: string) => {
       return savedWords.some(
-        (w) => w.word === word && w.reading === reading
+        (w) => w.word.trim() === word.trim()
       );
     },
     [savedWords]
   );
 
-  return { savedWords, saveWord, removeWord, isWordSaved };
+  return { savedWords, saveWord, removeWord, isWordSaved, isLoading };
 }
 
 // Dictionary API types

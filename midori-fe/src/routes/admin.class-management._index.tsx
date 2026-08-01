@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Eye,
-  Archive,
+  Delete,
   BookUser,
   GraduationCap,
   Users,
@@ -12,6 +13,7 @@ import {
   X,
   RotateCcw,
   CheckCircle2,
+  Trash2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -25,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { adminApi, type AdminClassResponse } from "@/lib/api/admin";
 import { classesApi } from "@/lib/api/classes";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 
 function StatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; color: string; bg: string }> = {
@@ -34,8 +36,8 @@ function StatusBadge({ status }: { status: string }) {
       color: "text-[var(--status-active)]",
       bg: "bg-[var(--status-active)]",
     },
-    ARCHIVED: {
-      label: "Archived",
+    DeleteD: {
+      label: "Deleted",
       color: "text-[var(--status-suspended)]",
       bg: "bg-[var(--status-suspended)]",
     },
@@ -71,49 +73,36 @@ export const Route = createFileRoute("/admin/class-management/_index")({
 });
 
 function ClassManagementPage() {
-  const [classes, setClasses] = useState<AdminClassResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // Action-level success/error (archive/restore) — shown as inline banner above
+  const queryClient = useQueryClient();
+
+  // Action-level success/error (Delete/restore) — shown as inline banner above
   // the table so it doesn't hide the data the user is acting on.
   const [actionMessage, setActionMessage] = useState<
     { kind: "success" | "error"; text: string } | null
   >(null);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("ACTIVE");
 
-  // Archive Modal state
-  const [archiveClass, setArchiveClass] = useState<AdminClassResponse | null>(null);
-  const [archiveLoading, setArchiveLoading] = useState(false);
+  // Delete Modal state
+  const [deleteClass, setDeleteClass] = useState<AdminClassResponse | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Restore Modal state
-  const [restoreClass, setRestoreClass] = useState<AdminClassResponse | null>(null);
-  const [restoreLoading, setRestoreLoading] = useState(false);
+  const {
+    data: classes = [],
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["admin", "classes"],
+    queryFn: adminApi.getAdminClasses,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchClasses = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await adminApi.getAdminClasses();
-      setClasses(data);
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load classes. Please try again.";
-      setError(message);
-      setClasses([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const error = queryError ? (queryError as any).message || "Failed to load classes" : null;
 
-  useEffect(() => {
-    fetchClasses();
-  }, [fetchClasses]);
+  const fetchClasses = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "classes"] });
+  }, [queryClient]);
 
   // Levels come from the data so the dropdown never shows options that don't exist.
   const availableLevels = useMemo(() => {
@@ -165,29 +154,31 @@ function ClassManagementPage() {
   const clearFilters = () => {
     setSearch("");
     setLevelFilter("");
-    setStatusFilter("");
+    setStatusFilter("ACTIVE");
   };
 
-  const hasFilters = !!search || !!levelFilter || !!statusFilter;
+  const hasFilters = !!search || !!levelFilter || statusFilter !== "ACTIVE";
 
   // Handlers
-  const handleArchiveClick = (cls: AdminClassResponse) => {
-    setArchiveClass(cls);
+  const handleDeleteClick = (cls: AdminClassResponse) => {
+    setDeleteClass(cls);
   };
 
-  const handleArchiveConfirm = async () => {
-    if (!archiveClass) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteClass) return;
 
-    // Optimistic UI update so the status flips immediately on the table.
-    setClasses((prev) =>
-      prev.map((c) => (c.id === archiveClass.id ? { ...c, status: "ARCHIVED" } : c)),
-    );
+    // Optimistic UI update so the class disappears immediately
+    queryClient.setQueryData(["admin", "classes"], (prev: AdminClassResponse[] | undefined) => {
+      if (!prev) return [];
+      return prev.filter((c) => c.id !== deleteClass.id);
+    });
 
-    setArchiveLoading(true);
+    setDeleteLoading(true);
     try {
-      await classesApi.archiveClass(archiveClass.id);
-      setArchiveClass(null);
-      setActionMessage({ kind: "success", text: `"${archiveClass.name}" archived successfully.` });
+      await classesApi.deleteClass(deleteClass.id);
+      setDeleteClass(null);
+      // Remove success notification as requested
+      // setActionMessage({ kind: "success", text: `"${deleteClass.name}" deleted successfully.` });
       // Refresh from backend so all derived data stays in sync.
       await fetchClasses();
     } catch (err) {
@@ -196,7 +187,7 @@ function ClassManagementPage() {
         prev.map((c) => (c.id === archiveClass.id ? { ...c, status: "ACTIVE" } : c)),
       );
       const message =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -225,20 +216,15 @@ function ClassManagementPage() {
       setRestoreClass(null);
       setActionMessage({ kind: "success", text: `"${restoreClass.name}" restored successfully.` });
       await fetchClasses();
-    } catch (err) {
-      // Roll back optimistic change and surface the error.
-      setClasses((prev) =>
-        prev.map((c) => (c.id === restoreClass.id ? { ...c, status: "ARCHIVED" } : c)),
-      );
       const message =
-        err instanceof ApiError
+        isApiError(err)
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Failed to restore class.";
-      setActionMessage({ kind: "error", text: `Restore failed: ${message}` });
+            : "Failed to delete class.";
+      setActionMessage({ kind: "error", text: `Delete failed: ${message}` });
     } finally {
-      setRestoreLoading(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -297,7 +283,7 @@ function ClassManagementPage() {
         </div>
         <div className="card-base p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[var(--status-suspended)]/12 flex items-center justify-center">
-            <Archive className="w-5 h-5 text-[var(--status-suspended)]" />
+            <Trash2 className="w-5 h-5 text-[var(--status-suspended)]" />
           </div>
           <div>
             <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
@@ -510,101 +496,56 @@ function ClassManagementPage() {
                   >
                     <Eye className="w-4 h-4" />
                   </Link>
-                  {cls.status === "ACTIVE" ? (
-                    <button
-                      onClick={() => handleArchiveClick(cls)}
-                      className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 transition"
-                      title="Archive Class"
-                      aria-label="Archive class"
-                    >
-                      <Archive className="w-4 h-4" />
-                    </button>
-                  ) : cls.status === "ARCHIVED" ? (
-                    <button
-                      onClick={() => handleRestoreClick(cls)}
-                      className="p-2 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 transition"
-                      title="Restore Class"
-                      aria-label="Restore class"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                  ) : null}
+                  <button
+                    onClick={() => handleDeleteClick(cls)}
+                    className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition"
+                    title="Delete Class"
+                    aria-label="Delete class"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </motion.div>
             ))}
         </div>
       </div>
 
-      {/* Archive Confirmation Modal */}
-      <AlertDialog open={!!archiveClass} onOpenChange={() => setArchiveClass(null)}>
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={!!deleteClass} onOpenChange={() => setDeleteClass(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Archive Class</AlertDialogTitle>
+            <AlertDialogTitle>Delete Class</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to archive{" "}
-              <span className="font-bold text-primary-col">{archiveClass?.name}</span>?
+              Are you sure you want to delete{" "}
+              <span className="font-bold text-primary-col">{deleteClass?.name}</span>?
               <br />
               <br />
-              Archived classes will no longer accept new students but historical data will be
+              Deleted classes will no longer accept new students but historical data will be
               preserved.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setArchiveClass(null)} disabled={archiveLoading}>
+            <AlertDialogCancel onClick={() => setDeleteClass(null)} disabled={deleteLoading}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleArchiveConfirm}
-              disabled={archiveLoading}
-              className="bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50"
+              onClick={handleDeleteConfirm}
+              disabled={deleteLoading}
+              className="bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
             >
-              {archiveLoading ? (
+              {deleteLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Archiving...
+                  Deleting...
                 </span>
               ) : (
-                "Archive"
+                "Delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Restore Confirmation Modal */}
-      <AlertDialog open={!!restoreClass} onOpenChange={() => setRestoreClass(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restore Class</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to restore{" "}
-              <span className="font-bold text-primary-col">{restoreClass?.name}</span>?
-              <br />
-              <br />
-              The class will be returned to active status and can accept new students.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRestoreClass(null)} disabled={restoreLoading}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRestoreConfirm}
-              disabled={restoreLoading}
-              className="bg-green-500 hover:bg-green-600 disabled:opacity-50"
-            >
-              {restoreLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Restoring...
-                </span>
-              ) : (
-                "Restore"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

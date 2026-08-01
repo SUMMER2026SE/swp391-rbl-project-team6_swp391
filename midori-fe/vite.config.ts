@@ -5,18 +5,9 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import { unpluginRouterGeneratorFactory } from "@tanstack/router-plugin";
-
-// Route tree generator plugin - required for TanStack Router code generation
-const RouteGenerator = unpluginRouterGeneratorFactory({
-  target: "react-start",
-  routesDirectory: "./src/routes",
-  generatedRouteTree: "./src/routeTree.gen.ts",
-});
 
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 export default defineConfig({
-  plugins: [RouteGenerator as never],
   tanstackStart: {
     server: { entry: "server" },
   },

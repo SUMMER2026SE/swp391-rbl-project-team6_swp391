@@ -128,6 +128,33 @@ export interface GrammarItem {
   explanation: string;
 }
 
+export interface SavedWordResponse {
+  id: string;
+  surface: string;
+  reading?: string;
+  dictionaryForm?: string;
+  meaning: string;
+  context?: string;
+  wordType?: string;
+  jlptLevel?: string;
+  lessonId?: string;
+  audioUrl?: string;
+  notes?: string;
+  createdAt: string;
+  learningStatus: string;
+  isDifficult: boolean;
+  lastReviewedAt?: string;
+  nextReviewAt?: string;
+  reviewCount: number;
+  correctCount: number;
+  lapseCount: number;
+  masteredAt?: string;
+}
+
+export interface SavedWordProgressRequest {
+  result: "AGAIN" | "HARD" | "GOOD" | "MASTERED";
+}
+
 export const dictionaryApi = {
   /**
    * Full dictionary lookup with grammar forms and context.
@@ -182,6 +209,39 @@ export const dictionaryApi = {
       `/student/dictionary/saved?word=${encodeURIComponent(word)}`
     );
     return response;
+  },
+
+  getSavedWords: async (params?: {
+    sourceVideoId?: string;
+    status?: string;
+    difficult?: boolean;
+    sort?: string;
+  }): Promise<SavedWordResponse[]> => {
+    const searchParams = new URLSearchParams();
+    if (params?.sourceVideoId) searchParams.append("sourceVideoId", params.sourceVideoId);
+    if (params?.status) searchParams.append("status", params.status);
+    if (params?.difficult !== undefined) searchParams.append("difficult", String(params.difficult));
+    if (params?.sort) searchParams.append("sort", params.sort);
+    
+    return await api.get<SavedWordResponse[]>(
+      `/student/dictionary/saved-words?${searchParams}`
+    );
+  },
+
+  updateProgress: async (
+    id: string,
+    request: SavedWordProgressRequest
+  ): Promise<SavedWordResponse> => {
+    return await api.patch<SavedWordResponse>(
+      `/student/dictionary/saved-words/${id}/progress`,
+      request
+    );
+  },
+
+  unsaveWord: async (word: string): Promise<void> => {
+    await api.delete<void>(
+      `/student/dictionary/unsave?word=${encodeURIComponent(word)}`
+    );
   },
 
   getHoverInfo: async (word: string): Promise<DictionaryHoverResponse> => {

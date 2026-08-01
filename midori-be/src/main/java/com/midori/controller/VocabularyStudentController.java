@@ -22,6 +22,7 @@ public class VocabularyStudentController {
 
     private final VocabularyLessonService vocabularyLessonService;
     private final ClassService classService;
+    private final com.midori.service.LearningAccessService learningAccessService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<VocabularyLessonResponse>>> getVocabularyList(
@@ -31,9 +32,7 @@ public class VocabularyStudentController {
         boolean isStudent = userDetails != null && "STUDENT".equalsIgnoreCase(userDetails.getRole());
         
         if (isStudent && level != null && !level.isBlank()) {
-            if (!classService.isStudentEnrolledInLevel(userDetails.getId(), level)) {
-                throw new com.midori.exception.AccessDeniedException("You are not enrolled in a class for level " + level);
-            }
+            learningAccessService.checkAccess(userDetails.getId(), level);
         }
 
         List<VocabularyLessonResponse> vocabularies;
@@ -44,13 +43,18 @@ public class VocabularyStudentController {
         }
 
         if (isStudent && (level == null || level.isBlank())) {
-            Set<String> activeLevels = classService.getStudentActiveLevels(userDetails.getId());
+            Set<String> activeLevels = learningAccessService.getStudentActiveLevels(userDetails.getId());
             vocabularies = vocabularies.stream()
                     .filter(v -> v.getJlptLevel() != null && activeLevels.contains(v.getJlptLevel()))
                     .toList();
         }
 
-        return ResponseEntity.ok(ApiResponse.success(vocabularies));
+        ApiResponse<List<VocabularyLessonResponse>> response = ApiResponse.success(vocabularies);
+        if (isStudent && level != null && !level.isBlank()) {
+            response.setMetadata(learningAccessService.getAccessMetadata(userDetails.getId(), level));
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -61,12 +65,15 @@ public class VocabularyStudentController {
         
         boolean isStudent = userDetails != null && "STUDENT".equalsIgnoreCase(userDetails.getRole());
         if (isStudent && detail != null && detail.getJlptLevel() != null) {
-            if (!classService.isStudentEnrolledInLevel(userDetails.getId(), detail.getJlptLevel())) {
-                throw new com.midori.exception.AccessDeniedException("You are not enrolled in a class for level " + detail.getJlptLevel());
-            }
+            learningAccessService.checkAccess(userDetails.getId(), detail.getJlptLevel());
         }
         
-        return ResponseEntity.ok(ApiResponse.success(detail));
+        ApiResponse<VocabularyDetailResponse> response = ApiResponse.success(detail);
+        if (isStudent && detail != null && detail.getJlptLevel() != null) {
+            response.setMetadata(learningAccessService.getAccessMetadata(userDetails.getId(), detail.getJlptLevel()));
+        }
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/level/{jlptLevel}")
@@ -76,12 +83,14 @@ public class VocabularyStudentController {
         
         boolean isStudent = userDetails != null && "STUDENT".equalsIgnoreCase(userDetails.getRole());
         if (isStudent && jlptLevel != null && !jlptLevel.isBlank()) {
-            if (!classService.isStudentEnrolledInLevel(userDetails.getId(), jlptLevel)) {
-                throw new com.midori.exception.AccessDeniedException("You are not enrolled in a class for level " + jlptLevel);
-            }
+            learningAccessService.checkAccess(userDetails.getId(), jlptLevel);
         }
         
         List<VocabularyLessonResponse> vocabularies = vocabularyLessonService.getActiveVocabularyLessonsByLevel(jlptLevel);
-        return ResponseEntity.ok(ApiResponse.success(vocabularies));
+        ApiResponse<List<VocabularyLessonResponse>> response = ApiResponse.success(vocabularies);
+        if (isStudent) {
+            response.setMetadata(learningAccessService.getAccessMetadata(userDetails.getId(), jlptLevel));
+        }
+        return ResponseEntity.ok(response);
     }
 }

@@ -37,6 +37,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/lib/auth";
 import { homeworkApi, HomeworkResponse } from "@/lib/api/homework";
 import { examsApi, ExamResponse } from "@/lib/api/exams";
 import { classesApi } from "@/lib/api/classes";
@@ -46,7 +47,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/teacher/my-questions")({
-  head: () => ({ meta: [{ title: "My Library — MIDORI Teacher" }] }),
+  head: () => ({ meta: [{ title: "My Questions — MIDORI Teacher" }] }),
   component: MyQuestionsPage,
 });
 
@@ -120,10 +121,7 @@ function MyQuestionsPage() {
   const [previewType, setPreviewType] = useState<"homework" | "exam" | null>(null);
 
   // Queries
-  const { data: user } = useQuery({
-    queryKey: ["authMe"],
-    queryFn: () => authApi.getMe(),
-  });
+  const { user } = useAuth();
 
   const { data: classes = [], isLoading: classesLoading } = useQuery({
     queryKey: ["teacherAllClasses"],
@@ -144,34 +142,18 @@ function MyQuestionsPage() {
     enabled: !!user?.id,
   });
 
-  // Fetch lessons to map lesson names
-  const { data: n5Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N5"],
-    queryFn: () => teacherQuestionsApi.getLessons("N5").then((res) => res),
-  });
-  const { data: n4Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N4"],
-    queryFn: () => teacherQuestionsApi.getLessons("N4").then((res) => res),
-  });
-  const { data: n3Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N3"],
-    queryFn: () => teacherQuestionsApi.getLessons("N3").then((res) => res),
-  });
-  const { data: n2Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N2"],
-    queryFn: () => teacherQuestionsApi.getLessons("N2").then((res) => res),
-  });
-  const { data: n1Lessons = [] } = useQuery({
-    queryKey: ["questionBankLessons", "N1"],
-    queryFn: () => teacherQuestionsApi.getLessons("N1").then((res) => res),
+  // Fetch all lessons at once
+  const { data: allLessons = [] } = useQuery({
+    queryKey: ["questionBankLessons", "ALL"],
+    queryFn: () => teacherQuestionsApi.getLessons().then((res) => res),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 
   const lessonsMap = useMemo(() => {
     const map = new Map<number, string>();
-    const all = [...n5Lessons, ...n4Lessons, ...n3Lessons, ...n2Lessons, ...n1Lessons];
-    all.forEach((l) => map.set(l.id, l.lessonName));
+    allLessons.forEach((l) => map.set(l.id, l.lessonName));
     return map;
-  }, [n5Lessons, n4Lessons, n3Lessons, n2Lessons, n1Lessons]);
+  }, [allLessons]);
 
   const classMap = useMemo(() => {
     const map = new Map<string, { name: string; level: string }>();
@@ -374,7 +356,11 @@ function MyQuestionsPage() {
         if (!groups[level][lessonName][skill]) {
           groups[level][lessonName][skill] = [];
         }
-        groups[level][lessonName][skill].push(hw);
+        // Deduplicate by title
+        const arr = groups[level][lessonName][skill];
+        if (!arr.some((existing) => existing.title === hw.title)) {
+          arr.push(hw);
+        }
       }
     });
 
@@ -401,7 +387,11 @@ function MyQuestionsPage() {
         if (!groups[level]) {
           groups[level] = [];
         }
-        groups[level].push(ex);
+        // Deduplicate by title
+        const arr = groups[level];
+        if (!arr.some((existing) => existing.title === ex.title)) {
+          arr.push(ex);
+        }
       }
     });
 
@@ -416,6 +406,26 @@ function MyQuestionsPage() {
   };
 
   const isLoading = classesLoading || homeworksLoading || examsLoading;
+
+  const filteredHomeworksCount = useMemo(() => {
+    let count = 0;
+    Object.values(groupedHomeworks).forEach((lessonsObj) => {
+      Object.values(lessonsObj).forEach((skillsObj) => {
+        Object.values(skillsObj).forEach((arr) => {
+          count += arr.length;
+        });
+      });
+    });
+    return count;
+  }, [groupedHomeworks]);
+
+  const filteredExamsCount = useMemo(() => {
+    let count = 0;
+    Object.values(groupedExams).forEach((arr) => {
+      count += arr.length;
+    });
+    return count;
+  }, [groupedExams]);
 
   const sortedLevels = ["N5", "N4", "N3", "N2", "N1"];
 
@@ -767,7 +777,7 @@ function MyQuestionsPage() {
               PERSONAL LIBRARY
             </div>
             <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-slate-100 leading-none">
-              My Library
+              My Questions
             </h1>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-1.5">
               Manage your personal homework assignments and exams.
@@ -787,7 +797,7 @@ function MyQuestionsPage() {
           }`}
         >
           <ClipboardList className="w-4 h-4" />
-          Homework ({homeworks.length})
+          Homework ({filteredHomeworksCount})
         </button>
         <button
           onClick={() => setActiveTab("exam")}
@@ -798,7 +808,7 @@ function MyQuestionsPage() {
           }`}
         >
           <FileText className="w-4 h-4" />
-          Exam ({exams.length})
+          Exam ({filteredExamsCount})
         </button>
       </div>
 

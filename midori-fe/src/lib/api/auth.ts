@@ -18,7 +18,18 @@ export const authApi = {
 
   logout: () => api.post<null>("/auth/logout"),
 
-  getMe: () => api.get<UserResponse>("/auth/me"),
+  getMe: (init?: RequestInit) => {
+    const requestId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7);
+    const signal = init?.signal;
+    if (typeof window !== "undefined") {
+      console.log(`[AUTH /me START] ${requestId}, Path: ${window.location.pathname}, Timestamp: ${new Date().toISOString()}, AbortSignal state: ${signal?.aborted}`);
+      console.trace(`[AUTH /me START TRACE] ${requestId}`);
+      signal?.addEventListener("abort", () => {
+        console.log(`[AUTH /me ABORT] ${requestId}, Timestamp: ${new Date().toISOString()}`);
+      });
+    }
+    return api.get<UserResponse>(`/auth/me?fe_req_id=${requestId}`, init);
+  },
 
   verifyEmail: (data: VerifyEmailRequest) => api.post<null>("/auth/verify-email", data),
 

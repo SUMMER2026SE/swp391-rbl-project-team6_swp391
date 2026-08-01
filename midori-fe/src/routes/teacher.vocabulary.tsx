@@ -29,7 +29,7 @@ import {
   type VocabularyLessonDetailResponse,
   type VocabularyLessonCreateRequest,
 } from "@/lib/api/teacherVocabulary";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { TopicCombobox } from "@/components/TopicCombobox";
 
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
@@ -339,7 +339,7 @@ function VocabularyManagementPage() {
       setAllTopics(topics);
       setLessons(filteredSorted);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load lessons. Please try again.");
+      setError(isApiError(err) ? err.message : "Failed to load lessons. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -555,7 +555,7 @@ function VocabularyManagementPage() {
       const detail = await teacherVocabularyApi.getTeacherLessonDetail(lesson.id);
       setViewingLesson(detail);
     } catch (err) {
-      setViewError(err instanceof ApiError ? err.message : "Failed to load lesson details.");
+      setViewError(isApiError(err) ? err.message : "Failed to load lesson details.");
       setViewingLesson((prev) =>
         prev?.id === lesson.id
           ? prev
@@ -593,7 +593,7 @@ function VocabularyManagementPage() {
       setEditTopic(detail.topic ?? l.topic ?? "");
       setEditIsPublished(detail.isPublished ?? l.isPublished ?? false);
     } catch (err) {
-      setEditDetailError(err instanceof ApiError ? err.message : "Failed to load lesson details.");
+      setEditDetailError(isApiError(err) ? err.message : "Failed to load lesson details.");
       setEditTempWords([]);
     } finally {
       setEditDetailLoading(false);
@@ -622,7 +622,7 @@ function VocabularyManagementPage() {
       setEditDeletedWordIds(new Set());
       await fetchLessons();
     } catch (err) {
-      setEditSaveError(err instanceof ApiError ? err.message : "Failed to update lesson.");
+      setEditSaveError(isApiError(err) ? err.message : "Failed to update lesson.");
     } finally {
       setEditingSave(false);
     }
@@ -763,7 +763,7 @@ function VocabularyManagementPage() {
       setShowAdd(false);
       await fetchLessons();
     } catch (err) {
-      setCreateError(err instanceof ApiError ? err.message : "Failed to create lesson.");
+      setCreateError(isApiError(err) ? err.message : "Failed to create lesson.");
     } finally {
       setCreating(false);
     }

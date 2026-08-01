@@ -40,22 +40,28 @@ export function useClassDetail(classId: string) {
   const [announcementFilter, setAnnouncementFilter] = useState<string>("all");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  const { data: classDetail, isLoading: isClassLoading } = useQuery({
+  const { data: classDetail, isLoading: isClassLoading, error: classError } = useQuery({
     queryKey: ["classDetail", classId],
     queryFn: () => classesApi.getStudentClassDetail(classId),
     enabled: !!classId,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: homeworkList = [], isLoading: isHwLoading } = useQuery({
-    queryKey: ["classHomework", classId],
+    queryKey: ["student-class-homeworks", classId],
     queryFn: () => classesApi.getClassHomework(classId),
     enabled: !!classId,
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: examList = [], isLoading: isExamsLoading } = useQuery({
-    queryKey: ["classExams", classId],
+    queryKey: ["student-class-exams", classId],
     queryFn: () => classesApi.getClassExams(classId),
     enabled: !!classId,
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Map homework and exams to the "assignments" array structure expected by the frontend
@@ -231,5 +237,6 @@ export function useClassDetail(classId: string) {
     filteredAssignments: processedAssignments,
     markAnnouncementAsRead,
     isLoading: isClassLoading || isHwLoading || isExamsLoading,
+    error: classError,
   };
 }

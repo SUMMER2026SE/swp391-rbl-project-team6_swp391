@@ -100,7 +100,11 @@ function CreateExam() {
           </Button>
           {createdClassId && (
             <Button asChild variant="outline">
-              <Link to="/teacher/classes/$classId/homework" params={{ classId: createdClassId }} search={{ q: "" }}>
+              <Link
+                to="/teacher/classes/$classId/homework"
+                params={{ classId: createdClassId }}
+                search={{ q: "" }}
+              >
                 View class exams
               </Link>
             </Button>
@@ -153,6 +157,7 @@ function CreateExam() {
           onDone={handleDone}
         />
       )}
+      {method === "ai-generate" && <AiExamGenerate lockedClass={lockedClass} onDone={handleDone} />}
       {method === "question-bank" && (
         <QuestionBankExam lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />
       )}
@@ -273,6 +278,10 @@ function QuestionBankExam({
       return res;
     },
     enabled: !!level,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: false,
   });
 
   const handleLevelChange = (newLevel: string) => {
@@ -975,7 +984,7 @@ function QuestionBankExam({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
                       Due date
@@ -1026,23 +1035,7 @@ function QuestionBankExam({
                       }
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                      Attempts
-                    </Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                      value={metadata.attempts}
-                      onChange={(e) =>
-                        setMetadata({
-                          ...metadata,
-                          attempts: Math.max(1, Number(e.target.value) || 1),
-                        })
-                      }
-                    />
-                  </div>
+
                 </div>
 
                 <div className="flex justify-between mt-6 pt-4 border-t">
@@ -1259,6 +1252,20 @@ function ExamAiPdf({
       return;
     }
 
+    if (questions.length === 0) {
+      toast.error("No questions to assign.");
+      return;
+    }
+
+    const hasUnresolved = questions.some((q) => q.answers.findIndex((ans) => ans.isCorrect) === -1);
+    if (hasUnresolved) {
+      toast.error("One or more questions are missing a correct answer. Please resolve them first.");
+      return;
+    }
+
+    const selectedClass = lockedClass || classes.find((c) => c.id === metadata.classId);
+    const targetLevel = selectedClass?.level || "N5";
+
     setSubmitting(true);
     try {
       const examTitle =
@@ -1401,37 +1408,3 @@ function ExamAiPdf({
               {assignError}
             </div>
           )}
-
-          <Button
-            className="w-full"
-            disabled={
-              submitting ||
-              savingQuestions ||
-              questions.length === 0 ||
-              !metadata.classId ||
-              !metadata.title
-            }
-            onClick={handleAssign}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Publishing...
-              </>
-            ) : savingQuestions ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving questions...
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Publish Exam
-              </>
-            )}
-          </Button>
-        </Card>
-      </div>
-    </div>
-  );
-}

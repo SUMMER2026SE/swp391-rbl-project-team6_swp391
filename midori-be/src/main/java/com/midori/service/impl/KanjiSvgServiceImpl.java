@@ -69,21 +69,37 @@ public class KanjiSvgServiceImpl implements KanjiSvgService {
             return cached;
         }
 
-        // Step 4: Load SVG from classpath resources (one file read)
+        // Step 4: Load SVG from classpath resources or fallback to GitHub KanjiVG raw
         Resource resource = new ClassPathResource("dictionary/kanjivg/" + svgFile);
-        if (!resource.exists()) {
-            log.warn("SVG file not found in classpath: dictionary/kanjivg/{}", svgFile);
-            throw new ResourceNotFoundException("Kanji SVG file", "filename", svgFile);
+        if (resource.exists()) {
+            try (InputStream inputStream = resource.getInputStream()) {
+                String content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                svgCache.put(svgFile, content);
+                return content;
+            } catch (IOException e) {
+                log.error("Failed to read SVG file from classpath: {}", svgFile, e);
+            }
         }
 
-        try (InputStream inputStream = resource.getInputStream()) {
-            String content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            // Cache the content — SVG files are static
-            svgCache.put(svgFile, content);
-            return content;
-        } catch (IOException e) {
-            log.error("Failed to read SVG file: {}", svgFile, e);
-            throw new RuntimeException("Failed to read SVG file: " + svgFile, e);
+        // Fallback: Fetch directly from official KanjiVG GitHub raw repository
+        String githubUrl = "https://raw.githubusercontent.com/KanjiVG/kanjivg/master/kanji/" + svgFile;
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(githubUrl))
+                    .GET()
+                    .build();
+            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200 && response.body() != null && !response.body().isBlank()) {
+                String content = response.body();
+                svgCache.put(svgFile, content);
+                return content;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch SVG from GitHub fallback URL: {}", githubUrl, e);
         }
+
+        log.warn("SVG file not found in classpath or GitHub: {}", svgFile);
+        throw new ResourceNotFoundException("Kanji SVG file", "filename", svgFile);
     }
 }

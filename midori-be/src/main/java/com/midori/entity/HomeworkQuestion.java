@@ -18,6 +18,7 @@ public class HomeworkQuestion {
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("homeworkId")
     @JoinColumn(name = "homework_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private Homework homework;
 
     @ManyToOne(fetch = FetchType.LAZY)

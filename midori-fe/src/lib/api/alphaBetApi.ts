@@ -35,7 +35,7 @@ export interface KatakanaCharacter {
 export async function fetchHiraganaBasic(): Promise<HiraganaCharacter[]> {
   const { data, error } = await supabase
     .from("hiragana_characters")
-    .select("*")
+    .select("id,character,romaji,meaning,example_word,example_meaning,audio_url,stroke_order,category")
     .eq("category", "basic")
     .order("stroke_order", { ascending: true });
 
@@ -43,13 +43,25 @@ export async function fetchHiraganaBasic(): Promise<HiraganaCharacter[]> {
     console.error("Error fetching hiragana basic:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map((c: any) => ({
+    id: c.id,
+    character: c.character,
+    romaji: c.romaji,
+    meaning: c.meaning,
+    exampleWord: c.example_word,
+    exampleMeaning: c.example_meaning,
+    audioUrl: c.audio_url,
+    strokeOrder: c.stroke_order,
+    category: c.category,
+    is_basic: true,
+    is_combination: false,
+  }));
 }
 
 export async function fetchHiraganaDakuten(): Promise<HiraganaCharacter[]> {
   const { data, error } = await supabase
     .from("hiragana_characters")
-    .select("*")
+    .select("id,character,romaji,meaning,example_word,example_meaning,audio_url,stroke_order,category")
     .in("category", ["dakuten", "handakuten"])
     .order("stroke_order", { ascending: true });
 
@@ -57,13 +69,25 @@ export async function fetchHiraganaDakuten(): Promise<HiraganaCharacter[]> {
     console.error("Error fetching hiragana dakuten:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map((c: any) => ({
+    id: c.id,
+    character: c.character,
+    romaji: c.romaji,
+    meaning: c.meaning,
+    exampleWord: c.example_word,
+    exampleMeaning: c.example_meaning,
+    audioUrl: c.audio_url,
+    strokeOrder: c.stroke_order,
+    category: c.category,
+    is_basic: false,
+    is_combination: false,
+  }));
 }
 
 export async function fetchHiraganaCombination(): Promise<HiraganaCharacter[]> {
   const { data, error } = await supabase
     .from("hiragana_characters")
-    .select("*")
+    .select("id,character,romaji,meaning,example_word,example_meaning,audio_url,stroke_order,category")
     .eq("category", "combination")
     .order("stroke_order", { ascending: true });
 
@@ -71,13 +95,25 @@ export async function fetchHiraganaCombination(): Promise<HiraganaCharacter[]> {
     console.error("Error fetching hiragana combination:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map((c: any) => ({
+    id: c.id,
+    character: c.character,
+    romaji: c.romaji,
+    meaning: c.meaning,
+    exampleWord: c.example_word,
+    exampleMeaning: c.example_meaning,
+    audioUrl: c.audio_url,
+    strokeOrder: c.stroke_order,
+    category: c.category,
+    is_basic: false,
+    is_combination: true,
+  }));
 }
 
 export async function fetchKatakanaBasic(): Promise<KatakanaCharacter[]> {
   const { data, error } = await supabase
     .from("katakana_characters")
-    .select("*")
+    .select("id,character,romaji,meaning,example_word,example_meaning,audio_url,stroke_order,category")
     .eq("category", "basic")
     .order("stroke_order", { ascending: true });
 
@@ -85,13 +121,25 @@ export async function fetchKatakanaBasic(): Promise<KatakanaCharacter[]> {
     console.error("Error fetching katakana basic:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map((c: any) => ({
+    id: c.id,
+    character: c.character,
+    romaji: c.romaji,
+    meaning: c.meaning,
+    exampleWord: c.example_word,
+    exampleMeaning: c.example_meaning,
+    audioUrl: c.audio_url,
+    strokeOrder: c.stroke_order,
+    category: c.category,
+    is_basic: true,
+    is_combination: false,
+  }));
 }
 
 export async function fetchKatakanaDakuten(): Promise<KatakanaCharacter[]> {
   const { data, error } = await supabase
     .from("katakana_characters")
-    .select("*")
+    .select("id,character,romaji,meaning,example_word,example_meaning,audio_url,stroke_order,category")
     .in("category", ["dakuten", "handakuten"])
     .order("stroke_order", { ascending: true });
 
@@ -99,13 +147,25 @@ export async function fetchKatakanaDakuten(): Promise<KatakanaCharacter[]> {
     console.error("Error fetching katakana dakuten:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map((c: any) => ({
+    id: c.id,
+    character: c.character,
+    romaji: c.romaji,
+    meaning: c.meaning,
+    exampleWord: c.example_word,
+    exampleMeaning: c.example_meaning,
+    audioUrl: c.audio_url,
+    strokeOrder: c.stroke_order,
+    category: c.category,
+    is_basic: false,
+    is_combination: false,
+  }));
 }
 
 export async function fetchKatakanaCombination(): Promise<KatakanaCharacter[]> {
   const { data, error } = await supabase
     .from("katakana_characters")
-    .select("*")
+    .select("id,character,romaji,meaning,example_word,example_meaning,audio_url,stroke_order,category")
     .eq("category", "combination")
     .order("stroke_order", { ascending: true });
 
@@ -113,5 +173,17 @@ export async function fetchKatakanaCombination(): Promise<KatakanaCharacter[]> {
     console.error("Error fetching katakana combination:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map((c: any) => ({
+    id: c.id,
+    character: c.character,
+    romaji: c.romaji,
+    meaning: c.meaning,
+    exampleWord: c.example_word,
+    exampleMeaning: c.example_meaning,
+    audioUrl: c.audio_url,
+    strokeOrder: c.stroke_order,
+    category: c.category,
+    is_basic: false,
+    is_combination: true,
+  }));
 }

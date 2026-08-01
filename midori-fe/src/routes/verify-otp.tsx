@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-route
 import { AuthShell, PrimaryBtn } from "@/components/auth-shell";
 import { useEffect, useRef, useState } from "react";
 import { authApi } from "@/lib/api/auth";
-import { ApiError, api } from "@/lib/api/client";
+import { ApiError, isApiError, api } from "@/lib/api/client";
 import { getDashboardPath, useAuth } from "@/lib/auth";
 
 type VerifyOtpLocationState = {
@@ -68,7 +68,7 @@ function VerifyOtpPage() {
 
       nav({ to: "/login" });
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setErr(err.message);
       } else {
         setErr("Verification failed. Please try again.");
@@ -91,7 +91,7 @@ function VerifyOtpPage() {
       setErr("");
       setInfo("");
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setErr(err.message);
       } else {
         setErr("Failed to resend. Please try again.");

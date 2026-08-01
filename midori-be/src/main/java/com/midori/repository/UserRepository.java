@@ -19,6 +19,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String email);
 
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.profile WHERE u.email = :email")
+    Optional<User> findByEmailWithProfile(@Param("email") String email);
+
     boolean existsByEmail(String email);
 
     List<User> findByRoleAndStatus(Role role, UserStatus status);
@@ -88,6 +91,37 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT c.id, COUNT(u) FROM User u JOIN u.assignedClasses c GROUP BY c.id")
     List<Object[]> countStudentsPerClass();
 
+    @Query("SELECT COUNT(u) FROM User u JOIN u.assignedClasses c WHERE c.id = :classId")
+    long countStudentsByClassId(@Param("classId") UUID classId);
+
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.profile WHERE u.role = :role ORDER BY u.createdAt DESC")
     List<User> findRecentUsersByRole(@Param("role") Role role, Pageable pageable);
+
+    @Query("SELECT COUNT(u), " +
+           "SUM(CASE WHEN u.role = 'TEACHER' THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN u.role = 'STUDENT' THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN u.status = 'ACTIVE' THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN u.role = 'TEACHER' AND u.status = 'PENDING_APPROVAL' THEN 1L ELSE 0L END) " +
+           "FROM User u")
+    List<Object[]> getDashboardStats();
+
+    @Query(value = "SELECT " +
+            "(SELECT COUNT(*) FROM users) as total_users, " +
+            "(SELECT COUNT(*) FROM users WHERE role = 'TEACHER') as total_teachers, " +
+            "(SELECT COUNT(*) FROM users WHERE role = 'STUDENT') as total_students, " +
+            "(SELECT COUNT(*) FROM users WHERE status = 'ACTIVE') as total_active_users, " +
+            "(SELECT COUNT(*) FROM users WHERE role = 'TEACHER' AND status = 'PENDING_APPROVAL') as pending_teachers, " +
+            "(SELECT COUNT(*) FROM grammars) as total_grammar, " +
+            "(SELECT COUNT(*) FROM grammars WHERE status = 'PENDING') as pending_grammar, " +
+            "(SELECT COUNT(*) FROM grammars WHERE status = 'APPROVED') as approved_grammar, " +
+            "(SELECT COUNT(*) FROM flashcard_sets) as total_flashcard_sets, " +
+            "(SELECT COUNT(*) FROM flashcard_sets WHERE status = 'PENDING') as pending_flashcard_sets, " +
+            "(SELECT COUNT(*) FROM flashcard_sets WHERE status = 'APPROVED') as approved_flashcard_sets, " +
+            "(SELECT COUNT(*) FROM listening_lessons) as total_listening_lessons, " +
+            "(SELECT COUNT(*) FROM listening_lessons WHERE is_active = false) as inactive_listening_lessons, " +
+            "(SELECT COUNT(*) FROM listening_lessons WHERE is_active = true) as active_listening_lessons, " +
+            "(SELECT COUNT(*) FROM vocabulary_lessons_v2) as total_vocabulary_lessons, " +
+            "(SELECT COUNT(*) FROM vocabulary_lessons_v2 WHERE is_published = true) as published_vocabulary_lessons, " +
+            "(SELECT COUNT(*) FROM user_learning_progress) as total_progress_records", nativeQuery = true)
+    List<Object[]> getCombinedDashboardStats();
 }

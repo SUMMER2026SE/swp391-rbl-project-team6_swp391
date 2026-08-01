@@ -1,8 +1,10 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api/client";
 import { authApi } from "./api/auth";
 import { profileApi, type ProfileResponse } from "./api/profile";
 import { classesApi } from "./api/classes";
+import type { ClassResponse } from "./api/classes";
 import type { LoginRequest, RegisterRequest, Role, UserResponse, UserStatus } from "./api/types";
 
 export type FrontendRole = "student" | "teacher" | "admin";
@@ -60,6 +62,7 @@ export type User = {
   googleAvatar?: string | null;
   status?: UserStatus;
   classId?: string | null;
+  rejectionReason?: string | null;
 };
 
 type AuthCtx = {
@@ -90,14 +93,15 @@ function mapBackendRole(role: Role): FrontendRole {
   }
 }
 
-function userResponseToUser(r: UserResponse): User {
+export function userResponseToUser(r: UserResponse): User {
   return {
     id: r.id,
-    name: r.name ?? r.email.split("@")[0],
     email: r.email,
+    name: r.name ?? r.email.split("@")[0],
     role: mapBackendRole(r.role),
     avatar: r.avatarUrl ?? null,
     status: r.status,
+    rejectionReason: r.rejectionReason ?? null,
   };
 }
 
@@ -153,29 +157,27 @@ function mergeUser(storedUser: User | null, apiUser: User): User {
 async function hydrateWithProfile(baseUser: User): Promise<User> {
   let user = { ...baseUser };
   try {
-    const profile: ProfileResponse = await profileApi.getMyProfile();
-    const profileAvatar = isAvatar(profile.avatarUrl) ? profile.avatarUrl : null;
-    const profileName = isAvatar(profile.displayName) ? profile.displayName : null;
-    user = {
-      ...user,
-      name: profileName ?? user.name,
-      avatar: profileAvatar ?? user.avatar ?? null,
-    };
-  } catch {}
+    const classes = await (user.role === "student" ? classesApi.getJoinedClasses().catch((e) => {
+      console.error("[Auth] Error fetching joined classes", e);
+      return null;
+    }) : Promise.resolve(null));
 
-  if (user.role === "student") {
-    try {
-      const classes = await classesApi.getJoinedClasses();
-      if (classes && classes.length > 0) {
-        user.classId = classes[0].id;
-      } else {
-        user.classId = null;
+    if (user.role === "student") {
+      if (classes !== null) {
+        if (classes.length > 0) {
+          user.classId = classes[0].id;
+        } else {
+          user.classId = null;
+        }
       }
-    } catch {}
+    }
+  } catch (err) {
+    console.error("[Auth] Hydrate error", err);
   }
 
   return user;
 }
+
 
 export function rolePath(role: FrontendRole) {
   return role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/admin";
@@ -234,53 +236,89 @@ export function canAccessRoleRoute(user: Pick<User, "role" | "status" | "classId
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Read token ONCE into state — avoids re-reading localStorage on every render
+  // which was causing unstable `enabled` flag and potential duplicate query triggers.
+  const [token, setToken] = useState<string | null>(() =>
+    typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null,
+  );
+  const queryClient = useQueryClient();
 
-  const persistUser = (u: User | null) => {
+  const persistUser = useCallback((u: User | null) => {
     setUser(u);
     if (typeof window !== "undefined") {
-      if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
-      else localStorage.removeItem(USER_KEY);
+      if (u) {
+        localStorage.setItem(USER_KEY, JSON.stringify(u));
+      } else {
+        localStorage.removeItem(USER_KEY);
+      }
     }
-  };
+  }, []);
 
-  const refreshCurrentUser = async () => {
+  // Stable fetchMe reference — React Query will not treat it as a new queryFn
+  // on re-renders, preventing spurious refetches.
+  const fetchMe = useCallback(async () => {
     const userResponse = await authApi.getMe();
     const storedRaw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
     const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
     const apiUser = userResponseToUser(userResponse);
     const merged = mergeUser(storedUser, apiUser);
-    const hydrated = await hydrateWithProfile(merged);
-    persistUser(hydrated);
-    return hydrated;
-  };
+    return await hydrateWithProfile(merged);
+  }, []); // no deps — reads localStorage lazily inside
+
+  const refreshCurrentUser = useCallback(async () => {
+    const latest = await fetchMe();
+    queryClient.setQueryData(["me"], latest);
+    setUser(latest);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(USER_KEY, JSON.stringify(latest));
+    }
+    return latest;
+  }, [fetchMe, queryClient]);
+
+  const { data: qUser, isError } = useQuery({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+    enabled: !!token,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+  });
 
   useEffect(() => {
-    async function restore() {
-      const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-
-      if (token) {
-        try {
-          await refreshCurrentUser();
-        } catch (err) {
-          console.debug("[Auth] getMe failed during restore", err);
-          api.removeToken();
+    if (token) {
+      if (qUser) {
+        setUser(qUser);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(USER_KEY, JSON.stringify(qUser));
+        }
+        setLoaded(true);
+      } else if (isError) {
+        console.debug("[Auth] restore query failed, cleaning up");
+        api.removeToken();
+        if (typeof window !== "undefined") {
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(USER_KEY);
         }
-      } else {
+        setToken(null);
+        setUser(null);
+        setLoaded(true);
+      }
+    } else {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+      if (raw) {
         try {
-          const raw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
-          if (raw) setUser(JSON.parse(raw));
+          setUser(JSON.parse(raw));
         } catch {}
       }
-
       setLoaded(true);
     }
+  }, [qUser, isError, token]);
 
-    restore();
-  }, []);
-
-  const value: AuthCtx = {
+  // Memoize the context value so consumers only re-render when something
+  // actually changes (not on every AuthProvider re-render).
+  const value = useMemo<AuthCtx>(() => ({
     user,
     loaded,
     accessToken: typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null,
@@ -291,12 +329,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       api.setToken(data.accessToken);
       const u = userResponseToUser(data.user);
+      // Hydrate profile ONCE here, then seed the React Query cache so that
+      // setToken() → queryKey change does NOT trigger a second fetchMe call.
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
-      // Notify other providers (e.g. NotificationContext) that the auth
-      // credentials have changed so they can re-open / close the realtime
-      // push channel. We use a custom DOM event rather than a context to
-      // keep the auth layer free of cross-provider imports.
+      // Pre-populate cache before updating token state — this ensures the
+      // useQuery(["me"]) sees fresh data immediately and skips
+      // its own fetch, eliminating the duplicate /me request.
+      queryClient.setQueryData(["me"], hydrated);
+      setToken(data.accessToken);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -322,8 +363,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch {}
         }
       }
+      // Hydrate ONCE, then seed cache before setToken() to prevent duplicate fetch.
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
+      // Seed the me key (prevents duplicate /me).
+      queryClient.setQueryData(["me"], hydrated);
+      setToken(res.accessToken);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -341,7 +386,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch {}
+      setToken(null);
       persistUser(null);
+      queryClient.setQueryData(["me"], null);
+      queryClient.clear();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -351,13 +399,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) return;
       const updated = { ...user, ...patch };
       persistUser(updated);
+      queryClient.setQueryData(["me"], updated);
     },
 
     refreshCurrentUser,
-  };
+  }), [user, loaded, refreshCurrentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
+
 
 export function useAuth() {
   const c = useContext(Ctx);

@@ -46,6 +46,24 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(LearningJourneyAccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleLearningJourneyAccessDenied(LearningJourneyAccessDeniedException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", 403);
+        body.put("code", "LEARNING_JOURNEY_ACCESS_DENIED");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(LearningJourneyAccessExpiredException.class)
+    public ResponseEntity<Map<String, Object>> handleLearningJourneyAccessExpired(LearningJourneyAccessExpiredException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", 403);
+        body.put("code", "LEARNING_JOURNEY_ACCESS_EXPIRED");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
     @ExceptionHandler(AiRateLimitService.RateLimitExceededException.class)
     public ResponseEntity<ApiResponse<Void>> handleRateLimitExceeded(AiRateLimitService.RateLimitExceededException ex) {
         log.warn("[GlobalExceptionHandler] Rate limit exceeded: {}", ex.getMessage());
@@ -117,6 +135,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(DataConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleDataConflictException(DataConflictException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", 409);
+        body.put("code", ex.getCode());
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @ExceptionHandler(Exception.class)

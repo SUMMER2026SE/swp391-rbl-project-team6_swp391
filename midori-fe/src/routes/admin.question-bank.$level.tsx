@@ -392,7 +392,7 @@ function QuestionBankLessonListPage() {
         <div className="card-base overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
-            <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="col-span-4 text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Lesson
             </div>
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
@@ -401,7 +401,7 @@ function QuestionBankLessonListPage() {
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Status
             </div>
-            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="col-span-4 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Actions
             </div>
           </div>

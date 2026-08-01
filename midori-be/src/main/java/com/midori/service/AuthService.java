@@ -103,21 +103,29 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
+        log.info("Login attempt for email: {}", request.getEmail());
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
+                .orElseThrow(() -> {
+                    log.warn("Login failed: User not found for email: {}", request.getEmail());
+                    return new UnauthorizedException("Invalid email or password");
+                });
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            log.warn("Login failed: Invalid password for email: {}", request.getEmail());
             throw new UnauthorizedException("Invalid email or password");
         }
 
         if (!user.getEmailVerified()) {
+            log.warn("Login failed: Email not verified for email: {}", request.getEmail());
             throw new UnauthorizedException("Please verify your email before logging in");
         }
 
         if (user.getStatus() == UserStatus.BANNED) {
+            log.warn("Login failed: Account banned for email: {}", request.getEmail());
             throw new UnauthorizedException("Account has been banned");
         }
         if (user.getStatus() == UserStatus.SUSPENDED) {
+            log.warn("Login failed: Account suspended for email: {}", request.getEmail());
             throw new UnauthorizedException("Account has been suspended");
         }
         // Teacher accounts with PENDING_APPROVAL can log in but are redirected to /teacher-pending
@@ -127,6 +135,7 @@ public class AuthService {
 
         CustomUserDetails userDetails = CustomUserDetails.fromUser(user);
         String token = jwtTokenProvider.generateTokenFromUserDetails(userDetails);
+        log.info("Login successful for email: {}. JWT generated.", request.getEmail());
 
         return AuthResponse.of(token, toUserResponse(user));
     }
@@ -150,7 +159,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailWithProfile(email)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
         return toUserResponse(user);
     }
@@ -285,9 +294,20 @@ public class AuthService {
     }
 
     private UserResponse toUserResponse(User user) {
+        String displayName = null;
+        String avatarUrl = null;
+        String bio = null;
+        if (user.getProfile() != null) {
+            displayName = user.getProfile().getDisplayName();
+            avatarUrl = user.getProfile().getAvatarUrl();
+            bio = user.getProfile().getBio();
+        }
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .name(displayName)
+                .avatarUrl(avatarUrl)
+                .bio(bio)
                 .role(user.getRole())
                 .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())

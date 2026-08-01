@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { useClassDetailContext } from "./teacher.classes.$classId";
 
 export const Route = createFileRoute("/teacher/classes/$classId/students/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -42,12 +43,12 @@ function StudentsPage() {
   const [open, setOpen] = useState<string | null>(null);
   const [invite, setInvite] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const { classDetail } = useClassDetailContext();
 
-  const { data: classDetail } = useQuery({
-    queryKey: ["teacherClassDetail", classId],
-    queryFn: () => classesApi.getClassById(classId),
-    enabled: !!classId,
-  });
+  // BACKEND OPTIMIZATION SUGGESTIONS:
+  // - Optimize the database queries for getClassById (class details API) and getClassStudents (students list API).
+  // - Ensure indexes are added on critical columns like `class_id`, `student_id`, `user_id` to reduce lookups.
+  // - Avoid N+1 queries during DTO mapping (e.g. mapping student progress or stats).
 
   const { data: rawStudents = [], isLoading } = useQuery({
     queryKey: ["classStudents", classId],
@@ -117,7 +118,7 @@ function StudentsPage() {
         </div>
         <Button onClick={() => setInvite(true)} className="ml-auto">
           <UserPlus className="mr-2 h-4 w-4" />
-          Invite students
+          Import Students
         </Button>
       </div>
 

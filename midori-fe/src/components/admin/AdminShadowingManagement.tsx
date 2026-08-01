@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { 
   Video, 
@@ -216,15 +217,40 @@ export function ShadowingCard({
   onPreview: () => void;
   onDelete: () => void;
 }) {
+  const showVideoPreview = lesson.status === "completed" && !!lesson.videoUrl;
+
   return (
     <div className="glass-card p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
       {/* Left: Thumbnail (16:9) */}
-      <div className="relative w-full md:w-44 aspect-video rounded-2xl overflow-hidden bg-muted border border-[var(--border)] shrink-0 shadow-inner">
-        <img 
-          src={lesson.thumbnail} 
-          alt={lesson.title} 
-          className="w-full h-full object-cover select-none"
-        />
+      <div
+        className="relative w-full md:w-44 aspect-video rounded-2xl overflow-hidden bg-muted border border-[var(--border)] shrink-0 shadow-inner group/thumb cursor-pointer"
+        onClick={showVideoPreview ? onPreview : undefined}
+      >
+        {showVideoPreview ? (
+          /* Video first-frame preview */
+          <>
+            <video
+              src={lesson.videoUrl ? `${lesson.videoUrl}#t=0.5` : undefined}
+              preload="metadata"
+              muted
+              playsInline
+              className="w-full h-full object-cover select-none"
+            />
+            {/* Play overlay on hover */}
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/40">
+                <Play className="w-5 h-5 text-white ml-0.5" />
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Fallback static thumbnail */
+          <img
+            src={lesson.thumbnail}
+            alt={lesson.title}
+            className="w-full h-full object-cover select-none"
+          />
+        )}
         <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/65 backdrop-blur-[2px] text-[10px] font-bold text-white flex items-center gap-1">
           <Clock className="w-3 h-3" />
           {lesson.duration}
@@ -766,14 +792,25 @@ export function CreateShadowingLessonPage({
     { id: "ready", label: "Ready", status: "pending" }
   ]);
 
-  // Poll status from the backend using real API client
+  // Poll status from the backend using recursive setTimeout with exponential backoff.
+  // Starts at 2s, backs off up to 5s to reduce request volume during the long AI pipeline.
   useEffect(() => {
     if (!videoId || pipelineStatus !== "processing") return;
 
-    const interval = setInterval(async () => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let isMounted = true;
+    let consecutiveFailures = 0;
+    let pollInterval = 2000; // start at 2 s
+    const MAX_INTERVAL = 5000; // cap at 5 s
+
+    const pollStatus = async () => {
+      if (!isMounted || pipelineStatus !== "processing") return;
+
       try {
         const fresh = await adminShadowingApi.getProcessingStatus(videoId);
         
+        if (!isMounted) return;
+
         // Map logs to checklist steps
         const logMap = new Map<string, string>();
         if (fresh.logs) {
@@ -842,22 +879,56 @@ export function CreateShadowingLessonPage({
 
         setProgressPercent(percent);
 
+        const terminalStatuses = ["COMPLETED", "FAILED", "ERROR", "CANCELLED"];
         if (fresh.status === "COMPLETED") {
-          clearInterval(interval);
+          // Terminal: stop polling, fetch transcript once
           setPipelineStatus("completed");
           toast.success("AI Shadowing lesson created successfully!");
           fetchTranscript(videoId);
-        } else if (fresh.status === "FAILED") {
-          clearInterval(interval);
+          return; // <-- do NOT schedule another poll
+        } else if (fresh.status === "FAILED" || fresh.status === "ERROR" || fresh.status === "CANCELLED") {
+          // Terminal: stop polling
           setPipelineStatus("failed");
           toast.error("AI pipeline processing failed: " + (fresh.errorMessage || "Unknown error"));
+          return; // <-- do NOT schedule another poll
+        } else if (!terminalStatuses.includes(fresh.status)) {
+          // Still processing: apply exponential backoff then schedule next poll
+          consecutiveFailures = 0;
+          pollInterval = Math.min(pollInterval * 1.5, MAX_INTERVAL);
+          timeoutId = setTimeout(pollStatus, pollInterval);
         }
       } catch (err: any) {
         console.error("Error fetching status from backend: ", err);
-      }
-    }, 3000);
+        if (!isMounted) return;
 
-    return () => clearInterval(interval);
+        const match = err.message ? err.message.match(/status:\s*(\d+)/) : null;
+        const statusCode = match ? parseInt(match[1], 10) : null;
+        if (statusCode && [400, 401, 403, 404].includes(statusCode)) {
+          setPipelineStatus("failed");
+          toast.error(`Permanent server error: ${statusCode}. Job monitoring stopped.`);
+          return;
+        }
+
+        consecutiveFailures++;
+        if (consecutiveFailures >= 3) {
+          setPipelineStatus("failed");
+          toast.error("Status polling failed repeatedly. Job monitoring stopped.");
+        } else {
+          // Retry after a longer back-off on transient errors
+          timeoutId = setTimeout(pollStatus, Math.min(pollInterval * 2, 8000));
+        }
+      }
+    };
+
+    // First poll after 2 s
+    timeoutId = setTimeout(pollStatus, pollInterval);
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [videoId, pipelineStatus]);
 
   // Fetch the real transcript segments after completed
@@ -1928,12 +1999,20 @@ export function AdminShadowingManagement({ defaultLevel = "N5", onBack }: AdminS
   const [selectedLesson, setSelectedLesson] = useState<ShadowingLesson | null>(null);
   const [lessonToDelete, setLessonToDelete] = useState<ShadowingLesson | null>(null);
 
-  // Fetch real data on mount & level change
-  const fetchVideos = async () => {
-    setIsLoading(true);
-    try {
-      const data = await adminShadowingApi.getAllVideos();
-      setLessons(data.map(v => {
+  const queryClient = useQueryClient();
+
+  const { data: rawVideos, isLoading: isVideosLoading } = useQuery({
+    queryKey: ["adminShadowingVideos"],
+    queryFn: () => adminShadowingApi.getAllVideos(),
+    enabled: view === "list",
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  useEffect(() => {
+    if (rawVideos) {
+      setLessons(rawVideos.map(v => {
         let mappedStatus: "completed" | "processing" | "failed" = "processing";
         if (v.status === "COMPLETED") mappedStatus = "completed";
         if (v.status === "FAILED") mappedStatus = "failed";
@@ -1955,16 +2034,16 @@ export function AdminShadowingManagement({ defaultLevel = "N5", onBack }: AdminS
           videoUrl: v.videoUrl || undefined
         };
       }));
-    } catch (err: any) {
-      toast.error("Failed to load shadowing lessons: " + err.message);
-    } finally {
       setIsLoading(false);
+    } else if (isVideosLoading) {
+      setIsLoading(true);
     }
-  };
+  }, [rawVideos, isVideosLoading]);
 
-  useEffect(() => {
-    fetchVideos();
-  }, [view]);
+  // Keep a wrapper for any manual refreshes/triggers
+  const fetchVideos = async () => {
+    queryClient.invalidateQueries({ queryKey: ["adminShadowingVideos"] });
+  };
 
   // Statistics calculation for the current selected level
   const levelLessons = lessons.filter(l => l.level === currentLevel);
@@ -1999,6 +2078,7 @@ export function AdminShadowingManagement({ defaultLevel = "N5", onBack }: AdminS
 
   // Action: Add simulated lesson to database list
   const handleSaveNewLesson = (videoId: string) => {
+    queryClient.invalidateQueries({ queryKey: ["adminShadowingVideos"] });
     setView("list");
   };
 
@@ -2007,6 +2087,7 @@ export function AdminShadowingManagement({ defaultLevel = "N5", onBack }: AdminS
     if (!lessonToDelete) return;
     try {
       await adminShadowingApi.deleteVideo(lessonToDelete.id);
+      queryClient.invalidateQueries({ queryKey: ["adminShadowingVideos"] });
       setLessons(prev => prev.filter(l => l.id !== lessonToDelete.id));
       setIsDeleteOpen(false);
       setLessonToDelete(null);

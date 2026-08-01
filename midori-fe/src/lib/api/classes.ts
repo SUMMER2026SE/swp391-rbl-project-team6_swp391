@@ -19,6 +19,12 @@ export interface ClassResponse {
   updatedAt: string;
 }
 
+export interface SelectableClassResponse {
+  id: string;
+  name: string;
+  level: string;
+  teacherName?: string;
+}
 export interface StudentClassResponse {
   studentId: string;
   fullName: string | null;
@@ -79,6 +85,10 @@ export const classesApi = {
     return api.get<any[]>(`/student/classes/${classId}/exams`);
   },
 
+  getStudentClassExams(): Promise<any[]> {
+    return api.get<any[]>("/student/classes/exams");
+  },
+
   getClassLessons(classId: string): Promise<any[]> {
     return api.get<any[]>(`/student/classes/${classId}/lessons`);
   },
@@ -92,12 +102,8 @@ export const classesApi = {
     return api.put<ClassResponse>(`/teacher/classes/${id}`, data);
   },
 
-  archiveClass(id: string): Promise<ClassResponse> {
-    return api.patch<ClassResponse>(`/classes/${id}/archive`);
-  },
-
-  restoreClass(id: string): Promise<ClassResponse> {
-    return api.patch<ClassResponse>(`/classes/${id}/restore`);
+  deleteClass(id: string): Promise<void> {
+    return api.delete<void>(`/classes/${id}`);
   },
 
   getClassStudents(id: string): Promise<StudentClassResponse[]> {
@@ -108,8 +114,8 @@ export const classesApi = {
     return api.get<any[]>(`/exams/class/${classId}`);
   },
 
-  getSelectableClasses(): Promise<ClassResponse[]> {
-    return api.get<ClassResponse[]>("/teacher/classes/selectable");
+  getSelectableClasses(): Promise<SelectableClassResponse[]> {
+    return api.get<SelectableClassResponse[]>("/teacher/classes/selectable");
   },
 
   removeStudentFromClass(id: string, studentId: string): Promise<void> {
@@ -120,6 +126,12 @@ export const classesApi = {
     return api.post<StudentClassResponse>(
       `/teacher/classes/${id}/students?email=${encodeURIComponent(email)}`,
     );
+  },
+
+  importStudents(classId: string, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post<any>(`/teacher/classes/${classId}/students/import`, formData);
   },
 
   getStudentProgress(classId: string, studentId: string): Promise<any> {

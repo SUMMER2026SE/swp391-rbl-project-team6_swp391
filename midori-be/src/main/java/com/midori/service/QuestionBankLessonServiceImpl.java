@@ -37,6 +37,16 @@ public class QuestionBankLessonServiceImpl implements QuestionBankLessonService 
     }
 
     @Override
+    public List<QuestionBankLesson> findAllLessons() {
+        return lessonRepository.findAllByOrderByLessonNumberAsc();
+    }
+
+    @Override
+    public List<QuestionBankLesson> findAllActiveLessons() {
+        return lessonRepository.findAllByStatusOrderByLessonNumberAsc(com.midori.entity.UserStatus.ACTIVE.name());
+    }
+
+    @Override
     @Transactional
     public QuestionBankLesson createLesson(QuestionBankLesson lesson) {
         if (lessonRepository.existsByLevelAndLessonNumber(lesson.getLevel(), lesson.getLessonNumber())) {

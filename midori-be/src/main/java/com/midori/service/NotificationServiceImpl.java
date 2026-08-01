@@ -57,7 +57,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public NotificationListResponse getCurrentUserNotifications(UUID userId) {
-        List<UserNotification> userNotifications = userNotificationRepository.findByUserIdWithNotification(userId);
+        List<UserNotification> userNotifications = userNotificationRepository.findByUserIdWithNotification(
+                userId, org.springframework.data.domain.PageRequest.of(0, 50));
 
         List<NotificationResponse> notifications = userNotifications.stream()
                 .map(this::toNotificationResponse)

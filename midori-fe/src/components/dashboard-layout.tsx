@@ -242,6 +242,7 @@ export function DashboardLayout({
 
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const search = useRouterState({ select: (s) => s.location.search }) as any;
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -263,6 +264,7 @@ export function DashboardLayout({
     queryKey: ["studentJoinedClassesDashboard"],
     queryFn: () => classesApi.getJoinedClasses(),
     enabled: role === "student" && !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   const hasAssignedLevel = role === "student" && dbClasses && dbClasses.length > 0;
@@ -303,6 +305,27 @@ export function DashboardLayout({
 
   const isRouteActive = useCallback(
     (to: string, exact?: boolean) => {
+      if (to === "/student/shadowing") {
+        return (
+          pathname === "/student/shadowing" ||
+          pathname.startsWith("/student/shadowing/") ||
+          (pathname.startsWith("/student/vocabulary") && !!search?.sourceVideoId)
+        );
+      }
+
+      if (to === "/student/journey") {
+        if (pathname.startsWith("/student/vocabulary") && !!search?.sourceVideoId) {
+          return false;
+        }
+        return (
+          pathname === "/student/journey" ||
+          pathname.startsWith("/student/journey/") ||
+          pathname.startsWith("/student/vocabulary") ||
+          pathname.startsWith("/student/grammar") ||
+          pathname.startsWith("/student/reading") ||
+          pathname.startsWith("/student/listening")
+        );
+      }
       if (to === "/teacher/classes") {
         return (
           pathname === "/teacher/classes" ||
@@ -312,6 +335,13 @@ export function DashboardLayout({
       if (to === "/teacher/classes/create") {
         return pathname === "/teacher/classes/create";
       }
+      if (to === "/admin/class-management") {
+        return (
+          pathname === "/admin/class-management" ||
+          pathname.startsWith("/admin/class-management/") ||
+          pathname.startsWith("/admin/class/")
+        );
+      }
       if (exact) return pathname === to;
       const isBaseRoute = to === `/${role}`;
       return (
@@ -320,7 +350,7 @@ export function DashboardLayout({
         (!isBaseRoute && pathname.startsWith(to + "?"))
       );
     },
-    [pathname, role],
+    [pathname, search, role],
   );
 
   // Check if item or any child is active
@@ -1237,11 +1267,14 @@ export function DashboardLayout({
 }
 
 function StreakBadge() {
+  // Reuse the same queryKey as StudentDashboard ("progress-stats") so React Query
+  // serves the cached result — no second GET /stats request is made.
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["streak-badge"],
+    queryKey: ["progress-stats"],
     queryFn: () => studentProgressApi.getProgressStats(),
     staleTime: 60 * 1000,
     retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const streak = typeof stats?.learningStreak === "number" ? stats.learningStreak : null;

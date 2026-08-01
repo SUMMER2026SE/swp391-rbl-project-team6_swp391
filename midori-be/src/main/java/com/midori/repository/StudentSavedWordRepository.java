@@ -67,4 +67,17 @@ public interface StudentSavedWordRepository extends JpaRepository<StudentSavedWo
      * Find saved words by user that include a specific lesson.
      */
     List<StudentSavedWord> findByUserIdAndLessonIdOrderByCreatedAtDesc(String userId, String lessonId);
+
+    /**
+     * Find saved words for a user with optional filters.
+     */
+    @Query("SELECT sw FROM StudentSavedWord sw WHERE sw.userId = :userId " +
+           "AND (:lessonId IS NULL OR sw.lessonId = :lessonId) " +
+           "AND (:learningStatus IS NULL OR sw.learningStatus = :learningStatus) " +
+           "AND (:isDifficult IS NULL OR sw.isDifficult = :isDifficult)")
+    List<StudentSavedWord> findFiltered(
+            @Param("userId") String userId,
+            @Param("lessonId") String lessonId,
+            @Param("learningStatus") String learningStatus,
+            @Param("isDifficult") Boolean isDifficult);
 }

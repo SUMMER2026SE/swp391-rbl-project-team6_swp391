@@ -33,7 +33,7 @@ import {
   type GrammarStatus,
   type GrammarStatsResponse,
 } from "@/lib/api/teacherGrammar";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { RejectReasonBox } from "@/components/reject-reason-box";
 
 export const Route = createFileRoute("/teacher/grammar")({ component: GrammarPage });
@@ -391,7 +391,7 @@ function GrammarPage() {
         );
         setGrammars(data);
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : "Failed to load grammar lessons.";
+        const msg = isApiError(err) ? err.message : "Failed to load grammar lessons.";
         setError(msg);
         setGrammars([]);
       } finally {
@@ -487,7 +487,7 @@ function GrammarPage() {
         await fetchGrammars(false);
       }
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to save grammar lesson.";
+      const msg = isApiError(err) ? err.message : "Failed to save grammar lesson.";
       showToast(msg, "error");
     } finally {
       setSubmitting(false);
@@ -507,7 +507,7 @@ function GrammarPage() {
       }
       await fetchGrammars(false);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to delete grammar.";
+      const msg = isApiError(err) ? err.message : "Failed to delete grammar.";
       showToast(msg, "error");
     } finally {
       setDeleting(false);
@@ -522,7 +522,7 @@ function GrammarPage() {
       showToast("Grammar submitted for review!", "success");
       await fetchGrammars(false);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to submit grammar.";
+      const msg = isApiError(err) ? err.message : "Failed to submit grammar.";
       showToast(msg, "error");
     } finally {
       setSubmitting(false);
@@ -540,7 +540,7 @@ function GrammarPage() {
       setSelectedGrammar(null);
       await fetchGrammars(false);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to submit grammar.";
+      const msg = isApiError(err) ? err.message : "Failed to submit grammar.";
       showToast(msg, "error");
     } finally {
       setSubmitting(false);

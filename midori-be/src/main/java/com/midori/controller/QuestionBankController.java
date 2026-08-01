@@ -51,9 +51,9 @@ public class QuestionBankController {
     }
 
     @PostMapping("/randomize")
-    public ResponseEntity<ApiResponse<List<TeacherQuestionResponse>>> randomizeQuestions(
+    public ResponseEntity<ApiResponse<List<com.midori.dto.questiondto.TeacherQuestionPreviewDto>>> randomizeQuestions(
             @Valid @RequestBody RandomizeQuestionsRequest request) {
-        List<TeacherQuestionResponse> randomized = questionBankService.randomizeQuestions(request);
+        List<com.midori.dto.questiondto.TeacherQuestionPreviewDto> randomized = questionBankService.randomizeQuestions(request);
         return ResponseEntity.ok(ApiResponse.success("Questions randomized successfully", randomized));
     }
 }

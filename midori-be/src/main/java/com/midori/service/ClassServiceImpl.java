@@ -19,6 +19,7 @@ import java.time.Instant;
 import com.midori.repository.StudentExamRepository;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.exception.BadRequestException;
+import com.midori.exception.DataConflictException;
 import com.midori.repository.ClassRepository;
 import com.midori.repository.UserRepository;
 import com.midori.repository.HomeworkRepository;
@@ -50,6 +51,8 @@ public class ClassServiceImpl implements ClassService {
     private final StudentExamRepository studentExamRepository;
     private final com.midori.repository.ClassMembershipRepository classMembershipRepository;
     private final ClassStatusEventRepository classStatusEventRepository;
+    private final com.midori.repository.UserLearningProgressRepository userLearningProgressRepository;
+    private final LearningAccessService learningAccessService;
 
     @Override
     public List<ClassEntity> getAllClasses(String status) {
@@ -207,7 +210,7 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     @Transactional
-    public ClassResponse archiveClass(UUID classId, UUID teacherId) {
+    public void deleteClass(UUID classId, UUID teacherId) {
         ClassEntity classEntity = classRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
 
@@ -218,51 +221,28 @@ public class ClassServiceImpl implements ClassService {
             throw new com.midori.exception.AccessDeniedException("You are not allowed to manage this class");
         }
 
-        if (classEntity.getStatus() == ClassEntity.ClassStatus.ARCHIVED) {
-            throw new BadRequestException("Class is already archived");
+        // Delete child records first to avoid foreign key constraints and rely on JPA cascades
+        List<com.midori.entity.Exam> exams = examRepository.findByAssignedClassId(classId);
+        if (!exams.isEmpty()) {
+            examRepository.deleteAll(exams);
         }
 
-        classEntity.setStatus(ClassEntity.ClassStatus.ARCHIVED);
-        ClassEntity updatedClass = classRepository.save(classEntity);
-
-        ClassStatusEvent event = ClassStatusEvent.builder()
-                .classEntity(updatedClass)
-                .eventType(ClassStatusEvent.ClassEventType.ARCHIVED)
-                .performedBy(user)
-                .build();
-        classStatusEventRepository.save(event);
-
-        return mapToClassResponse(updatedClass);
-    }
-
-    @Override
-    @Transactional
-    public ClassResponse restoreClass(UUID classId, UUID teacherId) {
-        ClassEntity classEntity = classRepository.findById(classId)
-                .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
-
-        User user = userRepository.findById(teacherId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", teacherId));
-        boolean isAdmin = user.getRole() == com.midori.entity.Role.ADMIN;
-        if (!classEntity.getTeacher().getId().equals(teacherId) && !isAdmin) {
-            throw new com.midori.exception.AccessDeniedException("You are not allowed to manage this class");
+        List<com.midori.entity.Homework> homeworks = homeworkRepository.findByAssignedClassId(classId);
+        if (!homeworks.isEmpty()) {
+            homeworkRepository.deleteAll(homeworks);
         }
 
-        if (classEntity.getStatus() == ClassEntity.ClassStatus.ACTIVE) {
-            throw new BadRequestException("Class is already active");
+        // Manually break the relationship with users (students) in Hibernate context
+        // to prevent constraint violations if the User entity tries to save cascade operations.
+        List<com.midori.entity.User> students = new java.util.ArrayList<>(classEntity.getStudents());
+        for (com.midori.entity.User student : students) {
+            student.getAssignedClasses().remove(classEntity);
+            userRepository.save(student);
         }
+        classEntity.getStudents().clear();
 
-        classEntity.setStatus(ClassEntity.ClassStatus.ACTIVE);
-        ClassEntity updatedClass = classRepository.save(classEntity);
-
-        ClassStatusEvent event = ClassStatusEvent.builder()
-                .classEntity(updatedClass)
-                .eventType(ClassStatusEvent.ClassEventType.RESTORED)
-                .performedBy(user)
-                .build();
-        classStatusEventRepository.save(event);
-
-        return mapToClassResponse(updatedClass);
+        // Finally, delete the class
+        classRepository.delete(classEntity);
     }
 
     @Override
@@ -274,15 +254,61 @@ public class ClassServiceImpl implements ClassService {
             throw new com.midori.exception.AccessDeniedException("You do not have permission to view students of this class");
         }
 
-        // Query through the owning side of the @ManyToMany (User.assignedClasses)
-        // to avoid relying on the inverse side (ClassEntity.students) lazy load,
-        // which can return stale or empty data when the join table has rows
-        // added through addStudentToClass.
         List<User> students = userRepository.findByAssignedClassIdWithProfile(classId);
+
+        // Bulk load independent data shared or mapped for students in this class
+        int totalHomework = (int) homeworkRepository.countByAssignedClassId(classId);
+        List<Exam> classExams = examRepository.findByAssignedClassId(classId);
+        Set<UUID> classExamIds = classExams.stream().map(Exam::getId).collect(Collectors.toSet());
+
+        // Bulk load all submissions for this class's homeworks
+        List<HomeworkSubmission> allSubmissions = homeworkSubmissionRepository.findByHomeworkAssignedClassId(classId);
+        Map<UUID, List<HomeworkSubmission>> submissionsByStudent = allSubmissions.stream()
+                .filter(sub -> sub.getStudent() != null)
+                .collect(Collectors.groupingBy(sub -> sub.getStudent().getId()));
+
+        // Bulk load all exams completed for this class
+        List<StudentExam> allStudentExams = studentExamRepository.findByExamAssignedClassId(classId);
+        Map<UUID, List<StudentExam>> studentExamsByStudent = allStudentExams.stream()
+                .filter(e -> e.getStudent() != null)
+                .collect(Collectors.groupingBy(e -> e.getStudent().getId()));
+
+        // Bulk load latest studied timestamps
+        List<UUID> studentIds = students.stream().map(User::getId).collect(Collectors.toList());
+        Map<UUID, Instant> latestStudiedMap = new HashMap<>();
+        if (!studentIds.isEmpty()) {
+            List<Object[]> latestStudiedList = userLearningProgressRepository.findLatestStudiedAtByUserIds(studentIds);
+            for (Object[] row : latestStudiedList) {
+                if (row[0] != null && row[1] != null) {
+                    latestStudiedMap.put((UUID) row[0], (Instant) row[1]);
+                }
+            }
+        }
+
+        // Bulk load class memberships
+        List<ClassMembership> memberships = classMembershipRepository.findByClassId(classId);
+        Map<UUID, ClassMembership> membershipByStudent = memberships.stream()
+                .filter(m -> m.getStudent() != null)
+                .collect(Collectors.toMap(m -> m.getStudent().getId(), m -> m, (a, b) -> a));
 
         List<StudentClassResponse> list = new ArrayList<>();
         for (User student : students) {
-            list.add(mapToStudentClassResponse(student, classEntity));
+            List<HomeworkSubmission> studentSubmissions = submissionsByStudent.getOrDefault(student.getId(), Collections.emptyList());
+            List<StudentExam> studentClassExams = studentExamsByStudent.getOrDefault(student.getId(), Collections.emptyList());
+            Instant latestStudiedAt = latestStudiedMap.get(student.getId());
+            ClassMembership membership = membershipByStudent.get(student.getId());
+
+            list.add(mapToStudentClassResponseOptimized(
+                    student,
+                    classEntity,
+                    totalHomework,
+                    classExams,
+                    classExamIds,
+                    studentSubmissions,
+                    studentClassExams,
+                    latestStudiedAt,
+                    membership
+            ));
         }
 
         return list;
@@ -309,6 +335,12 @@ public class ClassServiceImpl implements ClassService {
         if (!enrolled) {
             throw new BadRequestException("Student is not in this class");
         }
+
+        classMembershipRepository.findByStudentIdAndClassId(studentId, classId)
+                .ifPresent(m -> {
+                    classMembershipRepository.delete(m);
+                    classMembershipRepository.flush();
+                });
 
         userRepository.save(student);
     }
@@ -352,12 +384,17 @@ public class ClassServiceImpl implements ClassService {
         student.getAssignedClasses().add(classEntity);
         userRepository.save(student);
 
-        // Create ClassMembership to track join date
-        ClassMembership membership = ClassMembership.builder()
-                .student(student)
-                .classEntity(classEntity)
-                .build();
-        classMembershipRepository.save(membership);
+        // Create ClassMembership to track join date ONLY if it doesn't already exist
+        if (classMembershipRepository.findByStudentIdAndClassId(student.getId(), classId).isEmpty()) {
+            ClassMembership membership = ClassMembership.builder()
+                    .student(student)
+                    .classEntity(classEntity)
+                    .build();
+            classMembershipRepository.save(membership);
+        }
+        
+        // Grant or extend 1-year Learning Journey access
+        learningAccessService.grantOrExtendAccess(student, classEntity);
 
         return mapToStudentClassResponse(student, classEntity);
     }
@@ -406,6 +443,110 @@ public class ClassServiceImpl implements ClassService {
                 .upcomingExamCount(upcomingExamCount)
                 .createdAt(classEntity.getCreatedAt())
                 .updatedAt(classEntity.getUpdatedAt())
+                .build();
+    }
+
+
+    private StudentClassResponse mapToStudentClassResponseOptimized(
+            User student,
+            ClassEntity classEntity,
+            int totalHomework,
+            List<Exam> classExams,
+            Set<UUID> classExamIds,
+            List<HomeworkSubmission> submissions,
+            List<StudentExam> studentExams,
+            Instant latestStudiedAt,
+            ClassMembership membership
+    ) {
+        if (student == null) return null;
+
+        // Count submitted homework (submitted, not just created)
+        int submittedHomework = (int) submissions.stream()
+                .filter(sub -> sub.getSubmittedAt() != null)
+                .count();
+
+        // Count exams completed for this class
+        int completedExams = (int) studentExams.stream()
+                .filter(e -> e.getSubmittedAt() != null)
+                .count();
+
+        // Calculate average score (in %) from all graded submissions and exams.
+        double totalPercent = 0;
+        int scoreCount = 0;
+
+        // Homework scores → percentage of max score
+        for (HomeworkSubmission sub : submissions) {
+            if (sub.getStatus() == HomeworkSubmission.SubmissionStatus.GRADED
+                    && sub.getScore() != null
+                    && sub.getHomework() != null
+                    && sub.getHomework().getMaxScore() != null
+                    && sub.getHomework().getMaxScore() > 0) {
+                double itemPercent = (sub.getScore() * 100.0) / sub.getHomework().getMaxScore();
+                totalPercent += itemPercent;
+                scoreCount++;
+            }
+        }
+
+        // Exam scores → use percentage if available, else compute from score / totalPoints
+        for (StudentExam exam : studentExams) {
+            Double itemPercent = null;
+            if (exam.getPercentage() != null) {
+                itemPercent = exam.getPercentage();
+            } else if (exam.getScore() != null && exam.getTotalPoints() != null && exam.getTotalPoints() > 0) {
+                itemPercent = (exam.getScore() * 100.0) / exam.getTotalPoints();
+            }
+            if (itemPercent != null) {
+                totalPercent += itemPercent;
+                scoreCount++;
+            }
+        }
+
+        double averageScore = scoreCount > 0 ? (totalPercent / scoreCount) : 0;
+
+        // Calculate overall progress percentage (homework + exams)
+        int totalItems = totalHomework + classExams.size();
+        int completedItems = submittedHomework + completedExams;
+        int progressPercent = totalItems > 0 ? (int) ((completedItems * 100) / totalItems) : 0;
+
+        // Find last activity
+        Instant lastActivityAt = null;
+        for (HomeworkSubmission sub : submissions) {
+            if (sub.getSubmittedAt() != null) {
+                if (lastActivityAt == null || sub.getSubmittedAt().isAfter(lastActivityAt)) {
+                    lastActivityAt = sub.getSubmittedAt();
+                }
+            }
+        }
+        for (StudentExam exam : studentExams) {
+            if (exam.getSubmittedAt() != null) {
+                if (lastActivityAt == null || exam.getSubmittedAt().isAfter(lastActivityAt)) {
+                    lastActivityAt = exam.getSubmittedAt();
+                }
+            }
+        }
+        if (latestStudiedAt != null) {
+            if (lastActivityAt == null || latestStudiedAt.isAfter(lastActivityAt)) {
+                lastActivityAt = latestStudiedAt;
+            }
+        }
+
+        // Get join date from ClassMembership
+        Instant joinedAt = membership != null ? membership.getJoinedAt() : student.getCreatedAt();
+
+        return StudentClassResponse.builder()
+                .studentId(student.getId())
+                .fullName(student.getProfile() != null ? student.getProfile().getDisplayName() : null)
+                .email(student.getEmail())
+                .avatar(student.getProfile() != null ? student.getProfile().getAvatarUrl() : null)
+                .status(student.getStatus())
+                .progressPercent(progressPercent)
+                .submittedHomework(Math.min(submittedHomework, totalHomework))
+                .totalHomework(totalHomework)
+                .completedExams(completedExams)
+                .totalExams(classExams.size())
+                .averageScore(Math.round(averageScore * 10.0) / 10.0)
+                .lastActivityAt(lastActivityAt)
+                .joinedAt(joinedAt)
                 .build();
     }
 
@@ -651,9 +792,8 @@ public class ClassServiceImpl implements ClassService {
     }
 
     @Override
-    public List<ClassResponse> getSelectableClasses(UUID teacherId) {
-        List<ClassEntity> classes = classRepository.findActiveByTeacherId(teacherId);
-        return classes.stream().map(this::mapToClassResponse).toList();
+    public List<com.midori.dto.classdto.SelectableClassResponse> getSelectableClasses(UUID teacherId) {
+        return classRepository.findSelectableClassesByTeacherId(teacherId);
     }
 
     @Override

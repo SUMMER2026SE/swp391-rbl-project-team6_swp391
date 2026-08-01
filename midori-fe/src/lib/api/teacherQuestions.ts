@@ -150,12 +150,12 @@ export const teacherQuestionsApi = {
   updateQuestion: (id: string, req: UpdateTeacherQuestionRequest) =>
     api.put<TeacherQuestionResponse>(`/teacher/questions/${id}`, req),
   deleteQuestion: (id: string) => api.delete<void>(`/teacher/questions/${id}`),
-  getQuestions: () => api.get<TeacherQuestionResponse[]>("/teacher/questions"),
+  getQuestions: (level?: string) => api.get<TeacherQuestionResponse[]>(level ? `/teacher/questions?level=${level}` : "/teacher/questions"),
   getQuestionById: (id: string) => api.get<TeacherQuestionResponse>(`/teacher/questions/${id}`),
 
   // Lessons
-  getLessons: (level: string) =>
-    api.get<QuestionBankLessonResponse[]>(`/teacher/questions/lessons?level=${level}`),
+  getLessons: (level?: string) =>
+    api.get<QuestionBankLessonResponse[]>(level ? `/teacher/questions/lessons?level=${level}` : `/teacher/questions/lessons`),
   createLesson: (lesson: Omit<QuestionBankLessonResponse, "id" | "createdAt">) =>
     api.post<QuestionBankLessonResponse>("/teacher/questions/lessons", lesson),
   updateLesson: (id: number, lessonName: string, lessonNumber?: number, status?: string) =>

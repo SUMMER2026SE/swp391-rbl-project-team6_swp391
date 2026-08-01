@@ -44,6 +44,51 @@ class AdminAiContentServiceTest {
     }
 
     @Test
+    @DisplayName("Generate Vocabulary content successfully with lesson context")
+    void generateVocabulary_ok() {
+        String mockAiResponse = """
+                {
+                  "title": "N5 School Vocabulary",
+                  "description": "Vocabulary about school items",
+                  "items": [
+                    {
+                      "japanese": "学校",
+                      "furigana": "がっこう",
+                      "romaji": "gakkou",
+                      "meaning": "School",
+                      "exampleSentence": "学校に行きます。",
+                      "exampleTranslation": "I go to school.",
+                      "partOfSpeech": "Noun"
+                    }
+                  ]
+                }
+                """;
+
+        when(aiCoreService.chatWithDetails(anyString(), anyString(), any(), any()))
+                .thenReturn(new com.midori.ai.core.AiCoreService.AiResponse(mockAiResponse, "mockProvider", "mockModel", "stop", 10, 20, 30));
+
+        AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
+                .skillType("VOCABULARY")
+                .level("N5")
+                .lessonNumber(1)
+                .lessonTitle("School Life")
+                .lessonDescription("Vocabulary related to school")
+                .topic("School")
+                .itemCount(5)
+                .build();
+
+        AdminAiContentGenerateResponse response = adminAiContentService.generateContent(request);
+
+        assertNotNull(response);
+        assertEquals("VOCABULARY", response.getSkillType());
+        assertEquals("N5", response.getLevel());
+        assertNotNull(response.getVocabularyDraft());
+        assertEquals("N5 School Vocabulary", response.getVocabularyDraft().getTitle());
+        assertEquals(1, response.getVocabularyDraft().getItems().size());
+        assertNull(response.getWarning());
+    }
+
+    @Test
     @DisplayName("Reject null skillType")
     void rejectNullSkillType() {
         AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
@@ -101,6 +146,36 @@ class AdminAiContentServiceTest {
     @Test
     @DisplayName("Reject unknown skillType")
     void rejectUnknownSkillType() {
+        AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
+                .skillType("KANJI")
+                .level("N5")
+                .lessonNumber(1)
+                .lessonTitle("Test")
+                .topic("Test")
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> adminAiContentService.generateContent(request));
+    }
+
+    @Test
+    @DisplayName("Throw exception when zero valid items are generated")
+    void zeroValidItems_throwsException() {
+        String mockAiResponse = """
+                {
+                  "title": "Empty Vocab",
+                  "description": "No valid items",
+                  "items": [
+                    {
+                      "japanese": "",
+                      "meaning": ""
+                    }
+                  ]
+                }
+                """;
+
+        when(aiCoreService.chatWithDetails(anyString(), anyString(), any(), any()))
+                .thenReturn(new com.midori.ai.core.AiCoreService.AiResponse(mockAiResponse, "mockProvider", "mockModel", "stop", 10, 20, 30));
+
         AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
                 .skillType("KANJI")
                 .level("N5")

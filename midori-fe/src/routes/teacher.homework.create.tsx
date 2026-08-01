@@ -234,7 +234,7 @@ function CommonFields({
           </Select>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div className="space-y-2">
           <Label>Due date</Label>
           <Input
@@ -259,14 +259,7 @@ function CommonFields({
             onChange={(e) => set({ ...form, maxScore: Number(e.target.value) || 0 })}
           />
         </div>
-        <div className="space-y-2">
-          <Label>Attempts</Label>
-          <Input
-            type="number"
-            value={form.attempts as number}
-            onChange={(e) => set({ ...form, attempts: Number(e.target.value) || 1 })}
-          />
-        </div>
+
       </div>
     </>
   );
@@ -353,6 +346,10 @@ function QuestionBankHW({
       return res;
     },
     enabled: !!level,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: false,
   });
 
   // Reset steps & downstream states on level change
@@ -994,7 +991,7 @@ function QuestionBankHW({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
                       Due date
@@ -1045,23 +1042,7 @@ function QuestionBankHW({
                       }
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                      Attempts
-                    </Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                      value={metadata.attempts}
-                      onChange={(e) =>
-                        setMetadata({
-                          ...metadata,
-                          attempts: Math.max(1, Number(e.target.value) || 1),
-                        })
-                      }
-                    />
-                  </div>
+
                 </div>
 
                 <div className="flex justify-between mt-6 pt-4 border-t">
@@ -1375,7 +1356,7 @@ function HomeworkAiPdf({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div className="space-y-1.5">
               <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
                 Due date
@@ -1411,18 +1392,7 @@ function HomeworkAiPdf({
                 }
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
-                Attempts
-              </Label>
-              <Input
-                type="number"
-                value={metadata.attempts}
-                onChange={(e) =>
-                  setMetadata({ ...metadata, attempts: Math.max(1, Number(e.target.value) || 1) })
-                }
-              />
-            </div>
+
           </div>
 
           {assignError && (

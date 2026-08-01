@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { teacherCertificatesApi, type TeacherCertificate } from "@/lib/api/teacherCertificates";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { useAuth, isAvatar } from "@/lib/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
 import { uploadCertificateFile } from "@/lib/certificate";
@@ -625,7 +625,7 @@ function TeacherProfilePage() {
         setAvatarPreview(user?.googleAvatar ?? null);
       }
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setLoadError(err.message);
       } else {
         setLoadError("Failed to load profile.");
@@ -646,7 +646,7 @@ function TeacherProfilePage() {
       const res = await teacherCertificatesApi.listCertificates();
       setCertificates(res);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setCertError(err.message);
       } else {
         setCertError("Failed to load certificates.");
@@ -687,7 +687,7 @@ function TeacherProfilePage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setSaveError(err.message);
       } else {
         setSaveError("Failed to save profile.");
@@ -746,7 +746,7 @@ function TeacherProfilePage() {
       setCertSuccess("Certificate added successfully.");
       setTimeout(() => setCertSuccess(null), 3000);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setCertError(err.message);
       } else {
         setCertError("Failed to add certificate.");
@@ -773,7 +773,7 @@ function TeacherProfilePage() {
       setCertSuccess("Certificate updated successfully.");
       setTimeout(() => setCertSuccess(null), 3000);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setCertError(err.message);
       } else {
         setCertError("Failed to update certificate.");
@@ -794,7 +794,7 @@ function TeacherProfilePage() {
       setCertSuccess("Certificate removed successfully.");
       setTimeout(() => setCertSuccess(null), 3000);
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         setCertError(err.message);
       } else {
         setCertError("Failed to remove certificate.");

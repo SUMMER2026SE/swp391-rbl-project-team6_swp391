@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { getStoredUser } from "../lib/auth";
 import type {
   JLPTLevel,
@@ -399,19 +399,24 @@ export function useQuestionBank(level: JLPTLevel) {
 
   // Queries
   const {
-    data: rawLessons = [],
+    data: allLessons = [],
     refetch: refetchLessons,
     isLoading: isLoadingLessons,
     isError: isErrorLessons,
     error: errorLessons,
   } = useQuery({
-    queryKey: ["questionBankLessons", level],
+    queryKey: ["questionBankLessons", "ALL"],
     queryFn: async () => {
       const response = await adminApi.getQuestionBankLessons(level);
       return response;
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  const rawLessons = useMemo(() => {
+    if (!level) return [];
+    return allLessons.filter((l) => l.level === level.toUpperCase());
+  }, [allLessons, level]);
 
   const {
     data: rawQuestions = [],
@@ -420,9 +425,9 @@ export function useQuestionBank(level: JLPTLevel) {
     isError: isErrorQuestions,
     error: errorQuestions,
   } = useQuery({
-    queryKey: ["questionBankQuestions"],
+    queryKey: ["questionBankQuestions", level],
     queryFn: async () => {
-      const response = await teacherQuestionsApi.getQuestions();
+      const response = await teacherQuestionsApi.getQuestions(level);
       return response;
     },
     staleTime: 2 * 60 * 1000,

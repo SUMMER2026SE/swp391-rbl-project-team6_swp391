@@ -33,7 +33,7 @@ import {
   type AdminClassResponse,
 } from "@/lib/api/admin";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { toast as sonnerToast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -249,7 +249,7 @@ function ResetPasswordModal({
       onClose();
     } catch (err) {
       const msg =
-        err instanceof ApiError ? err.message : "Failed to send password reset link";
+        isApiError(err) ? err.message : "Failed to send password reset link";
       sonnerToast.error(msg);
     } finally {
       setLoading(false);
@@ -359,7 +359,7 @@ function TeacherProfilePage() {
       );
     } catch (err) {
       const msg =
-        err instanceof ApiError ? err.message : "Failed to load teacher profile.";
+        isApiError(err) ? err.message : "Failed to load teacher profile.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -379,7 +379,7 @@ function TeacherProfilePage() {
       sonnerToast.success("Teacher account suspended");
     } catch (err) {
       sonnerToast.error(
-        err instanceof ApiError ? err.message : "Failed to suspend teacher account",
+        isApiError(err) ? err.message : "Failed to suspend teacher account",
       );
     } finally {
       setActionLoading(false);
@@ -395,7 +395,7 @@ function TeacherProfilePage() {
       sonnerToast.success("Teacher account activated");
     } catch (err) {
       sonnerToast.error(
-        err instanceof ApiError ? err.message : "Failed to activate teacher account",
+        isApiError(err) ? err.message : "Failed to activate teacher account",
       );
     } finally {
       setActionLoading(false);

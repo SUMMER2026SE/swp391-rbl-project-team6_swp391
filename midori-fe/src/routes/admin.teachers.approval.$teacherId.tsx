@@ -32,7 +32,7 @@ import {
   type AdminTeacherResponse,
   type AdminTeacherCertificateResponse,
 } from "@/lib/api/admin";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { toast as sonnerToast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -540,7 +540,7 @@ function TeacherApprovalDetailPage() {
       const certs = await adminApi.getTeacherCertificates(teacherId).catch(() => []);
       setCertificates(certs.map(mapApiCertificate));
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to load application";
+      const msg = isApiError(err) ? err.message : "Failed to load application";
       setError(msg);
     } finally {
       setLoading(false);
@@ -563,7 +563,7 @@ function TeacherApprovalDetailPage() {
       navigate({ to: "/admin/teachers" });
     } catch (err) {
       sonnerToast.error(
-        err instanceof ApiError ? err.message : "Failed to approve teacher",
+        isApiError(err) ? err.message : "Failed to approve teacher",
       );
     } finally {
       setActionLoading(false);
@@ -581,7 +581,7 @@ function TeacherApprovalDetailPage() {
       navigate({ to: "/admin/teachers" });
     } catch (err) {
       sonnerToast.error(
-        err instanceof ApiError ? err.message : "Failed to reject application",
+        isApiError(err) ? err.message : "Failed to reject application",
       );
     } finally {
       setActionLoading(false);

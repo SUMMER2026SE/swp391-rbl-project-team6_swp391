@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Send,
   BookOpen,
@@ -2022,9 +2023,18 @@ export function AISenseiPage() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  const [conversations, setConversations] = useState<AiConversation[]>([]);
+  const qClient = useQueryClient();
+  const {
+    data: conversations = [],
+    isLoading: isLoadingConversations,
+    refetch: refetchConversations,
+  } = useQuery({
+    queryKey: ["student-conversations"],
+    queryFn: () => aiApi.getConversations(),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
+  });
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [isLoadingConversations, setLoadingConversations] = useState(false);
   const [isSendingMessage, setSendingMessage] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -2065,18 +2075,14 @@ export function AISenseiPage() {
   }, [input]);
 
   const loadConversations = useCallback(async () => {
-    setLoadingConversations(true);
     setApiError(null);
     try {
-      const data = await aiApi.getConversations();
-      setConversations(data);
+      await refetchConversations();
     } catch (error) {
       console.error("Failed to load conversations", error);
       setApiError("Không tải được danh sách conversation.");
-    } finally {
-      setLoadingConversations(false);
     }
-  }, []);
+  }, [refetchConversations]);
 
   const loadMessages = useCallback(async (conversationId: string): Promise<boolean> => {
     setApiError(null);
@@ -2144,7 +2150,9 @@ export function AISenseiPage() {
       setApiError(null);
       try {
         await aiApi.deleteConversation(conversationId);
-        setConversations((prev) => prev.filter((item) => item.id !== conversationId));
+        qClient.setQueryData<AiConversation[]>(["student-conversations"], (prev) =>
+          (prev ?? []).filter((item) => item.id !== conversationId),
+        );
         if (activeConversationId === conversationId) {
           setActiveConversationId(null);
           sessionStorage.removeItem("midori_ai_active_conversation_id");
@@ -2169,8 +2177,8 @@ export function AISenseiPage() {
     setApiError(null);
     try {
       const updated = await aiApi.updateConversationTitle(conversation.id, { title: trimmed });
-      setConversations((prev) =>
-        prev.map((c) => (c.id === conversation.id ? { ...c, title: updated.title } : c)),
+      qClient.setQueryData<AiConversation[]>(["student-conversations"], (prev) =>
+        (prev ?? []).map((c) => (c.id === conversation.id ? { ...c, title: updated.title } : c)),
       );
     } catch (error) {
       console.error("Failed to rename conversation", error);
@@ -2398,10 +2406,7 @@ export function AISenseiPage() {
     }
   }, [conversations, isLoadingConversations, loadMessages]);
 
-  // Load conversations on mount
-  useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+  // Conversations are loaded via useQuery above (no manual useEffect needed)
 
   // showWelcome only when there are no messages AND we are not in a conversation AND boot is complete
   const showWelcome = chatBootState === "ready" && messages.length === 0 && !activeConversationId;

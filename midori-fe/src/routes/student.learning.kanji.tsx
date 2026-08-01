@@ -143,13 +143,32 @@ function KanjiLearningPage() {
   const [loadingSearch, setLoadingSearch] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>("");
 
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
+  const [debouncedInputKanjiText, setDebouncedInputKanjiText] = useState<string>("");
+
   // All resolved kanji characters from real API, keyed by character
   const [resolvedKanjiCache, setResolvedKanjiCache] = useState<Record<string, ExtendedKanjiCharacter>>({});
   const [loadingKanji, setLoadingKanji] = useState<Set<string>>(new Set());
   const loadingCharsRef = useRef<Set<string>>(new Set());
 
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Debounce worksheet input text
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedInputKanjiText(inputKanjiText);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [inputKanjiText]);
+
   // Fetch a single kanji from the backend API
-  const fetchKanji = async (char: string): Promise<ExtendedKanjiCharacter | null> => {
+  const fetchKanji = async (char: string, signal?: AbortSignal): Promise<ExtendedKanjiCharacter | null> => {
     const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
     try {
       const res = await fetch(`${BASE_URL}/kanji/${encodeURIComponent(char)}`, {
@@ -157,6 +176,7 @@ function KanjiLearningPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("midori_access_token")}`,
         },
+        signal,
       });
       if (!res.ok) return null;
       const json = await res.json();
@@ -168,6 +188,7 @@ function KanjiLearningPage() {
         try {
           const svgRes = await fetch(`${BASE_URL}/kanji/${d.id}/svg`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("midori_access_token")}` },
+            signal,
           });
           if (svgRes.ok) {
             const svgText = await svgRes.text();
@@ -190,7 +211,6 @@ function KanjiLearningPage() {
         onyomi: d.onyomi || "-",
         kunyomi: d.kunyomi || "-",
         radical: d.radical || "-",
-        // Use backend mnemonic directly - no mock data fallback
         mnemonic: d.mnemonic || "Chưa có mẹo ghi nhớ cho kanji này.",
         svgPaths,
         svgAvailable: d.svgAvailable === true,
@@ -203,7 +223,9 @@ function KanjiLearningPage() {
 
   // Load kanji characters typed into the worksheet textarea
   useEffect(() => {
-    const chars = Array.from(inputKanjiText.replace(/\s+/g, ""));
+    const chars = Array.from(debouncedInputKanjiText.replace(/\s+/g, ""));
+    const controllers: AbortController[] = [];
+
     chars.forEach((char) => {
       if (resolvedKanjiCache[char]) return;
       if (loadingCharsRef.current.has(char)) return;
@@ -211,7 +233,10 @@ function KanjiLearningPage() {
       loadingCharsRef.current.add(char);
       setLoadingKanji((prev) => new Set(prev).add(char));
 
-      fetchKanji(char).then((result) => {
+      const controller = new AbortController();
+      controllers.push(controller);
+
+      fetchKanji(char, controller.signal).then((result) => {
         if (result) {
           setResolvedKanjiCache((prev) => ({ ...prev, [char]: result }));
         }
@@ -224,17 +249,21 @@ function KanjiLearningPage() {
         });
       });
     });
-  }, [inputKanjiText]);
+
+    return () => {
+      controllers.forEach((c) => c.abort());
+    };
+  }, [debouncedInputKanjiText]);
 
   // Search kanji from backend API
   useEffect(() => {
-    if (!searchQuery.trim()) {
+    if (!debouncedSearchQuery.trim()) {
       setSearchResult(null);
       setSearchError("");
       return;
     }
 
-    const charToSearch = Array.from(searchQuery.trim())[0];
+    const charToSearch = Array.from(debouncedSearchQuery.trim())[0];
     const isKanji = (str: string) => /[\u4e00-\u9faf\u3400-\u4dbf]/.test(str);
 
     if (!charToSearch || !isKanji(charToSearch)) {
@@ -247,16 +276,28 @@ function KanjiLearningPage() {
     setSearchError("");
     setSearchResult(null);
 
-    fetchKanji(charToSearch).then((result) => {
+    const controller = new AbortController();
+
+    fetchKanji(charToSearch, controller.signal).then((result) => {
       if (result) {
         setSearchResult(result);
       } else {
         setSearchError("Không tìm thấy chữ Kanji này trong cơ sở dữ liệu.");
       }
+    }).catch((err) => {
+      if (err.name !== "AbortError") {
+        setSearchError("Đã xảy ra lỗi khi tìm kiếm.");
+      }
     }).finally(() => {
-      setLoadingSearch(false);
+      if (!controller.signal.aborted) {
+        setLoadingSearch(false);
+      }
     });
-  }, [searchQuery]);
+
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedSearchQuery]);
 
   // Build worksheet kanji list from resolved cache (all from real API)
   const previewKanjiList: ExtendedKanjiCharacter[] = Array.from(

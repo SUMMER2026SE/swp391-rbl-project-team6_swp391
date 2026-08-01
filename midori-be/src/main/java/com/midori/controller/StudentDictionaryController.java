@@ -125,4 +125,50 @@ public class StudentDictionaryController {
         boolean saved = studentDictionaryService.isWordSaved(word);
         return ResponseEntity.ok(ApiResponse.success(saved));
     }
+
+    /**
+     * Get saved words for the current student with filters.
+     */
+    @GetMapping("/saved-words")
+    public ResponseEntity<ApiResponse<java.util.List<com.midori.dto.dictionary.SavedWordResponse>>> getSavedWords(
+            @RequestParam(value = "sourceVideoId", required = false) String sourceVideoId,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "difficult", required = false) Boolean difficult,
+            @RequestParam(value = "sort", required = false) String sort) {
+        
+        log.debug("[Dictionary] Get saved words: sourceVideoId='{}', status='{}', difficult='{}', sort='{}'",
+                sourceVideoId, status, difficult, sort);
+        
+        java.util.List<com.midori.dto.dictionary.SavedWordResponse> response = 
+                studentDictionaryService.getSavedWords(sourceVideoId, status, difficult, sort);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * Update spaced repetition learning progress for a saved word.
+     */
+    @PatchMapping("/saved-words/{id}/progress")
+    public ResponseEntity<ApiResponse<com.midori.dto.dictionary.SavedWordResponse>> updateProgress(
+            @PathVariable("id") java.util.UUID savedWordId,
+            @RequestBody @Valid com.midori.dto.dictionary.SavedWordProgressRequest request) {
+        
+        log.debug("[Dictionary] Update progress for saved word '{}' to '{}'", savedWordId, request.getResult());
+        
+        com.midori.dto.dictionary.SavedWordResponse response = 
+                studentDictionaryService.updateProgress(savedWordId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * Unsave a word for the current user.
+     */
+    @DeleteMapping("/unsave")
+    public ResponseEntity<ApiResponse<Void>> unsaveWord(
+            @RequestParam("word") @NotBlank String word) {
+        
+        log.debug("[Dictionary] Unsave word: '{}'", word);
+        
+        studentDictionaryService.unsaveWord(word);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

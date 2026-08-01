@@ -33,6 +33,8 @@ function buildHeaders(isFormData = false): HeadersInit {
 }
 
 class ApiError extends Error {
+  public readonly isApiError = true;
+
   constructor(
     message: string,
     public status: number,
@@ -43,13 +45,21 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+export function isApiError(error: unknown): error is ApiError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as any).isApiError === true
+  );
+}
+
+async function request<T>(method: string, path: string, body?: unknown, init?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const isFormData = body instanceof FormData;
   const options: RequestInit = {
     method,
     headers: buildHeaders(isFormData),
-    signal,
+    ...init,
   };
 
   if (body !== undefined) {
@@ -60,16 +70,26 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
     }
   }
 
-  const res = await fetch(url, options);
+  const tokenBeforeRequest = getToken();
+  let res: Response;
+  try {
+    res = await fetch(url, options);
+  } catch (error: any) {
+    console.error("[API Client] Network error:", error);
+    throw new ApiError("Network error. Please check your internet connection or backend server status.", 0);
+  }
 
   let json: ApiResponse<T>;
   try {
     json = await res.json();
   } catch {
     if (!res.ok) {
+      if (res.status >= 500) {
+        throw new ApiError("Server error. Please try again later.", res.status);
+      }
       const msg =
         res.status === 401 && (path === "/auth/login" || path === "/auth/google")
-          ? "Unable to sign in. Please try again."
+          ? "Invalid email or password."
           : res.status === 403
             ? "You do not have permission to access this resource."
             : "Request failed. Please try again.";
@@ -97,8 +117,12 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
     throw new ApiError(json.message ?? "An unexpected error occurred.", res.status, false);
   }
 
-  if (!res.ok && res.status === 401) {
-    removeToken();
+  // Auto-redirect on 401 for non-auth endpoints only
+  const isAuthEndpoint = path.startsWith("/auth/");
+  if (!res.ok && res.status === 401 && !isAuthEndpoint) {
+    if (getToken() === tokenBeforeRequest) {
+      removeToken();
+    }
     const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
     if (!isLoginPage && typeof window !== "undefined") {
       window.location.href = "/login";
@@ -110,24 +134,24 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
 }
 
 export const api = {
-  get<T>(path: string): Promise<T> {
-    return request<T>("GET", path);
+  get<T>(path: string, init?: RequestInit): Promise<T> {
+    return request<T>("GET", path, undefined, init);
   },
 
-  post<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
-    return request<T>("POST", path, body, signal);
+  post<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
+    return request<T>("POST", path, body, init);
   },
 
-  put<T>(path: string, body?: unknown): Promise<T> {
-    return request<T>("PUT", path, body);
+  put<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
+    return request<T>("PUT", path, body, init);
   },
 
-  patch<T>(path: string, body?: unknown): Promise<T> {
-    return request<T>("PATCH", path, body);
+  patch<T>(path: string, body?: unknown, init?: RequestInit): Promise<T> {
+    return request<T>("PATCH", path, body, init);
   },
 
-  delete<T>(path: string): Promise<T> {
-    return request<T>("DELETE", path);
+  delete<T>(path: string, init?: RequestInit): Promise<T> {
+    return request<T>("DELETE", path, undefined, init);
   },
 
   /**

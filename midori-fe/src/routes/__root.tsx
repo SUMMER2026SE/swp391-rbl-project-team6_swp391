@@ -9,7 +9,8 @@ import {
 } from "@tanstack/react-router";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "sonner";
-import { useRef, useEffect, useState } from "react";
+
+
 
 import appCss from "../styles.css?url";
 import { AuthProvider, ThemeProvider, LanguageProvider } from "@/lib/auth";
@@ -138,37 +139,36 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [googleReady, setGoogleReady] = useState(false);
-  const didInit = useRef(false);
-
-  useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-    setGoogleReady(true);
-  }, []);
-
-  if (!googleReady) return null;
-
+  // Read the Google Client ID once — it never changes
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
-  const app = (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <Toaster position="top-right" richColors />
-              <Outlet />
-            </NotificationProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+  // Wrap Outlet in GoogleOAuthProvider only when the client ID is available.
+  // IMPORTANT: We do NOT gate the whole provider tree on googleReady / an
+  // effect-driven flag, because that caused the entire AuthProvider (and its
+  // "auth-me" React Query) to unmount and re-mount on the first render,
+  // resulting in 4× duplicate /me network requests.
+  const outlet = googleClientId ? (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <Outlet />
+    </GoogleOAuthProvider>
+  ) : (
+    <Outlet />
   );
 
-  if (!googleClientId) {
-    return <ForceRefresh>{app}</ForceRefresh>;
-  }
-
-  return <ForceRefresh><GoogleOAuthProvider clientId={googleClientId}>{app}</GoogleOAuthProvider></ForceRefresh>;
+  return (
+    <ForceRefresh>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <Toaster position="top-right" richColors />
+                {outlet}
+              </NotificationProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ForceRefresh>
+  );
 }

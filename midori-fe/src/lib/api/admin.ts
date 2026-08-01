@@ -155,7 +155,10 @@ export interface AdminRecentActivitiesResponse {
 }
 
 export const adminApi = {
-  getPendingTeachers: () => api.get<AdminTeacherResponse[]>("/admin/users/teachers/pending"),
+  getPendingTeachers: () => {
+    console.trace("GET /pending");
+    return api.get<AdminTeacherResponse[]>("/admin/users/teachers/pending");
+  },
 
   getDashboardSummary: () => api.get<AdminDashboardSummaryResponse>("/admin/dashboard/summary"),
 

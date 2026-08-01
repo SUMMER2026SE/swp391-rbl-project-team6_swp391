@@ -25,7 +25,7 @@ import {
   type VocabularyWordCreateRequest,
   type VocabularyWordUpdateRequest,
 } from "@/lib/api/teacherVocabulary";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, isApiError } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 
 const JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1"];
@@ -351,7 +351,7 @@ function VocabularyLessonDetailPage() {
       setLesson(data);
       setWords(data.words ?? []);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load lesson.");
+      setError(isApiError(err) ? err.message : "Failed to load lesson.");
     } finally {
       setLoading(false);
     }
@@ -430,7 +430,7 @@ function VocabularyLessonDetailPage() {
       setAddNew(false);
       await fetchLesson(); // refetch to get updated words
     } catch (err) {
-      setAddError(err instanceof ApiError ? err.message : "Failed to add word.");
+      setAddError(isApiError(err) ? err.message : "Failed to add word.");
     } finally {
       setAddSaving(false);
     }
@@ -453,7 +453,7 @@ function VocabularyLessonDetailPage() {
       setEditingWord(null);
       await fetchLesson();
     } catch (err) {
-      setEditError(err instanceof ApiError ? err.message : "Failed to update word.");
+      setEditError(isApiError(err) ? err.message : "Failed to update word.");
     } finally {
       setEditSaving(false);
     }
