@@ -129,6 +129,8 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                         .difficulty(diff)
                         .displayOrder(i + 1)
                         .points(tq.getPoints() != null ? tq.getPoints() : 1)
+                        .questionType(tq.getQuestionType())
+                        .formatMetadata(tq.getFormatMetadata())
                         .build();
                 allQuestions.add(question);
             }
@@ -306,6 +308,11 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 correctIndex = options.indexOf(correctAnswer);
             }
 
+            String correctAnsText = null;
+            if (eq.getOptions() != null && !eq.getOptions().isEmpty() && eq.getCorrectAnswerIndex() != null && eq.getCorrectAnswerIndex() >= 0 && eq.getCorrectAnswerIndex() < eq.getOptions().size()) {
+                correctAnsText = eq.getOptions().get(eq.getCorrectAnswerIndex());
+            }
+
             StudentExamQuestion seq = StudentExamQuestion.builder()
                     .studentExam(studentExam)
                     .originalQuestionId(eq.getId())
@@ -314,6 +321,9 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                     .correctAnswerIndex(correctIndex)
                     .displayOrder(eq.getDisplayOrder())
                     .points(eq.getPoints())
+                    .questionType(eq.getQuestionType())
+                    .formatMetadata(eq.getFormatMetadata())
+                    .correctAnswerText(correctAnsText)
                     .build();
 
             questions.add(seq);
@@ -390,6 +400,11 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 correctIndex = options.indexOf(correctAnswer);
             }
 
+            String correctAnsText = null;
+            if (eq.getOptions() != null && !eq.getOptions().isEmpty() && eq.getCorrectAnswerIndex() != null && eq.getCorrectAnswerIndex() >= 0 && eq.getCorrectAnswerIndex() < eq.getOptions().size()) {
+                correctAnsText = eq.getOptions().get(eq.getCorrectAnswerIndex());
+            }
+
             StudentExamQuestion seq = StudentExamQuestion.builder()
                     .studentExam(studentExam)
                     .originalQuestionId(eq.getId())
@@ -398,6 +413,9 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                     .correctAnswerIndex(correctIndex)
                     .displayOrder(i + 1)
                     .points(eq.getPoints())
+                    .questionType(eq.getQuestionType())
+                    .formatMetadata(eq.getFormatMetadata())
+                    .correctAnswerText(correctAnsText)
                     .build();
 
             questions.add(seq);
@@ -412,7 +430,7 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
 
     @Override
     @Transactional
-    public StudentExamResponse submitStudentExam(UUID studentExamId, List<Integer> answers) {
+    public StudentExamResponse submitStudentExam(UUID studentExamId, List<Integer> answers, List<com.midori.dto.request.StudentAnswerRequest> textAnswers) {
         StudentExam studentExam = studentExamRepository.findByIdWithQuestions(studentExamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student exam not found"));
 
@@ -423,14 +441,44 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         List<StudentExamQuestion> questions = studentExamQuestionRepository
                 .findByStudentExamIdOrderByDisplayOrder(studentExamId);
 
+        java.util.Map<UUID, com.midori.dto.request.StudentAnswerRequest> textAnswersMap = new java.util.HashMap<>();
+        if (textAnswers != null) {
+            for (com.midori.dto.request.StudentAnswerRequest ta : textAnswers) {
+                if (ta.getQuestionId() != null) {
+                    textAnswersMap.put(ta.getQuestionId(), ta);
+                } else {
+                    // Try to match by index if questionId is null
+                    // For exams, the answers might be ordered
+                }
+            }
+        }
+
         int score = 0;
         int totalPoints = 0;
 
         for (int i = 0; i < questions.size(); i++) {
             StudentExamQuestion q = questions.get(i);
-            q.setSelectedAnswerIndex(answers.size() > i ? answers.get(i) : null);
-            q.setIsCorrect(q.getSelectedAnswerIndex() != null &&
-                          q.getSelectedAnswerIndex().equals(q.getCorrectAnswerIndex()));
+            com.midori.dto.request.StudentAnswerRequest ta = textAnswersMap.get(q.getId());
+            if (ta == null && textAnswers != null && textAnswers.size() > i) {
+                // fallback match by order
+                ta = textAnswers.get(i);
+            }
+            Integer legacyAnsIdx = (answers != null && answers.size() > i) ? answers.get(i) : null;
+
+            if (ta != null) {
+                if (ta.getSelectedOptionIndex() != null) {
+                    q.setSelectedAnswerIndex(ta.getSelectedOptionIndex());
+                } else if (ta.getOrderedTokens() != null) {
+                    q.setSelectedAnswerText(String.join("/", ta.getOrderedTokens()));
+                } else {
+                    q.setSelectedAnswerText(ta.getTextAnswer());
+                }
+            } else if (legacyAnsIdx != null) {
+                q.setSelectedAnswerIndex(legacyAnsIdx);
+            }
+
+            q.setIsCorrect(isExamAnswerCorrect(q, ta, legacyAnsIdx));
+
             if (Boolean.TRUE.equals(q.getIsCorrect())) {
                 score += q.getPoints();
             }
@@ -448,6 +496,110 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         studentExam = studentExamRepository.save(studentExam);
 
         return mapToStudentExamResponse(studentExam, false);
+    }
+
+    private boolean isExamAnswerCorrect(StudentExamQuestion question, com.midori.dto.request.StudentAnswerRequest textAnswer, Integer legacyAnswer) {
+        String type = question.getQuestionType();
+        if (type == null) {
+            type = "MULTIPLE_CHOICE";
+        }
+        type = type.toUpperCase();
+
+        if (type.equals("MULTIPLE_CHOICE") || type.equals("TRUE_FALSE")) {
+            Integer ansIdx = null;
+            if (textAnswer != null) {
+                ansIdx = textAnswer.getSelectedOptionIndex();
+            } else {
+                ansIdx = legacyAnswer;
+            }
+            return ansIdx != null && ansIdx.equals(question.getCorrectAnswerIndex());
+        } else if (type.equals("FILL_BLANK")) {
+            String studentText = "";
+            if (textAnswer != null) {
+                studentText = textAnswer.getTextAnswer();
+            }
+            if (studentText == null) studentText = "";
+
+            String correctText = question.getCorrectAnswerText();
+            if (correctText == null || correctText.isEmpty()) {
+                if (question.getOptions() != null && !question.getOptions().isEmpty() && question.getCorrectAnswerIndex() != null && question.getCorrectAnswerIndex() < question.getOptions().size()) {
+                    correctText = question.getOptions().get(question.getCorrectAnswerIndex());
+                } else if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+                    correctText = question.getOptions().get(0);
+                }
+            }
+            if (correctText == null) correctText = "";
+
+            return normalizeText(studentText).equals(normalizeText(correctText));
+        } else if (type.equals("SENTENCE_REORDER")) {
+            String studentText = "";
+            if (textAnswer != null) {
+                if (textAnswer.getOrderedTokens() != null) {
+                    studentText = String.join("", textAnswer.getOrderedTokens());
+                } else {
+                    studentText = textAnswer.getTextAnswer();
+                }
+            }
+            if (studentText == null) studentText = "";
+
+            String correctText = question.getCorrectAnswerText();
+            if (correctText == null || correctText.isEmpty()) {
+                if (question.getOptions() != null && !question.getOptions().isEmpty() && question.getCorrectAnswerIndex() != null && question.getCorrectAnswerIndex() < question.getOptions().size()) {
+                    correctText = question.getOptions().get(question.getCorrectAnswerIndex());
+                } else if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+                    correctText = question.getOptions().get(0);
+                }
+            }
+            if (correctText == null) correctText = "";
+
+            return normalizeText(studentText).equals(normalizeText(correctText));
+        } else if (type.equals("SHORT_ANSWER") || type.equals("TRANSLATION") || type.equals("SENTENCE_WRITING") || type.equals("ERROR_CORRECTION")) {
+            String studentText = (textAnswer != null) ? textAnswer.getTextAnswer() : "";
+            if (studentText == null) studentText = "";
+
+            String correctText = question.getCorrectAnswerText();
+            if (correctText == null || correctText.isEmpty()) {
+                if (question.getOptions() != null && !question.getOptions().isEmpty()) {
+                    correctText = question.getOptions().get(0);
+                }
+            }
+            if (correctText == null) correctText = "";
+
+            List<String> accepted = new java.util.ArrayList<>();
+            if (question.getFormatMetadata() != null && !question.getFormatMetadata().isEmpty()) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(question.getFormatMetadata());
+                    if (root.has("referenceAnswer")) {
+                        correctText = root.get("referenceAnswer").asText();
+                    } else if (root.has("correctedText")) {
+                        correctText = root.get("correctedText").asText();
+                    }
+                    if (root.has("acceptedAnswers") && root.get("acceptedAnswers").isArray()) {
+                        for (com.fasterxml.jackson.databind.JsonNode n : root.get("acceptedAnswers")) {
+                            accepted.add(n.asText());
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            if (normalizeText(studentText).equals(normalizeText(correctText))) {
+                return true;
+            }
+            for (String acc : accepted) {
+                if (normalizeText(studentText).equals(normalizeText(acc))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return false;
+    }
+
+    private String normalizeText(String text) {
+        if (text == null) return "";
+        String norm = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFKC);
+        return norm.replaceAll("[\\s\\p{Punct}　、。！？「」『』〜]+", "").trim().toLowerCase();
     }
 
     @Override
@@ -743,14 +895,41 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                         Integer ob = b.getDisplayOrder() != null ? b.getDisplayOrder() : 0;
                         return oa.compareTo(ob);
                     })
-                    .map(q -> ExamQuestionResponse.builder()
-                            .id(q.getId())
-                            .prompt(q.getQuestionText())
-                            .options(q.getOptions() != null ? new ArrayList<>(q.getOptions()) : new ArrayList<>())
-                            .correctAnswerIndex(q.getCorrectAnswerIndex())
-                            .points(q.getPoints() != null ? q.getPoints() : 1)
-                            .displayOrder(q.getDisplayOrder())
-                            .build())
+                    .map(q -> {
+                        String qType = q.getQuestionType();
+                        com.midori.dto.ai.TranslationMetadata translationMetadata = null;
+                        com.midori.dto.ai.SentenceWritingMetadata sentenceWritingMetadata = null;
+                        com.midori.dto.ai.ErrorCorrectionMetadata errorCorrectionMetadata = null;
+                        com.midori.dto.ai.MatchingMetadata matchingMetadata = null;
+
+                        String formatMetadata = q.getFormatMetadata();
+                        if (formatMetadata != null && !formatMetadata.isEmpty()) {
+                            if ("TRANSLATION".equalsIgnoreCase(qType)) {
+                                translationMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.TranslationMetadata.class);
+                            } else if ("SENTENCE_WRITING".equalsIgnoreCase(qType)) {
+                                sentenceWritingMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.SentenceWritingMetadata.class);
+                            } else if ("ERROR_CORRECTION".equalsIgnoreCase(qType)) {
+                                errorCorrectionMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.ErrorCorrectionMetadata.class);
+                            } else if ("MATCHING".equalsIgnoreCase(qType)) {
+                                matchingMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.MatchingMetadata.class);
+                            }
+                        }
+
+                        return ExamQuestionResponse.builder()
+                                .id(q.getId())
+                                .prompt(q.getQuestionText())
+                                .options(q.getOptions() != null ? new ArrayList<>(q.getOptions()) : new ArrayList<>())
+                                .correctAnswerIndex(q.getCorrectAnswerIndex())
+                                .points(q.getPoints() != null ? q.getPoints() : 1)
+                                .displayOrder(q.getDisplayOrder())
+                                .questionType(qType)
+                                .formatMetadata(q.getFormatMetadata())
+                                .translationMetadata(translationMetadata)
+                                .sentenceWritingMetadata(sentenceWritingMetadata)
+                                .errorCorrectionMetadata(errorCorrectionMetadata)
+                                .matchingMetadata(matchingMetadata)
+                                .build();
+                    })
                     .collect(Collectors.toList());
         }
 
@@ -775,18 +954,82 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 .build();
     }
 
+    private <T> T deserializeMetadata(String json, Class<T> clazz) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readValue(json, clazz);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private StudentExamResponse mapToStudentExamResponse(StudentExam se, boolean hideCorrectAnswers) {
+        // Force hideCorrectAnswers to true if the exam is not submitted/graded yet to ensure security
+        final boolean finalHideCorrectAnswers = hideCorrectAnswers || (se.getStatus() == StudentExamStatus.IN_PROGRESS);
+
         List<StudentExamResponse.QuestionResponse> questions = se.getQuestions().stream()
-                .map(q -> StudentExamResponse.QuestionResponse.builder()
-                        .id(q.getId())
-                        .questionText(q.getQuestionText())
-                        .options(hideCorrectAnswers ? q.getOptions() : q.getOptions())
-                        .displayOrder(q.getDisplayOrder())
-                        .points(q.getPoints())
-                        .selectedAnswerIndex(q.getSelectedAnswerIndex())
-                        .correctAnswerIndex(hideCorrectAnswers ? null : q.getCorrectAnswerIndex())
-                        .isCorrect(q.getIsCorrect())
-                        .build())
+                .map(q -> {
+                    String qType = q.getQuestionType();
+                    List<String> opts = q.getOptions() != null ? q.getOptions() : new ArrayList<>();
+                    if (finalHideCorrectAnswers && (
+                        "FILL_BLANK".equalsIgnoreCase(qType) ||
+                        "SHORT_ANSWER".equalsIgnoreCase(qType) ||
+                        "TRANSLATION".equalsIgnoreCase(qType) ||
+                        "SENTENCE_WRITING".equalsIgnoreCase(qType) ||
+                        "ERROR_CORRECTION".equalsIgnoreCase(qType) ||
+                        "SENTENCE_REORDER".equalsIgnoreCase(qType)
+                    )) {
+                        opts = java.util.Collections.emptyList();
+                    }
+
+                    com.midori.dto.ai.TranslationMetadata translationMetadata = null;
+                    com.midori.dto.ai.SentenceWritingMetadata sentenceWritingMetadata = null;
+                    com.midori.dto.ai.ErrorCorrectionMetadata errorCorrectionMetadata = null;
+                    com.midori.dto.ai.MatchingMetadata matchingMetadata = null;
+
+                    String formatMetadata = q.getFormatMetadata();
+                    if (formatMetadata != null && !formatMetadata.isEmpty()) {
+                        if ("TRANSLATION".equalsIgnoreCase(qType)) {
+                            translationMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.TranslationMetadata.class);
+                            if (finalHideCorrectAnswers && translationMetadata != null) {
+                                translationMetadata.setReferenceAnswer(null);
+                                translationMetadata.setAcceptedAnswers(null);
+                            }
+                        } else if ("SENTENCE_WRITING".equalsIgnoreCase(qType)) {
+                            sentenceWritingMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.SentenceWritingMetadata.class);
+                            if (finalHideCorrectAnswers && sentenceWritingMetadata != null) {
+                                sentenceWritingMetadata.setReferenceAnswer(null);
+                                sentenceWritingMetadata.setAcceptedAnswers(null);
+                            }
+                        } else if ("ERROR_CORRECTION".equalsIgnoreCase(qType)) {
+                            errorCorrectionMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.ErrorCorrectionMetadata.class);
+                            if (finalHideCorrectAnswers && errorCorrectionMetadata != null) {
+                                errorCorrectionMetadata.setCorrectedText(null);
+                            }
+                        } else if ("MATCHING".equalsIgnoreCase(qType)) {
+                            matchingMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.MatchingMetadata.class);
+                        }
+                    }
+
+                    return StudentExamResponse.QuestionResponse.builder()
+                            .id(q.getId())
+                            .questionText(q.getQuestionText())
+                            .options(opts)
+                            .displayOrder(q.getDisplayOrder())
+                            .points(q.getPoints())
+                            .selectedAnswerIndex(q.getSelectedAnswerIndex())
+                            .correctAnswerIndex(finalHideCorrectAnswers ? null : q.getCorrectAnswerIndex())
+                            .isCorrect(q.getIsCorrect())
+                            .questionType(qType)
+                            .selectedAnswerText(q.getSelectedAnswerText())
+                            .correctAnswerText(finalHideCorrectAnswers ? null : q.getCorrectAnswerText())
+                            .formatMetadata(q.getFormatMetadata())
+                            .translationMetadata(translationMetadata)
+                            .sentenceWritingMetadata(sentenceWritingMetadata)
+                            .errorCorrectionMetadata(errorCorrectionMetadata)
+                            .matchingMetadata(matchingMetadata)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return StudentExamResponse.builder()
@@ -894,6 +1137,8 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                     .displayOrder(i + 1)
                     .points(tq.getPoints() != null ? tq.getPoints() : 1)
                     .sourceTeacherQuestionId(tq.getId())
+                    .questionType(tq.getQuestionType())
+                    .formatMetadata(tq.getFormatMetadata())
                     .build();
             examQuestions.add(eq);
         }

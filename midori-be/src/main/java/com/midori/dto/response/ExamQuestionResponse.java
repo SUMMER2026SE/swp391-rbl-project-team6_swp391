@@ -20,4 +20,10 @@ public class ExamQuestionResponse {
     private Integer correctAnswerIndex;
     private Integer points;
     private Integer displayOrder;
+    private String questionType;
+    private String formatMetadata;
+    private com.midori.dto.ai.TranslationMetadata translationMetadata;
+    private com.midori.dto.ai.SentenceWritingMetadata sentenceWritingMetadata;
+    private com.midori.dto.ai.ErrorCorrectionMetadata errorCorrectionMetadata;
+    private com.midori.dto.ai.MatchingMetadata matchingMetadata;
 }

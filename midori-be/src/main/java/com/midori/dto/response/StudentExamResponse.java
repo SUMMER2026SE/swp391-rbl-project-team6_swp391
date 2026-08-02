@@ -44,5 +44,13 @@ public class StudentExamResponse {
         private Integer selectedAnswerIndex;
         private Integer correctAnswerIndex;
         private Boolean isCorrect;
+        private String questionType;
+        private String selectedAnswerText;
+        private String correctAnswerText;
+        private String formatMetadata;
+        private com.midori.dto.ai.TranslationMetadata translationMetadata;
+        private com.midori.dto.ai.SentenceWritingMetadata sentenceWritingMetadata;
+        private com.midori.dto.ai.ErrorCorrectionMetadata errorCorrectionMetadata;
+        private com.midori.dto.ai.MatchingMetadata matchingMetadata;
     }
 }

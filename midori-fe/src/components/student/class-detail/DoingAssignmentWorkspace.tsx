@@ -48,7 +48,7 @@ export function DoingAssignmentWorkspace({
 
   // Exam state
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] = useState<Record<number, any>>({});
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [violations, setViolations] = useState(0);
   const [showViolationWarning, setShowViolationWarning] = useState(false);
@@ -186,6 +186,12 @@ export function DoingAssignmentWorkspace({
           type: q.questionType || "MULTIPLE_CHOICE",
           points: q.points || 1,
           explanation: q.explanation || "",
+          selectedAnswerText: q.selectedAnswerText || "",
+          correctAnswerText: q.correctAnswerText || "",
+          translationMetadata: q.translationMetadata,
+          sentenceWritingMetadata: q.sentenceWritingMetadata,
+          errorCorrectionMetadata: q.errorCorrectionMetadata,
+          matchingMetadata: q.matchingMetadata,
         }));
 
         console.log("MAPPED_QUESTIONS_TABLE:");
@@ -224,7 +230,7 @@ export function DoingAssignmentWorkspace({
               setActualTimeTaken(parseInt(savedDuration));
             } else if (sub && sub.submittedAt) {
               const subAt = sub.submittedAt;
-              const createdVal = hw.createdAt || assignment.createdAt;
+              const createdVal = hw.createdAt || (assignment as any).createdAt;
               if (subAt && createdVal) {
                 const diff = Math.max(1, Math.round((new Date(subAt).getTime() - new Date(createdVal).getTime()) / 1000));
                 setActualTimeTaken(diff);
@@ -259,15 +265,40 @@ export function DoingAssignmentWorkspace({
           if (hw.status === "SUBMITTED" || hw.status === "GRADED") {
             setIsSubmitted(true);
             setSubmission(hw);
-            const newAnswers: Record<number, number> = {};
+            const newAnswers: Record<number, any> = {};
             mappedQuestions.forEach((q: any, idx: number) => {
               const rawQ = rawQuestions.find((rq: any) => rq.id === q.id);
-              if (
-                rawQ &&
-                rawQ.selectedAnswerIndex !== undefined &&
-                rawQ.selectedAnswerIndex !== null
-              ) {
-                newAnswers[idx] = rawQ.selectedAnswerIndex;
+              if (rawQ) {
+                const type = q.type || "MULTIPLE_CHOICE";
+                if (type === "MULTIPLE_CHOICE" || type === "TRUE_FALSE") {
+                  if (rawQ.selectedAnswerIndex !== undefined && rawQ.selectedAnswerIndex !== null) {
+                    newAnswers[idx] = rawQ.selectedAnswerIndex;
+                  }
+                } else if (type === "SENTENCE_REORDER") {
+                  const prompt = q.q || "";
+                  const rawTokens = (() => {
+                    let targetLine = prompt.split(/\r?\n/).find((l: string) => l.includes("/") || l.includes("／")) || prompt;
+                    if (targetLine.includes(":")) {
+                      targetLine = targetLine.substring(targetLine.lastIndexOf(":") + 1);
+                    } else if (targetLine.includes("：")) {
+                      targetLine = targetLine.substring(targetLine.lastIndexOf("：") + 1);
+                    }
+                    return targetLine.split(/[/／]/).map((t: string) => t.trim()).filter(Boolean);
+                  })();
+                  const studentTokens = rawQ.selectedAnswerText ? rawQ.selectedAnswerText.split("/") : [];
+                  const indices: number[] = [];
+                  const used = new Set<number>();
+                  studentTokens.forEach((t: string) => {
+                    const pIdx = rawTokens.findIndex((tok: string, idx: number) => tok === t && !used.has(idx));
+                    if (pIdx !== -1) {
+                      indices.push(pIdx);
+                      used.add(pIdx);
+                    }
+                  });
+                  newAnswers[idx] = indices;
+                } else {
+                  newAnswers[idx] = rawQ.selectedAnswerText || "";
+                }
               }
             });
             setAnswers(newAnswers);
@@ -283,7 +314,7 @@ export function DoingAssignmentWorkspace({
                 if (sub.submissionText) {
                   try {
                     const parsedAnswers = JSON.parse(sub.submissionText);
-                    const newAnswers: Record<number, number> = {};
+                    const newAnswers: Record<number, any> = {};
                     mappedQuestions.forEach((q: any, idx: number) => {
                       if (parsedAnswers[q.id] !== undefined) {
                         newAnswers[idx] = parsedAnswers[q.id];
@@ -374,12 +405,12 @@ export function DoingAssignmentWorkspace({
         setLastViolationType(type);
 
         TEACHER_NOTIFICATIONS.unshift({
-          id: Date.now() + nextViolations,
+          id: (Date.now() + nextViolations).toString(),
+          type: "EXAM",
           title: "Exam Violation Alert",
-          desc: `${userNameRef.current} left the active test workspace (${type}) during "${assignmentTitleRef.current}". (Violation #${nextViolations})`,
+          message: `${userNameRef.current} left the active test workspace (${type}) during "${assignmentTitleRef.current}". (Violation #${nextViolations})`,
           time: "Just now",
-          unread: true,
-          icon: ShieldAlert,
+          read: false,
         });
 
         return nextViolations;
@@ -562,25 +593,90 @@ export function DoingAssignmentWorkspace({
       setShowSubmitDialog(false);
       setAutoSaveStatus("Saving...");
 
-      const submitAnswersMap: Record<string, number> = {};
+      const textAnswers = questions.map((q, idx) => {
+        const ans = answers[idx];
+        const type = q.type || "MULTIPLE_CHOICE";
+        const payload: any = { questionId: q.id };
+
+        if (ans === undefined || ans === null) {
+          return payload;
+        }
+
+        if (type === "MULTIPLE_CHOICE" || type === "TRUE_FALSE") {
+          payload.selectedOptionIndex = ans;
+        } else if (type === "SENTENCE_REORDER") {
+          const prompt = q.q || "";
+          const rawTokens = (() => {
+            let targetLine = prompt.split(/\r?\n/).find((l: string) => l.includes("/") || l.includes("／")) || prompt;
+            if (targetLine.includes(":")) {
+              targetLine = targetLine.substring(targetLine.lastIndexOf(":") + 1);
+            } else if (targetLine.includes("：")) {
+              targetLine = targetLine.substring(targetLine.lastIndexOf("：") + 1);
+            }
+            return targetLine.split(/[/／]/).map((t: string) => t.trim()).filter(Boolean);
+          })();
+          if (Array.isArray(ans)) {
+            payload.orderedTokens = ans.map((i: number) => rawTokens[i]);
+            payload.textAnswer = ans.map((i: number) => rawTokens[i]).join("");
+          } else {
+            payload.textAnswer = String(ans);
+          }
+        } else {
+          payload.textAnswer = String(ans);
+        }
+        return payload;
+      });
+
+      const submitAnswersMap: Record<string, any> = {};
       questions.forEach((q, idx) => {
-        if (answers[idx] !== undefined) {
-          submitAnswersMap[q.id] = answers[idx];
+        const ans = answers[idx];
+        if (ans !== undefined && ans !== null) {
+          const type = q.type || "MULTIPLE_CHOICE";
+          if (type === "MULTIPLE_CHOICE" || type === "TRUE_FALSE") {
+            submitAnswersMap[q.id] = ans;
+          } else if (type === "SENTENCE_REORDER" && Array.isArray(ans)) {
+            const prompt = q.q || "";
+            const rawTokens = (() => {
+              let targetLine = prompt.split(/\r?\n/).find((l: string) => l.includes("/") || l.includes("／")) || prompt;
+              if (targetLine.includes(":")) {
+                targetLine = targetLine.substring(targetLine.lastIndexOf(":") + 1);
+              } else if (targetLine.includes("：")) {
+                targetLine = targetLine.substring(targetLine.lastIndexOf("：") + 1);
+              }
+              return targetLine.split(/[/／]/).map((t: string) => t.trim()).filter(Boolean);
+            })();
+            submitAnswersMap[q.id] = ans.map((i: number) => rawTokens[i]);
+          } else {
+            submitAnswersMap[q.id] = ans;
+          }
         }
       });
 
       const isExam = assignment.type === "Exam";
       let res: any;
       if (isExam) {
-        // Backend expects List<Integer> representing answers ordered by questions display order
-        const submitAnswersList = questions.map((_, idx) => {
-          return answers[idx] !== undefined ? answers[idx] : null;
+        const submitAnswersList = questions.map((q, idx) => {
+          const type = q.type || "MULTIPLE_CHOICE";
+          if (type === "MULTIPLE_CHOICE" || type === "TRUE_FALSE") {
+            return answers[idx] !== undefined && answers[idx] !== null ? Number(answers[idx]) : null;
+          }
+          return null;
         });
-        res = await examsApi.submitExam(studentExamId!, { answers: submitAnswersList as any });
+        res = await examsApi.submitExam(studentExamId!, {
+          answers: submitAnswersList as any,
+          textAnswers: textAnswers
+        } as any);
       } else {
+        const legacyAnswersMap: Record<string, number> = {};
+        Object.keys(submitAnswersMap).forEach(k => {
+           if (typeof submitAnswersMap[k] === 'number') {
+              legacyAnswersMap[k] = submitAnswersMap[k];
+           }
+        });
         const req = {
           submissionText: JSON.stringify(submitAnswersMap),
-          answers: submitAnswersMap,
+          answers: legacyAnswersMap,
+          textAnswers: textAnswers,
           focusViolationCount: violations,
         };
         res = await homeworkApi.submitHomework(assignment.id, req);
@@ -883,12 +979,17 @@ export function DoingAssignmentWorkspace({
   const isPassed = roundedPercentage >= 50;
 
   const selectedReviewQuestion = questions[currentReviewIndex] || null;
-  const isReviewCorrect =
-    typeof selectedReviewQuestion?.isCorrect === "boolean"
-      ? selectedReviewQuestion.isCorrect
-      : selectedReviewQuestion && typeof selectedReviewQuestion.correctIdx === "number"
-        ? answers[currentReviewIndex] === selectedReviewQuestion.correctIdx
-        : false;
+  const isQuestionCorrect = (q: any, idx: number) => {
+    if (!q) return false;
+    if (typeof q.isCorrect === "boolean") return q.isCorrect;
+    const type = q.type || "MULTIPLE_CHOICE";
+    if (type === "MULTIPLE_CHOICE" || type === "TRUE_FALSE") {
+      return typeof q.correctIdx === "number" && answers[idx] === q.correctIdx;
+    }
+    return false;
+  };
+
+  const isReviewCorrect = isQuestionCorrect(selectedReviewQuestion, currentReviewIndex);
 
   if (isSubmitted) {
     // Post-submission review screen
@@ -961,8 +1062,7 @@ export function DoingAssignmentWorkspace({
               <button
                 onClick={() => {
                   const firstWrong = questions.findIndex(
-                    (q, i) =>
-                      q && typeof q.correctIdx === "number" && answers[i] !== q.correctIdx,
+                    (q, i) => q && !isQuestionCorrect(q, i)
                   );
                   setCurrentReviewIndex(firstWrong >= 0 ? firstWrong : 0);
                 }}
@@ -986,8 +1086,7 @@ export function DoingAssignmentWorkspace({
             </h4>
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
-                const correct =
-                  q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx;
+                const correct = q && isQuestionCorrect(q, idx);
                 const isSelected = currentReviewIndex === idx;
                 return (
                   <button
@@ -1060,58 +1159,151 @@ export function DoingAssignmentWorkspace({
 
             {/* Choice Review Options */}
             <div className="space-y-3">
-              {selectedReviewQuestion &&
-                selectedReviewQuestion.options &&
-                selectedReviewQuestion.options.map((opt: string, optIdx: number) => {
-                  const wasChosen = answers[currentReviewIndex] === optIdx;
-                  const isCorrect =
-                    typeof selectedReviewQuestion.correctIdx === "number" &&
-                    selectedReviewQuestion.correctIdx === optIdx;
-                  const optionLetter = String.fromCharCode(65 + optIdx);
+              {(() => {
+                const q = selectedReviewQuestion;
+                if (!q) return null;
+                const type = q.type || "MULTIPLE_CHOICE";
 
-                  return (
-                    <div
-                      key={optIdx}
-                      className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all duration-150 text-xs sm:text-sm font-semibold ${
-                        isCorrect
-                          ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400"
-                          : wasChosen
-                            ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400"
-                            : "bg-white/50 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span
-                          className={`w-6 h-6 rounded-full flex items-center justify-center font-bold border text-[11px] shrink-0 ${
-                            isCorrect
-                              ? "bg-green-500/20 border-green-500/40 text-green-600 dark:text-green-400"
-                              : wasChosen
-                                ? "bg-red-500/20 border-red-500/40 text-red-600 dark:text-red-400"
-                                : "border-slate-200/60 dark:border-white/10 text-muted-foreground"
-                          }`}
-                        >
-                          {optionLetter}
-                        </span>
-                        <span className="truncate">{opt}</span>
+                if (type === "MULTIPLE_CHOICE" || type === "TRUE_FALSE") {
+                  const optsToRender = type === "TRUE_FALSE" ? ["True", "False"] : (q.options || []);
+                  return optsToRender.map((opt: string, optIdx: number) => {
+                    const wasChosen = answers[currentReviewIndex] === optIdx;
+                    const isCorrect =
+                      typeof q.correctIdx === "number" &&
+                      q.correctIdx === optIdx;
+                    const optionLetter = String.fromCharCode(65 + optIdx);
+
+                    return (
+                      <div
+                        key={optIdx}
+                        className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all duration-150 text-xs sm:text-sm font-semibold ${
+                          isCorrect
+                            ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400"
+                            : wasChosen
+                              ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400"
+                              : "bg-white/50 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span
+                            className={`w-6 h-6 rounded-full flex items-center justify-center font-bold border text-[11px] shrink-0 ${
+                              isCorrect
+                                ? "bg-green-500/20 border-green-500/40 text-green-600 dark:text-green-400"
+                                : wasChosen
+                                  ? "bg-red-500/20 border-red-500/40 text-red-600 dark:text-red-400"
+                                  : "border-slate-200/60 dark:border-white/10 text-muted-foreground"
+                            }`}
+                          >
+                            {optionLetter}
+                          </span>
+                          <span className="truncate">{opt}</span>
+                        </div>
+
+                        <div className="flex gap-2 items-center shrink-0">
+                          {wasChosen && !isCorrect && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase bg-red-500/20 text-red-700 dark:text-red-400">
+                              <X className="w-3 h-3" />
+                              Your Answer
+                            </span>
+                          )}
+                          {isCorrect && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-500/20 text-green-700 dark:text-green-400 text-[9px] font-black uppercase">
+                              <Check className="w-3 h-3" />
+                              {wasChosen ? "Correct" : "Correct Answer"}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                    );
+                  });
+                }
 
-                      <div className="flex gap-2 items-center shrink-0">
-                        {wasChosen && !isCorrect && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase bg-red-500/20 text-red-700 dark:text-red-400">
-                            <X className="w-3 h-3" />
-                            Your Answer
-                          </span>
+                // For writing/text/reorder questions:
+                const studentAnsVal = answers[currentReviewIndex];
+                let displayStudentAns = "";
+                if (Array.isArray(studentAnsVal)) {
+                  // For SENTENCE_REORDER, the index order is stored
+                  const prompt = q.q || "";
+                  const rawTokens = (() => {
+                    let targetLine = prompt.split(/\r?\n/).find((l: string) => l.includes("/") || l.includes("／")) || prompt;
+                    if (targetLine.includes(":")) {
+                      targetLine = targetLine.substring(targetLine.lastIndexOf(":") + 1);
+                    } else if (targetLine.includes("：")) {
+                      targetLine = targetLine.substring(targetLine.lastIndexOf("：") + 1);
+                    }
+                    return targetLine.split(/[/／]/).map((t: string) => t.trim()).filter(Boolean);
+                  })();
+                  displayStudentAns = studentAnsVal.map((i: number) => rawTokens[i]).join(" ");
+                } else {
+                  displayStudentAns = studentAnsVal !== undefined ? String(studentAnsVal) : "";
+                }
+
+                // Correct answer representation
+                let displayCorrectAns = q.correctAnswerText || "";
+                if (!displayCorrectAns && q.options && q.options.length > 0) {
+                  displayCorrectAns = q.options[0];
+                }
+
+                // Check other metadata fields
+                const meta = q.translationMetadata || q.sentenceWritingMetadata;
+                if (!displayCorrectAns && meta && "referenceAnswer" in meta) {
+                  displayCorrectAns = (meta as any).referenceAnswer || "";
+                }
+                const errMeta = q.errorCorrectionMetadata;
+                if (!displayCorrectAns && errMeta && "correctedText" in errMeta) {
+                  displayCorrectAns = errMeta.correctedText || "";
+                }
+
+                const acceptedList: string[] = [];
+                if (meta && "acceptedAnswers" in meta && Array.isArray((meta as any).acceptedAnswers)) {
+                  acceptedList.push(...(meta as any).acceptedAnswers);
+                }
+
+                return (
+                  <div className="space-y-4 text-xs sm:text-sm">
+                    {type === "TRANSLATION" && q.translationMetadata?.direction && (
+                      <div className="text-xs font-bold text-primary">
+                        Direction: {q.translationMetadata.direction === "JA_TO_VI" ? "Japanese to Vietnamese" : "Vietnamese to Japanese"}
+                      </div>
+                    )}
+                    {type === "SENTENCE_WRITING" && q.sentenceWritingMetadata && (
+                      <div className="text-xs text-slate-500 space-y-1">
+                        {q.sentenceWritingMetadata.prompt && <div><strong>Prompt:</strong> {q.sentenceWritingMetadata.prompt}</div>}
+                        {q.sentenceWritingMetadata.requiredVocabulary && q.sentenceWritingMetadata.requiredVocabulary.length > 0 && (
+                          <div><strong>Required Vocabulary:</strong> {q.sentenceWritingMetadata.requiredVocabulary.join(", ")}</div>
                         )}
-                        {isCorrect && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-500/20 text-green-700 dark:text-green-400 text-[9px] font-black uppercase">
-                            <Check className="w-3 h-3" />
-                            {wasChosen ? "Correct" : "Correct Answer"}
-                          </span>
+                        {q.sentenceWritingMetadata.requiredGrammar && q.sentenceWritingMetadata.requiredGrammar.length > 0 && (
+                          <div><strong>Required Grammar:</strong> {q.sentenceWritingMetadata.requiredGrammar.join(", ")}</div>
                         )}
+                      </div>
+                    )}
+                    {type === "ERROR_CORRECTION" && q.errorCorrectionMetadata?.incorrectText && (
+                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs font-medium text-red-600 dark:text-red-400">
+                        Incorrect sentence: {q.errorCorrectionMetadata.incorrectText}
+                      </div>
+                    )}
+
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 rounded-2xl">
+                      <div className="text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-1">Your Answer</div>
+                      <div className={`font-semibold ${q.isCorrect ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        {displayStudentAns || "—"}
                       </div>
                     </div>
-                  );
-                })}
+
+                    <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-2xl">
+                      <div className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">Correct Answer / Reference Answer</div>
+                      <div className="font-semibold text-green-700 dark:text-green-300">
+                        {displayCorrectAns || "—"}
+                      </div>
+                      {acceptedList.length > 0 && (
+                        <div className="mt-2 text-xs text-slate-500">
+                          <strong>Other Accepted Answers:</strong> {acceptedList.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Backend-provided explanation (only render when present, no mock data) */}
@@ -1421,42 +1613,190 @@ export function DoingAssignmentWorkspace({
               </Card>
             </div>
 
-            {/* Answer Options */}
+            {/* Answer Options / Custom Renderer */}
             <div className="space-y-3">
-              {questions[currentQuestion].options.map((opt, optIdx) => {
-                const isSelected = answers[currentQuestion] === optIdx;
-                return (
-                  <button
-                    key={optIdx}
-                    onClick={() => handleSelectOption(currentQuestion, optIdx)}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-200 text-left ${
-                      isSelected
-                        ? "bg-primary/5 border-primary shadow-md shadow-primary/10"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-slate-800/80"
-                    }`}
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${
+              {(() => {
+                const q = questions[currentQuestion];
+                if (!q) return null;
+                const type = q.type || "MULTIPLE_CHOICE";
+
+                if (type === "MULTIPLE_CHOICE") {
+                  return q.options.map((opt: string, optIdx: number) => {
+                    const isSelected = answers[currentQuestion] === optIdx;
+                    return (
+                      <button
+                        key={optIdx}
+                        onClick={() => handleSelectOption(currentQuestion, optIdx)}
+                        className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-200 text-left ${
                           isSelected
-                            ? "bg-primary text-white shadow-md"
-                            : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
+                            ? "bg-primary/5 border-primary shadow-md shadow-primary/10"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-slate-800/80"
                         }`}
                       >
-                        {String.fromCharCode(65 + optIdx)}
-                      </div>
-                      <span
-                        className={`text-sm font-medium ${isSelected ? "text-primary" : "text-foreground dark:text-white"}`}
-                      >
-                        {opt}
-                      </span>
+                        <div className="flex items-center gap-4 flex-1">
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${
+                              isSelected
+                                ? "bg-primary text-white shadow-md"
+                                : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
+                            }`}
+                          >
+                            {String.fromCharCode(65 + optIdx)}
+                          </div>
+                          <span
+                            className={`text-sm font-medium ${isSelected ? "text-primary" : "text-foreground dark:text-white"}`}
+                          >
+                            {opt}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  });
+                }
+
+                if (type === "TRUE_FALSE") {
+                  const tfOptions = ["True", "False"];
+                  return (
+                    <div className="flex gap-4">
+                      {tfOptions.map((opt, optIdx) => {
+                        const isSelected = answers[currentQuestion] === optIdx;
+                        return (
+                          <button
+                            key={optIdx}
+                            onClick={() => handleSelectOption(currentQuestion, optIdx)}
+                            className={`flex-1 flex items-center justify-center p-4 rounded-2xl border-2 transition-all duration-200 font-bold text-lg ${
+                              isSelected
+                                ? "bg-primary/5 border-primary text-primary shadow-md"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:border-primary/40"
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <span className="text-[10px] text-muted-foreground bg-slate-100 dark:bg-white/10 px-2 py-1 rounded-lg font-bold opacity-0 group-hover:opacity-100">
-                      {optIdx + 1}
-                    </span>
-                  </button>
-                );
-              })}
+                  );
+                }
+
+                if (type === "FILL_BLANK") {
+                  return (
+                    <input
+                      type="text"
+                      value={answers[currentQuestion] || ""}
+                      onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
+                      placeholder="Type your answer here..."
+                      className="w-full p-4 rounded-2xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 focus:border-primary outline-none transition-all font-medium text-lg text-foreground dark:text-white"
+                    />
+                  );
+                }
+
+                if (type === "SHORT_ANSWER" || type === "TRANSLATION" || type === "SENTENCE_WRITING" || type === "ERROR_CORRECTION") {
+                  return (
+                    <div className="space-y-3">
+                      {type === "TRANSLATION" && q.translationMetadata?.direction && (
+                        <div className="text-sm font-bold text-primary">
+                          Direction: {q.translationMetadata.direction === "JA_TO_VI" ? "Japanese to Vietnamese" : "Vietnamese to Japanese"}
+                        </div>
+                      )}
+                      {type === "SENTENCE_WRITING" && q.sentenceWritingMetadata && (
+                        <div className="text-sm text-slate-500 space-y-1">
+                          {q.sentenceWritingMetadata.prompt && <div><strong>Prompt:</strong> {q.sentenceWritingMetadata.prompt}</div>}
+                          {q.sentenceWritingMetadata.requiredVocabulary && q.sentenceWritingMetadata.requiredVocabulary.length > 0 && (
+                            <div><strong>Required Vocabulary:</strong> {q.sentenceWritingMetadata.requiredVocabulary.join(", ")}</div>
+                          )}
+                          {q.sentenceWritingMetadata.requiredGrammar && q.sentenceWritingMetadata.requiredGrammar.length > 0 && (
+                            <div><strong>Required Grammar:</strong> {q.sentenceWritingMetadata.requiredGrammar.join(", ")}</div>
+                          )}
+                        </div>
+                      )}
+                      {type === "ERROR_CORRECTION" && q.errorCorrectionMetadata?.incorrectText && (
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-medium text-red-600 dark:text-red-400">
+                          Incorrect sentence: {q.errorCorrectionMetadata.incorrectText}
+                        </div>
+                      )}
+                      <textarea
+                        value={answers[currentQuestion] || ""}
+                        onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
+                        placeholder="Type your written answer here..."
+                        rows={4}
+                        className="w-full p-4 rounded-2xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 focus:border-primary outline-none transition-all font-medium text-base text-foreground dark:text-white resize-none"
+                      />
+                    </div>
+                  );
+                }
+
+                if (type === "SENTENCE_REORDER") {
+                  const promptText = q.q || "";
+                  const rawTokens = (() => {
+                    let targetLine = promptText.split(/\r?\n/).find((l: string) => l.includes("/") || l.includes("／")) || promptText;
+                    if (targetLine.includes(":")) {
+                      targetLine = targetLine.substring(targetLine.lastIndexOf(":") + 1);
+                    } else if (targetLine.includes("：")) {
+                      targetLine = targetLine.substring(targetLine.lastIndexOf("：") + 1);
+                    }
+                    return targetLine.split(/[/／]/).map((t: string) => t.trim()).filter(Boolean);
+                  })();
+
+                  const selectedIdxs: number[] = Array.isArray(answers[currentQuestion]) ? answers[currentQuestion] : [];
+
+                  const handleSelectToken = (poolIdx: number) => {
+                    if (selectedIdxs.includes(poolIdx)) return;
+                    setAnswers(prev => ({ ...prev, [currentQuestion]: [...selectedIdxs, poolIdx] }));
+                  };
+
+                  const handleRemoveToken = (idxToRemove: number) => {
+                    const next = [...selectedIdxs];
+                    next.splice(idxToRemove, 1);
+                    setAnswers(prev => ({ ...prev, [currentQuestion]: next }));
+                  };
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Selected Area */}
+                      <div className="p-4 min-h-[60px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl flex flex-wrap gap-2 items-center bg-slate-50 dark:bg-slate-900/50">
+                        {selectedIdxs.length === 0 ? (
+                          <span className="text-muted-foreground text-sm font-medium">Click tokens below to reorder...</span>
+                        ) : (
+                          selectedIdxs.map((poolIdx, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => handleRemoveToken(idx)}
+                              className="px-3 py-1.5 bg-primary text-white font-semibold rounded-xl text-sm shadow-sm hover:bg-primary/95 transition-all"
+                            >
+                              {rawTokens[poolIdx]}
+                            </button>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Pool Area */}
+                      <div className="flex flex-wrap gap-2">
+                        {rawTokens.map((tok: string, poolIdx: number) => {
+                          const isUsed = selectedIdxs.includes(poolIdx);
+                          return (
+                            <button
+                              key={poolIdx}
+                              type="button"
+                              disabled={isUsed}
+                              onClick={() => handleSelectToken(poolIdx)}
+                              className={`px-3 py-1.5 font-semibold rounded-xl text-sm border-2 transition-all ${
+                                isUsed
+                                  ? "bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-muted-foreground/40 cursor-not-allowed"
+                                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-foreground dark:text-white hover:border-primary"
+                              }`}
+                            >
+                              {tok}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
             </div>
 
             {/* Navigation Buttons */}

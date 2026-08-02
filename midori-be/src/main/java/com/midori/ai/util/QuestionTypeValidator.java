@@ -359,6 +359,9 @@ public final class QuestionTypeValidator {
             case "SENTENCEWRITING":
             case "SENTENCE_CONSTRUCTION":
             case "WRITE_SENTENCE":
+            case "SENTENCE_REORDER":
+            case "SENTENCEREORDER":
+            case "REORDER":
                 return QuestionType.SENTENCE_WRITING;
             case "ERROR_CORRECTION":
             case "ERRORCORRECTION":

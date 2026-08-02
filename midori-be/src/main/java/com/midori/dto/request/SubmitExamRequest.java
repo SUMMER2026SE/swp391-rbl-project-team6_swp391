@@ -11,4 +11,6 @@ public class SubmitExamRequest {
 
     @NotNull(message = "Answers are required")
     private List<Integer> answers;
+
+    private List<StudentAnswerRequest> textAnswers;
 }

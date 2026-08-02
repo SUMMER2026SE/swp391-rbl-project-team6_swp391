@@ -93,7 +93,7 @@ export const examsApi = {
   startExam: (id: string, studentId: string) =>
     api.post<any>(`/exams/${id}/start?studentId=${studentId}`),
 
-  submitExam: (studentExamId: string, req: { answers: Record<string, number> }) =>
+  submitExam: (studentExamId: string, req: { answers: (number | null)[]; textAnswers?: any[] }) =>
     api.post<any>(`/exams/student-exams/${studentExamId}/submit`, req),
 
   getExamsByTeacher: (teacherId: string) => api.get<ExamResponse[]>(`/exams/teacher/${teacherId}`),

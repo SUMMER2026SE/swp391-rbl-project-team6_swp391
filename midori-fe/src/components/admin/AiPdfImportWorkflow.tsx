@@ -464,7 +464,15 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
         const mappedCategory = mapCategory(q.category, q.content);
         let resolvedType = normalizePreviewType(q.type);
         let mappedAnswers: { content: string; isCorrect: boolean }[];
-        if (resolvedType === "FILL_BLANK" || resolvedType === "SHORT_ANSWER") {
+        const isTextType =
+          resolvedType === "FILL_BLANK" ||
+          resolvedType === "SHORT_ANSWER" ||
+          resolvedType === "TRANSLATION" ||
+          resolvedType === "SENTENCE_WRITING" ||
+          resolvedType === "ERROR_CORRECTION" ||
+          resolvedType === "SENTENCE_REORDER";
+
+        if (isTextType) {
           // For text-only questions the BE may return zero or many options;
           // collapse them to a single text answer the editor can render.
           const firstAnswer = rawAnswers[0];
@@ -755,7 +763,13 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   const handleCreate = async () => {
     const invalidQuestions = questions.filter((q) => {
       if (!q.content.trim()) return true;
-      const isTextOnly = q.type === "FILL_BLANK" || q.type === "SHORT_ANSWER";
+      const isTextOnly =
+        q.type === "FILL_BLANK" ||
+        q.type === "SHORT_ANSWER" ||
+        q.type === "TRANSLATION" ||
+        q.type === "SENTENCE_WRITING" ||
+        q.type === "ERROR_CORRECTION" ||
+        q.type === "SENTENCE_REORDER";
       if (isTextOnly) {
         // Text-only questions need exactly one non-blank answer slot.
         if (q.answers.length !== 1) return true;

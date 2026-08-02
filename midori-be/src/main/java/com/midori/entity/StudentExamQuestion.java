@@ -48,4 +48,20 @@ public class StudentExamQuestion {
 
     @Column(name = "is_correct")
     private Boolean isCorrect;
+
+    @Column(name = "question_type", length = 50)
+    private String questionType;
+
+    @Column(name = "format_metadata", columnDefinition = "TEXT")
+    private String formatMetadata;
+
+    @Column(name = "selected_answer_text", columnDefinition = "TEXT")
+    private String selectedAnswerText;
+
+    @Column(name = "correct_answer_text", columnDefinition = "TEXT")
+    private String correctAnswerText;
+
+    public String getQuestionType() {
+        return this.questionType == null ? "MULTIPLE_CHOICE" : this.questionType;
+    }
 }
