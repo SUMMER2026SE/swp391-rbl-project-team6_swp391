@@ -162,13 +162,13 @@ export function ConsultationForm() {
                         {...register("role")}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none"
                       >
-                        <option value="">Select ▼</option>
-                        <option value="Học sinh">Student</option>
-                        <option value="Sinh viên">University Student</option>
-                        <option value="Người đi làm">Working Professional</option>
-                        <option value="Giáo viên">Teacher</option>
-                        <option value="Phụ huynh">Parent</option>
-                        <option value="Khác">Other</option>
+                         <option value="">Select ▼</option>
+                         <option value="Student">Student</option>
+                         <option value="University Student">University Student</option>
+                         <option value="Working Professional">Working Professional</option>
+                         <option value="Teacher">Teacher</option>
+                         <option value="Parent">Parent</option>
+                         <option value="Other">Other</option>
                       </select>
                       {errors.role && <p className="text-red-500 text-xs mt-1">{errors.role.message}</p>}
                     </div>
@@ -181,13 +181,13 @@ export function ConsultationForm() {
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none"
                       >
                         <option value="">Select ▼</option>
-                        <option value="Khóa học tiếng Nhật N5">Japanese N5 Course</option>
-                        <option value="Khóa học tiếng Nhật N4">Japanese N4 Course</option>
-                        <option value="Luyện từ vựng và ngữ pháp">Vocabulary & Grammar Practice</option>
-                        <option value="Luyện đọc và nghe">Reading & Listening Practice</option>
-                        <option value="Luyện tập cùng AI Sensei">AI Sensei Practice</option>
-                        <option value="Khóa học dành cho giáo viên">Course for Teachers</option>
-                        <option value="Khác">Other</option>
+                        <option value="Japanese N5 Course">Japanese N5 Course</option>
+                        <option value="Japanese N4 Course">Japanese N4 Course</option>
+                        <option value="Vocabulary & Grammar Practice">Vocabulary & Grammar Practice</option>
+                        <option value="Reading & Listening Practice">Reading & Listening Practice</option>
+                        <option value="AI Sensei Practice">AI Sensei Practice</option>
+                        <option value="Course for Teachers">Course for Teachers</option>
+                        <option value="Other">Other</option>
                       </select>
                       {errors.course && <p className="text-red-500 text-xs mt-1">{errors.course.message}</p>}
                     </div>
