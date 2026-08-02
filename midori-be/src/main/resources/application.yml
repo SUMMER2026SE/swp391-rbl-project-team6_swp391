@@ -117,7 +117,7 @@ ai:
   gemini:
     api-key: ${GEMINI_API_KEY:}
     api-keys: ${GEMINI_API_KEYS:${GEMINI_API_KEY_1:},${GEMINI_API_KEY_2:},${GEMINI_API_KEY_3:}}
-    model: ${GEMINI_MODEL:gemini-flash-latest}
+    model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
     fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-2.0-flash,gemini-2.0-flash-lite}
     base-url: https://generativelanguage.googleapis.com
     enabled: true
@@ -170,7 +170,7 @@ shadowing:
     similarity-threshold: ${SHADOWING_SIMILARITY_THRESHOLD:0.80}
     gemini-threshold: ${SHADOWING_GEMINI_THRESHOLD:80}
     max-recording-duration-seconds: ${SHADOWING_MAX_RECORDING_SECONDS:15}
-    gemini-model: ${SHADOWING_GEMINI_MODEL:gemini-2.0-flash}
+    gemini-model: ${SHADOWING_GEMINI_MODEL:gemini-3.1-flash-lite}
     api-timeout-seconds: ${SHADOWING_API_TIMEOUT_SECONDS:120}
     cache-ttl-minutes: ${SHADOWING_CACHE_TTL_MINUTES:60}
     cache-max-size: ${SHADOWING_CACHE_MAX_SIZE:10000}
