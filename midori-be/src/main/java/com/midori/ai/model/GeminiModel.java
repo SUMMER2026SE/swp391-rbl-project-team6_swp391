@@ -124,6 +124,24 @@ public enum GeminiModel {
     ),
 
     /**
+     * Gemini 3.1 Flash Lite - Fast and efficient text model.
+     */
+    GEMINI_31_FLASH_LITE(
+            "gemini-3.1-flash-lite",
+            "Gemini 3.1 Flash Lite",
+            "Fast and highly efficient model optimized for text generation tasks",
+            3,  // capability
+            1,  // cost
+            128000,  // context window
+            AiTaskType.DEFAULT,
+            AiTaskType.SIMPLE_TRANSLATION,
+            AiTaskType.SHORT_ANSWER,
+            AiTaskType.LONG_DOCUMENT_ANALYSIS,
+            AiTaskType.COMPLEX_REASONING,
+            AiTaskType.SHADOWING_EVALUATION
+    ),
+
+    /**
      * Gemini Flash Latest - Auto-updating latest stable flash model.
      */
     GEMINI_FLASH_LATEST(
