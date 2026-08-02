@@ -142,27 +142,26 @@ class TeacherQuestionControllerPerformanceTest {
     @DisplayName("Teacher-scoped access remains unchanged when calling getQuestions")
     void getQuestions_asTeacher_callsTeacherViewServiceMethod() {
         when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
-        when(teacherQuestionService.findQuestionsForTeacherView(teacherId)).thenReturn(Collections.emptyList());
+        when(teacherQuestionRepository.findQuestionsForTeacherViewWithTeacherAndLesson(teacherId)).thenReturn(Collections.emptyList());
 
-        controller.getQuestions(teacherDetails);
+        controller.getQuestions(null, 0, 100, teacherDetails);
 
         // Verification 7: Teacher-scoped access remains unchanged
-        verify(teacherQuestionService, times(1)).findQuestionsForTeacherView(teacherId);
+        verify(teacherQuestionRepository, times(1)).findQuestionsForTeacherViewWithTeacherAndLesson(teacherId);
         verify(teacherQuestionRepository, never()).findAll();
-        verify(teacherQuestionRepository, never()).findAllWithOptions();
     }
 
     @Test
-    @DisplayName("Admin calling getQuestions invokes optimized findAllWithOptions")
-    void getQuestions_asAdmin_callsFindAllWithOptions() {
+    @DisplayName("Admin calling getQuestions invokes optimized findAllWithTeacherAndLesson")
+    void getQuestions_asAdmin_callsFindAllWithTeacherAndLesson() {
         User adminUser = User.builder().id(adminDetails.getId()).role(Role.ADMIN).build();
         when(userRepository.findById(adminDetails.getId())).thenReturn(Optional.of(adminUser));
-        when(teacherQuestionRepository.findAllWithOptions()).thenReturn(Collections.emptyList());
+        when(teacherQuestionRepository.findAllWithTeacherAndLesson()).thenReturn(Collections.emptyList());
 
-        controller.getQuestions(adminDetails);
+        controller.getQuestions(null, 0, 100, adminDetails);
 
-        // Verification 1 (Controller routing): Admin invokes findAllWithOptions instead of findAll()
-        verify(teacherQuestionRepository, times(1)).findAllWithOptions();
+        // Verification 1 (Controller routing): Admin invokes findAllWithTeacherAndLesson instead of findAll()
+        verify(teacherQuestionRepository, times(1)).findAllWithTeacherAndLesson();
         verify(teacherQuestionRepository, never()).findAll();
         verify(teacherQuestionService, never()).findQuestionsForTeacherView(any());
     }

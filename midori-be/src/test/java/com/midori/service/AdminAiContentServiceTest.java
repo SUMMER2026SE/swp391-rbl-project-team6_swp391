@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for AdminAiContentService.
@@ -167,14 +168,13 @@ class AdminAiContentServiceTest {
                   "items": [
                     {
                       "japanese": "",
-                      "meaning": ""
+                      "furigana": "",
+                      "meaning": "",
+                      "partOfSpeech": "Noun"
                     }
                   ]
                 }
                 """;
-
-        when(aiCoreService.chatWithDetails(anyString(), anyString(), any(), any()))
-                .thenReturn(new com.midori.ai.core.AiCoreService.AiResponse(mockAiResponse, "mockProvider", "mockModel", "stop", 10, 20, 30));
 
         AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
                 .skillType("KANJI")

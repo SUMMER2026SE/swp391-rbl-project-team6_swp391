@@ -44,7 +44,7 @@ class TeacherQuestionRepositoryPerformanceTest {
     }
 
     @Test
-    @DisplayName("findAllWithOptions returns questions with options, without options, distinct rows, and order by createdAt desc")
+    @DisplayName("findAllWithTeacherAndLesson returns questions with options, without options, distinct rows, and order by createdAt desc")
     void findAllWithOptions_verifiesPerformanceAndCorrectnessRequirements() throws InterruptedException {
         // Create Question 1: earliest timestamp, WITH 4 options
         TeacherQuestion q1 = TeacherQuestion.builder()
@@ -74,7 +74,7 @@ class TeacherQuestionRepositoryPerformanceTest {
         teacherQuestionRepository.saveAndFlush(q2);
 
         // Invoke the optimized ADMIN query method
-        List<TeacherQuestion> results = teacherQuestionRepository.findAllWithOptions();
+        List<TeacherQuestion> results = teacherQuestionRepository.findAllWithTeacherAndLesson();
 
         // Find our test questions in the results
         List<TeacherQuestion> matchingQ1 = results.stream().filter(q -> q.getId().equals(q1.getId())).toList();
