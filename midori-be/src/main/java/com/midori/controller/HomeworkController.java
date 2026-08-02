@@ -3,6 +3,7 @@ package com.midori.controller;
 import com.midori.common.ApiResponse;
 import com.midori.dto.homeworkdto.*;
 import com.midori.dto.questiondto.TeacherQuestionResponse;
+import com.midori.dto.request.AiExamGenerateRequest;
 import com.midori.entity.ClassEntity;
 import com.midori.entity.Homework;
 import com.midori.entity.HomeworkSubmission;
@@ -13,6 +14,8 @@ import com.midori.repository.ClassRepository;
 import com.midori.repository.UserRepository;
 import com.midori.security.CustomUserDetails;
 import com.midori.service.HomeworkService;
+import com.midori.service.TeacherHomeworkAiService;
+import com.midori.ai.dto.AiExamParseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +39,7 @@ public class HomeworkController {
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
     private final com.midori.repository.HomeworkSubmissionRepository homeworkSubmissionRepository;
+    private final TeacherHomeworkAiService teacherHomeworkAiService;
 
     // --- TEACHER FLOWS ---
 
@@ -62,6 +66,14 @@ public class HomeworkController {
                 .build();
         Homework saved = homeworkService.createHomework(homework, request.getQuestionIds());
         return ResponseEntity.ok(ApiResponse.success("Homework created successfully", mapToHomeworkResponse(saved)));
+    }
+
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @PostMapping("/api/teacher/homework/ai-generate")
+    public ResponseEntity<ApiResponse<AiExamParseResponse>> generateAiHomework(
+            @Valid @RequestBody AiExamGenerateRequest request) {
+        AiExamParseResponse response = teacherHomeworkAiService.generateHomeworkQuestions(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PreAuthorize("hasRole('TEACHER')")

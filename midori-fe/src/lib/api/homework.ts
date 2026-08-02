@@ -88,6 +88,35 @@ export interface SubmitHomeworkRequest {
   answers?: Record<string, number>;
 }
 
+// AI Homework Generation
+export interface AiHomeworkGenerateRequest {
+  level: string;
+  lessonId: number;
+  skills: string[];
+  difficulty: string;
+  questionCount: number;
+  /** Writing mode (only used when WRITING is the only skill).
+   *  One of: MIXED_WRITING | JA_TO_VI_TRANSLATION | VI_TO_JA_TRANSLATION | SENTENCE_REORDER */
+  writingMode?: string;
+  /** Question type/format to generate. Null means MULTIPLE_CHOICE (backward-compatible). */
+  questionFormat?: string;
+}
+
+export interface AiHomeworkQuestionDto {
+  type?: string;
+  content?: string;
+  difficulty?: string;
+  explanation?: string;
+  category?: string;
+  answers?: { content?: string; isCorrect?: boolean }[];
+}
+
+export interface AiHomeworkGenerateResponse {
+  title?: string;
+  description?: string;
+  questions: AiHomeworkQuestionDto[];
+}
+
 export const homeworkApi = {
   // Teacher APIs
   createHomework: (req: CreateHomeworkRequest) =>
@@ -107,6 +136,9 @@ export const homeworkApi = {
       `/teacher/homeworks/submissions/${submissionId}/grade`,
       req,
     ),
+
+  generateAiHomework: (req: AiHomeworkGenerateRequest) =>
+    api.post<AiHomeworkGenerateResponse>("/teacher/homework/ai-generate", req),
 
   // Student APIs
   getStudentHomeworks: () => api.get<HomeworkResponse[]>("/student/homeworks"),

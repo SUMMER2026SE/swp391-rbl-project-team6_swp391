@@ -41,6 +41,7 @@ export function normalizeSkill(category: string | undefined | null): string {
   if (lower === "vocabulary") return "Vocabulary";
   if (lower === "grammar") return "Grammar";
   if (lower === "reading") return "Reading";
+  if (lower === "writing") return "Writing";
   if (lower === "listening") return "Listening";
   return "Vocabulary";
 }

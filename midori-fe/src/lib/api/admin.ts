@@ -252,6 +252,12 @@ export const adminApi = {
    */
   getQuestionBankLessons: (level: string) =>
     api.get<AdminQuestionBankLesson[]>(`/admin/question-bank/lessons?level=${level}`),
+  createQuestionBankLesson: (lesson: { level: string; lessonNumber: number; lessonName: string; status?: string }) =>
+    api.post<AdminQuestionBankLesson>("/admin/question-bank/lessons", lesson),
+  updateQuestionBankLesson: (id: number, lesson: { lessonName?: string; lessonNumber?: number; status?: string }) =>
+    api.put<AdminQuestionBankLesson>(`/admin/question-bank/lessons/${id}`, lesson),
+  deleteQuestionBankLesson: (id: number) =>
+    api.delete<void>(`/admin/question-bank/lessons/${id}`),
 
   /**
    * Get all classes (admin view).
@@ -291,6 +297,7 @@ export interface AdminQuestionBankLesson {
   lessonName: string;
   status: string;
   createdAt: string;
+  questionCount: number;
 }
 
 // ============================================================

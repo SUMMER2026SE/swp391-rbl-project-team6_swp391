@@ -1,5 +1,10 @@
 package com.midori.dto.questiondto;
 
+import com.midori.dto.ai.ErrorCorrectionMetadata;
+import com.midori.dto.ai.MatchingMetadata;
+import com.midori.dto.ai.SentenceWritingMetadata;
+import com.midori.dto.ai.TranslationMetadata;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -36,4 +41,9 @@ public class TeacherQuestionResponse {
     private Integer audioDuration;
     private Instant createdAt;
     private Instant updatedAt;
+    // Format-specific metadata
+    private TranslationMetadata translationMetadata;
+    private SentenceWritingMetadata sentenceWritingMetadata;
+    private ErrorCorrectionMetadata errorCorrectionMetadata;
+    private MatchingMetadata matchingMetadata;
 }

@@ -15,12 +15,28 @@ import {
 } from "@/lib/api/grammarContent";
 import { lessonsApi } from "@/lib/api/lessons";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { mapGrammarAiDraftToFormContents } from "@/lib/grammarAiDraftMapper";
 import {
   GrammarDetailModal,
   GrammarBackendEditForm,
 } from "../grammar";
 import { AdminAiGenerateModal } from "./AdminAiGenerateModal";
 import { AdminGrammarAiDraft } from "@/services/adminAiContentService";
+
+function StatusBadge({ status }: { status?: string }) {
+  const s = status || "published";
+  const styles: Record<string, { color: string; bg: string }> = {
+    published: { color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
+    draft: { color: "text-[var(--status-pending)]", bg: "bg-[var(--status-pending)]" },
+  };
+  const cfg = styles[s] || styles.published;
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${cfg.color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.bg}`} />
+      {s.charAt(0).toUpperCase() + s.slice(1)}
+    </span>
+  );
+}
 
 interface AdminGrammarContentPageProps {
   level: string;
@@ -36,6 +52,8 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
   const [editMode, setEditMode] = useState<"create" | "edit" | "view" | undefined>("create");
   const [selectedLesson, setSelectedLesson] = useState<GrammarLessonResponse | null>(null);
   const [selectedLessonDetail, setSelectedLessonDetail] = useState<GrammarDetailResponse | null>(null);
@@ -102,6 +120,36 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
     onError: (error: Error) => toast.error(error.message || "Failed to delete grammar lesson"),
   });
 
+  // Publish mutation
+  const publishMutation = useMutation({
+    mutationFn: (id: string) => adminGrammarApi.publishGrammarLesson(id),
+    onSuccess: async () => {
+      await refreshGrammarQueries();
+      toast.success("Grammar lesson published successfully");
+      setShowPublishConfirm(false);
+      setSelectedLesson(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to publish grammar lesson");
+      setShowPublishConfirm(false);
+    },
+  });
+
+  // Unpublish mutation
+  const unpublishMutation = useMutation({
+    mutationFn: (id: string) => adminGrammarApi.unpublishGrammarLesson(id),
+    onSuccess: async () => {
+      await refreshGrammarQueries();
+      toast.success("Grammar lesson unpublished successfully");
+      setShowUnpublishConfirm(false);
+      setSelectedLesson(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to unpublish grammar lesson");
+      setShowUnpublishConfirm(false);
+    },
+  });
+
   // Get grammar lessons
   const grammars: GrammarLessonResponse[] = lessonsQuery.data ?? [];
 
@@ -149,26 +197,27 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
   }) => {
     if (!draft.grammarDraft) return;
 
-    const contents: GrammarContentRequest[] = draft.grammarDraft.items.map((item, idx) => ({
-      grammarPoint: item.grammarPoint,
-      meaningVietnamese: item.meaningVietnamese,
-      meaningJapanese: item.meaningJapanese || "",
-      explanation: item.explanation || "",
-      exampleSentence: item.exampleSentence || "",
-      notes: item.notes || "",
-      contentOrder: idx + 1,
-    }));
+    // Map AI draft field names → GrammarContentResponse field names that
+    // GrammarBackendEditForm reads (pattern, meaning, structure, usage, examples[]).
+    const contents = mapGrammarAiDraftToFormContents(draft.grammarDraft.items);
 
-    setSelectedLesson(null);
-    setSelectedLessonDetail({
+    const lessonDetail: GrammarDetailResponse = {
       id: "",
+      lessonId: null,
+      jlptLevel: normalizedLevel,
       lessonNumber: nextLessonNumber,
       title: draft.title || "AI Generated Grammar Lesson",
-      level: normalizedLevel,
-      status: "draft",
+      description: draft.description || null,
+      estimatedMinutes: null,
       difficulty: "MEDIUM",
-      contents: contents,
-    } as any);
+      isActive: false,
+      createdAt: "",
+      updatedAt: "",
+      contents,
+    };
+
+    setSelectedLesson(null);
+    setSelectedLessonDetail(lessonDetail);
     setEditMode("create");
     setShowEditModal(true);
   };
@@ -188,6 +237,28 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
   const confirmDelete = () => {
     if (selectedLesson) {
       deleteMutation.mutate(selectedLesson.id);
+    }
+  };
+
+  const handlePublish = (lesson: GrammarLessonResponse) => {
+    setSelectedLesson(lesson);
+    setShowPublishConfirm(true);
+  };
+
+  const handleUnpublish = (lesson: GrammarLessonResponse) => {
+    setSelectedLesson(lesson);
+    setShowUnpublishConfirm(true);
+  };
+
+  const confirmPublish = () => {
+    if (selectedLesson) {
+      publishMutation.mutate(selectedLesson.id);
+    }
+  };
+
+  const confirmUnpublish = () => {
+    if (selectedLesson) {
+      unpublishMutation.mutate(selectedLesson.id);
     }
   };
 
@@ -296,12 +367,15 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
       {/* Table */}
       <div className="card-base overflow-hidden">
         {/* Table Header */}
-        <div className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-3 border-b separator items-center">
+        <div className="grid grid-cols-[60px_1fr_120px_auto] gap-4 px-5 py-3 border-b separator items-center">
           <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
             Lesson #
           </div>
           <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
             Title
+          </div>
+          <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            Status
           </div>
           <div className="text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
             Actions
@@ -332,13 +406,31 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-4 hover:bg-lavender/5 transition items-center"
+                className="grid grid-cols-[60px_1fr_120px_auto] gap-4 px-5 py-4 hover:bg-lavender/5 transition items-center"
               >
                 <div className="text-sm font-medium text-muted-col whitespace-nowrap">
                   #{item.lessonNumber}
                 </div>
                 <div className="font-medium text-sm text-primary-col">{item.title}</div>
+                <div className="flex items-center">
+                  <StatusBadge status={item.isActive ? "published" : "draft"} />
+                </div>
                 <div className="flex items-center gap-1.5">
+                  {item.isActive ? (
+                    <button
+                      onClick={() => handleUnpublish(item)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
+                    >
+                      Unpublish
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handlePublish(item)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition text-xs font-medium"
+                    >
+                      Publish
+                    </button>
+                  )}
                   <button
                     onClick={() => handleEdit(item)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
@@ -394,6 +486,42 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
             ? `Are you sure you want to delete "${selectedLesson.title}"? This action cannot be undone.`
             : ""
         }
+      />
+
+      {/* Publish Confirmation */}
+      <ConfirmDialog
+        open={showPublishConfirm}
+        onClose={() => {
+          setShowPublishConfirm(false);
+          setSelectedLesson(null);
+        }}
+        onConfirm={confirmPublish}
+        title="Publish Grammar Lesson"
+        message={
+          selectedLesson
+            ? `Are you sure you want to publish "${selectedLesson.title}"? This will make it visible to students.`
+            : ""
+        }
+        confirmText="Publish"
+        confirmVariant="primary"
+      />
+
+      {/* Unpublish Confirmation */}
+      <ConfirmDialog
+        open={showUnpublishConfirm}
+        onClose={() => {
+          setShowUnpublishConfirm(false);
+          setSelectedLesson(null);
+        }}
+        onConfirm={confirmUnpublish}
+        title="Unpublish Grammar Lesson"
+        message={
+          selectedLesson
+            ? `Are you sure you want to unpublish "${selectedLesson.title}"? This will hide it from students.`
+            : ""
+        }
+        confirmText="Unpublish"
+        confirmVariant="warning"
       />
 
       {/* AI Generate Modal */}

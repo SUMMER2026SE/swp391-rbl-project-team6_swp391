@@ -40,7 +40,11 @@ public class OpenRouterKeyManager {
     public String getCurrentKey() {
         if (remaining == 0) return null;
         int idx = currentIndex.get();
-        return allKeys[idx];
+        String candidate = allKeys[idx];
+        if (candidate != null && !com.midori.ai.core.AiProviderStateManager.isKeyInCooldown("OPENROUTER", mask(candidate))) {
+            return candidate;
+        }
+        return getNextKey();
     }
 
     /**
@@ -66,19 +70,22 @@ public class OpenRouterKeyManager {
 
     /**
      * Rotate to the next key after a temporary failure (429, timeout, network).
-     * Skips permanently excluded keys.
+     * Skips permanently excluded or cooling keys.
      */
     public String getNextKey() {
         if (remaining == 0) return null;
-        if (allKeys.length <= 1) return allKeys.length == 1 ? allKeys[0] : null;
+        if (allKeys.length <= 1) {
+            String only = allKeys[0];
+            return (only != null && !com.midori.ai.core.AiProviderStateManager.isKeyInCooldown("OPENROUTER", mask(only))) ? only : null;
+        }
 
         int next = (currentIndex.incrementAndGet()) % allKeys.length;
-        // Spin until we land on a key that is still active
         int scanned = 0;
         while (scanned < allKeys.length) {
-            if (allKeys[next] != null) {
+            String candidate = allKeys[next];
+            if (candidate != null && !com.midori.ai.core.AiProviderStateManager.isKeyInCooldown("OPENROUTER", mask(candidate))) {
                 currentIndex.set(next);
-                return allKeys[next];
+                return candidate;
             }
             next = (next + 1) % allKeys.length;
             scanned++;

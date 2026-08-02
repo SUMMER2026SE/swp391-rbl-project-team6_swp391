@@ -402,6 +402,7 @@ public class VocabularyLessonServiceImpl implements VocabularyLessonService {
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         lesson.setIsActive(true);
+        lesson.setIsPublished(true);
         lesson = vocabularyLessonRepository.save(lesson);
         log.info("Published vocabulary lesson: {}", lessonId);
 
@@ -416,6 +417,7 @@ public class VocabularyLessonServiceImpl implements VocabularyLessonService {
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         lesson.setIsActive(false);
+        lesson.setIsPublished(false);
         lesson = vocabularyLessonRepository.save(lesson);
         log.info("Unpublished vocabulary lesson: {}", lessonId);
 
@@ -433,6 +435,7 @@ public class VocabularyLessonServiceImpl implements VocabularyLessonService {
                 .estimatedMinutes(lesson.getEstimatedMinutes())
                 .difficulty(lesson.getDifficulty() != null ? lesson.getDifficulty().name() : null)
                 .isActive(lesson.getIsActive())
+                .isPublished(lesson.getIsPublished())
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
                 .build();
@@ -449,6 +452,7 @@ public class VocabularyLessonServiceImpl implements VocabularyLessonService {
                 .estimatedMinutes(lesson.getEstimatedMinutes())
                 .difficulty(lesson.getDifficulty() != null ? lesson.getDifficulty().name() : null)
                 .isActive(lesson.getIsActive())
+                .isPublished(lesson.getIsPublished())
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
                 .items(items)

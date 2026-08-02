@@ -35,6 +35,25 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AiLearningContentService {
 
+    public static class SourceRecord {
+        private String id;
+        private String kanji;
+        private String reading;
+        private String meaning;
+        private String example;
+
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        public String getKanji() { return kanji; }
+        public void setKanji(String kanji) { this.kanji = kanji; }
+        public String getReading() { return reading; }
+        public void setReading(String reading) { this.reading = reading; }
+        public String getMeaning() { return meaning; }
+        public void setMeaning(String meaning) { this.meaning = meaning; }
+        public String getExample() { return example; }
+        public void setExample(String example) { this.example = example; }
+    }
+
     private final VocabularyLessonRepository vocabularyLessonRepository;
     private final GrammarLessonRepository grammarLessonRepository;
     private final ReadingLessonRepository readingLessonRepository;
@@ -44,6 +63,7 @@ public class AiLearningContentService {
     private final GrammarExampleRepository grammarExampleRepository;
     private final com.midori.ai.core.AiCoreService aiCoreService;
     private final ObjectMapper objectMapper;
+    private final com.midori.ai.util.QuestionSemanticValidator semanticValidator;
 
     /**
      * Build a combined learning content string from all relevant lesson types
@@ -221,84 +241,200 @@ public class AiLearningContentService {
         return generateQuestions(materialTitle, learningContent, questionCount, difficulty, selectedSkills, null);
     }
 
-    /**
-     * Call AI to generate questions from the provided learning content, with optional source passage.
-     */
     public AiExamParseResponse generateQuestions(String materialTitle, String learningContent,
+                                                List<SourceRecord> sourceRecords,
                                                 int questionCount, String difficulty,
                                                 List<String> selectedSkills, String sourcePassage) {
+        // Source records path: delegate to main 6-param implementation
+        return generateQuestions(materialTitle, learningContent, questionCount, difficulty, selectedSkills, sourcePassage);
+    }
+
+    /**
+     * Call AI to generate questions from the provided learning content, with optional source passage.
+     * Always uses MULTIPLE_CHOICE (backward-compatible default).
+     */
+    public AiExamParseResponse generateQuestions(String materialTitle, String learningContent,
+                                                 int questionCount, String difficulty,
+                                                 List<String> selectedSkills, String sourcePassage) {
         if (learningContent == null || learningContent.isBlank()) {
             log.warn("[AiLearningContent] No content to generate questions from");
             return AiExamParseResponse.empty();
         }
 
-        log.info("[AiLearningContent] Generating {} questions for: {}", questionCount, materialTitle);
+        validateSkillSelection(selectedSkills);
+        if (isWritingRequest(selectedSkills, null)) {
+            return generateWritingFlow(materialTitle, learningContent, questionCount, null, 0, 0, 0, sourcePassage);
+        }
+
+        return generateQuestions(materialTitle, learningContent, questionCount, difficulty, selectedSkills, sourcePassage, "MULTIPLE_CHOICE");
+    }
+
+    /**
+     * Call AI to generate questions from the provided learning content, with optional source passage
+     * and a specific question type/format.
+     *
+     * @param materialTitle    title for logging
+     * @param learningContent the formatted learning content string
+     * @param questionCount   how many questions to generate
+     * @param difficulty      EASY, MEDIUM, or HARD
+     * @param selectedSkills  skills to include
+     * @param sourcePassage   optional source passage for passage-based questions
+     * @param questionType    specific question type (e.g. MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK,
+     *                        SHORT_ANSWER, MATCHING, TRANSLATION, SENTENCE_WRITING, ERROR_CORRECTION).
+     *                        Null means MULTIPLE_CHOICE (backward-compatible default).
+     * @return AiExamParseResponse with sanitized questions
+     */
+    public AiExamParseResponse generateQuestions(String materialTitle, String learningContent,
+                                                 int questionCount, String difficulty,
+                                                 List<String> selectedSkills, String sourcePassage,
+                                                 String questionType) {
+        if (learningContent == null || learningContent.isBlank()) {
+            log.warn("[AiLearningContent] No content to generate questions from");
+            return AiExamParseResponse.empty();
+        }
+
+        validateSkillSelection(selectedSkills);
+        if (isWritingRequest(selectedSkills, null)) {
+            return generateWritingFlow(materialTitle, learningContent, questionCount, null, 0, 0, 0, sourcePassage);
+        }
+
+        // Determine the question type: use provided type or default to MULTIPLE_CHOICE
+        String effectiveQuestionType = questionType;
+        if (effectiveQuestionType == null || effectiveQuestionType.isBlank()) {
+            effectiveQuestionType = "MULTIPLE_CHOICE";
+        }
+        // Normalize to canonical enum name so aliases (MCQ, FILL_IN_BLANK, etc.) work
+        com.midori.entity.QuestionType normalized =
+                com.midori.ai.util.QuestionTypeValidator.normalize(effectiveQuestionType);
+        if (normalized != null) {
+            effectiveQuestionType = normalized.name();
+        }
+
+        log.info("[AiLearningContent] Generating {} questions (type={}) for: {}", questionCount, effectiveQuestionType, materialTitle);
+        com.midori.ai.core.AiCoreService.setRequestQuestionCount(questionCount);
+        if (selectedSkills != null && selectedSkills.contains("READING")) {
+            com.midori.ai.core.AiCoreService.setReadingTask(true);
+        }
 
         List<AiExamParseResponse.AiQuestionDto> merged = new ArrayList<>();
         int attempt = 0;
-        int maxAttempts = 5;
+        int maxAttempts = Math.max(MAX_SUPPLEMENT_ATTEMPTS, (int) Math.ceil((double) questionCount / com.midori.ai.util.AiQuestionBatcher.MAX_QUESTIONS_PER_AI_CALL) + 3);
         while (attempt < maxAttempts) {
-            int needed = questionCount - merged.size();
+            int needed = Math.min(questionCount - merged.size(), com.midori.ai.util.AiQuestionBatcher.MAX_QUESTIONS_PER_AI_CALL);
             if (needed <= 0) break;
 
-            String attemptPromptContent = learningContent;
-            if (attempt > 0 && !merged.isEmpty()) {
-                StringBuilder sb = new StringBuilder(learningContent);
-                sb.append("\n\nGenerate exactly ").append(needed).append(" NEW questions.\n");
-                sb.append("Do not repeat or paraphrase any of the following existing questions:\n");
-                int limit = Math.min(merged.size(), 15);
-                for (int i = 0; i < limit; i++) {
-                    sb.append("- ").append(merged.get(i).getContent()).append("\n");
+            try {
+                com.midori.ai.core.AiCoreService.checkTimeout();
+                com.midori.ai.core.AiCoreService.currentRound.set(attempt + 1);
+                com.midori.ai.core.AiCoreService.currentBatchQuestionCount.set(needed);
+
+                String attemptPromptContent = learningContent;
+                if (attempt > 0 && !merged.isEmpty()) {
+                    StringBuilder sb = new StringBuilder(learningContent);
+                    sb.append("\n\nGenerate exactly ").append(needed).append(" NEW questions.\n");
+                    sb.append("Do not repeat or paraphrase any of the following existing questions:\n");
+                    int limit = Math.min(merged.size(), 15);
+                    for (int i = 0; i < limit; i++) {
+                        sb.append("- ").append(merged.get(i).getContent()).append("\n");
+                    }
+                    sb.append("Return only the requested JSON question array.\n");
+                    attemptPromptContent = sb.toString();
                 }
-                sb.append("Return only the requested JSON question array.\n");
-                attemptPromptContent = sb.toString();
-            }
 
-            String rawResponse = aiCoreService.generateQuestions(
-                    materialTitle,
-                    attemptPromptContent,
-                    needed,
-                    "MULTIPLE_CHOICE",
-                    difficulty,
-                    selectedSkills
-            );
+                String rawResponse = aiCoreService.generateQuestions(
+                        materialTitle,
+                        attemptPromptContent,
+                        needed,
+                        effectiveQuestionType,
+                        difficulty,
+                        selectedSkills
+                );
 
-            AiExamParseResponse parsed = parseAiResponse(rawResponse);
+                AiExamParseResponse parsed = parseAiResponse(rawResponse);
 
-            AiExistingQuestionParser.GenerateSanitizeResult sanitized =
-                    AiExistingQuestionParser.sanitizeGeneratedQuestions(
-                            parsed.getQuestions(),
-                            selectedSkills,
-                            sourcePassage
-                    );
+                // Use the type-aware sanitizer so FILL_BLANK, SHORT_ANSWER, and TRUE_FALSE
+                // questions are validated according to their own structural rules instead of
+                // the MCQ ≥2-options rule that the legacy 3-param sanitizer enforces.
+                com.midori.entity.QuestionType sanitizeExpectedType =
+                        com.midori.ai.util.QuestionTypeValidator.normalize(effectiveQuestionType);
+                AiExistingQuestionParser.GenerateSanitizeResult sanitized =
+                        AiExistingQuestionParser.sanitizeGeneratedQuestionsWithTypeAndDistribution(
+                                parsed.getQuestions(),
+                                selectedSkills,
+                                sourcePassage,
+                                sanitizeExpectedType,
+                                null   // no per-bucket cap for single-difficulty path
+                        );
 
-            Set<String> seen = new HashSet<>();
-            for (AiExamParseResponse.AiQuestionDto existing : merged) {
-                seen.add(fingerprint(existing));
-            }
+                Set<String> seen = new HashSet<>();
+                for (AiExamParseResponse.AiQuestionDto existing : merged) {
+                    seen.add(fingerprint(existing));
+                }
 
-            int added = 0;
-            for (AiExamParseResponse.AiQuestionDto q : sanitized.questions) {
-                String fp = fingerprint(q);
-                if (!seen.add(fp)) continue;
-                merged.add(q);
-                added++;
+                int added = 0;
+                int duplicates = 0;
+                for (AiExamParseResponse.AiQuestionDto q : sanitized.questions) {
+                    String fp = fingerprint(q);
+                    if (!seen.add(fp)) {
+                        duplicates++;
+                        continue;
+                    }
+                    merged.add(q);
+                    added++;
+                    if (merged.size() >= questionCount) break;
+                }
+                recordSuccessfulGeneration(added);
+
+                log.info("[AiLearningContent] Attempt: {}, Requested Remaining: {}, Accepted This Attempt: {}, Accepted Total: {}, Duplicates Removed: {}, Validation Reject Counts: {}, Termination Reason: None",
+                        attempt + 1,
+                        needed,
+                        added,
+                        merged.size(),
+                        duplicates,
+                        sanitized.droppedByReason);
+
                 if (merged.size() >= questionCount) break;
+
+                // Determine if all questions were rejected due to the same deterministic validation reason
+                if (sanitized.finalCount == 0 && sanitized.rawGeneratedCount > 0) {
+                    boolean allDeterministic = com.midori.ai.util.AiExistingQuestionParser.isDeterministicValidationRound(sanitized.droppedByReason);
+                    if (allDeterministic) {
+                        log.warn("[AiLearningContent] Attempt: {}, Requested Remaining: {}, Accepted This Attempt: {}, Accepted Total: {}, Duplicates Removed: {}, Validation Reject Counts: {}, Termination Reason: Deterministic validation failure",
+                                attempt + 1, needed, added, merged.size(), duplicates, sanitized.droppedByReason);
+                        break;
+                    }
+                }
+
+                attempt++;
+            } catch (com.midori.exception.AiException.RequestTimeoutException e) {
+                // Hard deadline reached — stop immediately and return what we have.
+                log.warn("[AiLearningContent] Request deadline reached during single-difficulty generation, attempt: {}, merged size: {}, error: {}",
+                         attempt + 1, merged.size(), e.getMessage());
+                if (merged.isEmpty()) throw e;
+                break;
+            } catch (com.midori.exception.AiException e) {
+                log.warn("[AiLearningContent] AI exception during single-difficulty generation, attempt: {}, merged size: {}, error: {}",
+                         attempt + 1, merged.size(), e.getMessage());
+                if (!isRetryableException(e)) {
+                    log.warn("[AiLearningContent] Non-retryable AI exception, stopping immediately.");
+                    if (!merged.isEmpty()) {
+                        break;
+                    }
+                    throw e;
+                }
+                attempt++;
+                if (attempt >= maxAttempts) {
+                    if (!merged.isEmpty()) {
+                        break;
+                    }
+                    throw e;
+                }
             }
+        }
 
-            log.info("[AiDiagnostic] Flow: SINGLE_DIFFICULTY, Attempt: {}, Total Requested: {}, Missing Requested: {}, Raw/Parsed: {}, Sanitized/Validated: {}, Unique New: {}, Merged Total: {}/{}, Rejected By Reason: {}",
-                    attempt + 1,
-                    questionCount,
-                    needed,
-                    parsed.getQuestions() != null ? parsed.getQuestions().size() : 0,
-                    sanitized.finalCount,
-                    added,
-                    merged.size(),
-                    questionCount,
-                    sanitized.droppedByReason);
-
-            if (merged.size() >= questionCount) break;
-            attempt++;
+        // Trim any overflow to requestedCount to ensure we never return more than requested
+        if (merged.size() > questionCount) {
+            merged = new ArrayList<>(merged.subList(0, questionCount));
         }
 
         applyBalancedRandomization(merged);
@@ -307,15 +443,20 @@ public class AiLearningContentService {
         response.setTitle(materialTitle);
         response.setDescription("AI-generated questions from " + materialTitle);
         response.setQuestions(merged);
+        response.setRequestedCount(questionCount);
+        response.setGeneratedCount(merged.size());
 
         if (merged.size() < questionCount) {
-            String msg = "AI generated " + merged.size() + " of " + questionCount
-                    + " valid questions. Please retry.";
-            if (merged.isEmpty()) {
-                response.setErrorMessage(msg);
-            }
+            response.setSuccess(true);
+            response.setPartial(true);
+            response.setCode("AI_PARTIAL_RESULT");
+            String msg = merged.size() + " of " + questionCount
+                    + " questions were generated. Please try again.";
+            response.setErrorMessage(msg);
             log.warn("[AiLearningContent] Shortfall on {}: {}", materialTitle, msg);
         } else {
+            response.setSuccess(true);
+            response.setPartial(false);
             log.info("[AiLearningContent] Successfully generated {} questions for {}", merged.size(), materialTitle);
         }
         return response;
@@ -352,12 +493,29 @@ public class AiLearningContentService {
             int easyPct, int mediumPct, int hardPct,
             List<String> selectedSkills,
             String sourcePassage) {
+        return generateQuestionsWithDistribution(materialTitle, learningContent, new ArrayList<>(), totalCount, questionTypeRaw, easyPct, mediumPct, hardPct, selectedSkills, sourcePassage);
+    }
+
+    public AiExamParseResponse generateQuestionsWithDistribution(
+            String materialTitle,
+            String learningContent,
+            List<SourceRecord> sourceRecords,
+            int totalCount,
+            String questionTypeRaw,
+            int easyPct, int mediumPct, int hardPct,
+            List<String> selectedSkills,
+            String sourcePassage) {
 
         if (learningContent == null || learningContent.isBlank()) {
             log.warn("[AiLearningContent] No content to generate questions from");
             AiExamParseResponse empty = AiExamParseResponse.empty();
             empty.setErrorMessage("Learning content is empty. Please upload a different PDF.");
             return empty;
+        }
+
+        validateSkillSelection(selectedSkills);
+        if (isWritingRequest(selectedSkills, questionTypeRaw)) {
+            return generateWritingFlow(materialTitle, learningContent, totalCount, questionTypeRaw, easyPct, mediumPct, hardPct, sourcePassage);
         }
 
         DifficultyDistribution.validateCount(totalCount);
@@ -380,76 +538,125 @@ public class AiLearningContentService {
         remaining.put(Difficulty.MEDIUM, distribution.getOrDefault(Difficulty.MEDIUM, 0));
         remaining.put(Difficulty.HARD, distribution.getOrDefault(Difficulty.HARD, 0));
 
+        com.midori.ai.core.AiCoreService.setRequestQuestionCount(totalCount);
+        if (selectedSkills != null && selectedSkills.contains("READING")) {
+            com.midori.ai.core.AiCoreService.setReadingTask(true);
+        }
         List<AiExamParseResponse.AiQuestionDto> merged = new ArrayList<>();
         int attempt = 0;
-        while (attempt <= MAX_SUPPLEMENT_ATTEMPTS) {
-            Map<Difficulty, Integer> request = cloneMap(remaining);
+        int maxAttempts = Math.max(MAX_SUPPLEMENT_ATTEMPTS, (int) Math.ceil((double) totalCount / com.midori.ai.util.AiQuestionBatcher.MAX_QUESTIONS_PER_AI_CALL) + 3);
+        while (attempt < maxAttempts) {
+            Map<Difficulty, Integer> request = capDistributionToBatchLimit(remaining);
             int requestTotal = sumValues(request);
             if (requestTotal <= 0) break;
 
-            String attemptPromptContent = learningContent;
-            if (attempt > 0 && !merged.isEmpty()) {
-                StringBuilder sb = new StringBuilder(learningContent);
-                sb.append("\n\nGenerate exactly ").append(requestTotal).append(" NEW questions.\n");
-                sb.append("Do not repeat or paraphrase any of the following existing questions:\n");
-                int limit = Math.min(merged.size(), 15);
-                for (int i = 0; i < limit; i++) {
-                    sb.append("- ").append(merged.get(i).getContent()).append("\n");
+            try {
+                com.midori.ai.core.AiCoreService.checkTimeout();
+                com.midori.ai.core.AiCoreService.currentRound.set(attempt + 1);
+                com.midori.ai.core.AiCoreService.currentBatchQuestionCount.set(requestTotal);
+
+                String attemptPromptContent = learningContent;
+                if (attempt > 0 && !merged.isEmpty()) {
+                    StringBuilder sb = new StringBuilder(learningContent);
+                    sb.append("\n\nGenerate exactly ").append(requestTotal).append(" NEW questions.\n");
+                    sb.append("Do not repeat or paraphrase any of the following existing questions:\n");
+                    int limit = Math.min(merged.size(), 15);
+                    for (int i = 0; i < limit; i++) {
+                        sb.append("- ").append(merged.get(i).getContent()).append("\n");
+                    }
+                    sb.append("Return only the requested JSON question array.\n");
+                    attemptPromptContent = sb.toString();
                 }
-                sb.append("Return only the requested JSON question array.\n");
-                attemptPromptContent = sb.toString();
-            }
 
-            String distributionLine = DifficultyDistribution.formatForPrompt(request);
-            String rawResponse = aiCoreService.generateQuestionsWithDistribution(
-                    materialTitle,
-                    attemptPromptContent,
-                    requestTotal,
-                    expectedType.name(),
-                    distributionLine,
-                    selectedSkills);
+                String distributionLine = DifficultyDistribution.formatForPrompt(request);
+                String rawResponse = aiCoreService.generateQuestionsWithDistribution(
+                        materialTitle,
+                        attemptPromptContent,
+                        requestTotal,
+                        expectedType.name(),
+                        distributionLine,
+                        selectedSkills);
 
-            AiExamParseResponse parsed = parseAiResponse(rawResponse);
-            AiExistingQuestionParser.GenerateSanitizeResult sanitized =
-                    AiExistingQuestionParser.sanitizeGeneratedQuestionsWithTypeAndDistribution(
-                            parsed.getQuestions(),
-                            selectedSkills,
-                            sourcePassage,
-                            expectedType,
-                            request);
+                AiExamParseResponse parsed = parseAiResponse(rawResponse);
+                AiExistingQuestionParser.GenerateSanitizeResult sanitized =
+                        AiExistingQuestionParser.sanitizeGeneratedQuestionsWithTypeAndDistribution(
+                                parsed.getQuestions(),
+                                selectedSkills,
+                                sourcePassage,
+                                expectedType,
+                                request);
 
-            // Merge while preserving order; dedupe by content+type+correct answer.
-            Set<String> seen = new HashSet<>();
-            for (AiExamParseResponse.AiQuestionDto existing : merged) {
-                seen.add(fingerprint(existing));
-            }
-            int added = 0;
-            for (AiExamParseResponse.AiQuestionDto q : sanitized.questions) {
-                String fp = fingerprint(q);
-                if (!seen.add(fp)) continue;
-                merged.add(q);
-                added++;
-                Difficulty bucket = bucketOf(q);
-                if (bucket != null) {
-                    remaining.put(bucket, Math.max(0, remaining.getOrDefault(bucket, 0) - 1));
+                // Merge while preserving order; dedupe by content+type+correct answer.
+                Set<String> seen = new HashSet<>();
+                for (AiExamParseResponse.AiQuestionDto existing : merged) {
+                    seen.add(fingerprint(existing));
                 }
+                int added = 0;
+                int duplicates = 0;
+                for (AiExamParseResponse.AiQuestionDto q : sanitized.questions) {
+                    String fp = fingerprint(q);
+                    if (!seen.add(fp)) {
+                        duplicates++;
+                        continue;
+                    }
+                    merged.add(q);
+                    added++;
+                    Difficulty bucket = bucketOf(q);
+                    if (bucket != null) {
+                        remaining.put(bucket, Math.max(0, remaining.getOrDefault(bucket, 0) - 1));
+                    }
+                    if (merged.size() >= totalCount) break;
+                }
+                recordSuccessfulGeneration(added);
+
+                log.info("[AiLearningContent] Attempt: {}, Requested Remaining: {}, Accepted This Attempt: {}, Accepted Total: {}, Duplicates Removed: {}, Validation Reject Counts: {}, Termination Reason: None",
+                        attempt + 1,
+                        requestTotal,
+                        added,
+                        merged.size(),
+                        duplicates,
+                        sanitized.droppedByReason);
+
                 if (merged.size() >= totalCount) break;
+
+                // Determine if all questions were rejected due to the same deterministic validation reason
+                if (sanitized.finalCount == 0 && sanitized.rawGeneratedCount > 0) {
+                    boolean allDeterministic = com.midori.ai.util.AiExistingQuestionParser.isDeterministicValidationRound(sanitized.droppedByReason);
+                    if (allDeterministic) {
+                        log.warn("[AiLearningContent] Attempt: {}, Requested Remaining: {}, Accepted This Attempt: {}, Accepted Total: {}, Duplicates Removed: {}, Validation Reject Counts: {}, Termination Reason: Deterministic validation failure",
+                                attempt + 1, requestTotal, added, merged.size(), duplicates, sanitized.droppedByReason);
+                        break;
+                    }
+                }
+
+                int shortfall = totalCount - merged.size();
+                if (shortfall <= 0) break;
+                attempt++;
+            } catch (com.midori.exception.AiException.RequestTimeoutException e) {
+                // Hard deadline reached — stop the loop immediately.
+                // Return whatever questions we have so far (may be 0 on first round).
+                log.warn("[AiLearningContent] Request deadline reached during distribution generation, attempt: {}, merged size: {}, error: {}",
+                         attempt + 1, merged.size(), e.getMessage());
+                if (merged.isEmpty()) throw e;
+                break;
+            } catch (com.midori.exception.AiException e) {
+                log.warn("[AiLearningContent] AI exception during distribution generation, attempt: {}, merged size: {}, error: {}",
+                         attempt + 1, merged.size(), e.getMessage());
+                if (!isRetryableException(e)) {
+                    log.warn("[AiLearningContent] Non-retryable AI exception, stopping immediately.");
+                    if (!merged.isEmpty()) {
+                        break;
+                    }
+                    throw e;
+                }
+                attempt++;
+                if (attempt >= maxAttempts) {
+                    if (!merged.isEmpty()) {
+                        break;
+                    }
+                    throw e;
+                }
             }
-
-            log.info("[AiDiagnostic] Flow: DISTRIBUTION, Attempt: {}, Total Requested: {}, Missing Requested: {}, Raw/Parsed: {}, Sanitized/Validated: {}, Unique New: {}, Merged Total: {}/{}, Rejected By Reason: {}",
-                    attempt + 1,
-                    totalCount,
-                    requestTotal,
-                    parsed.getQuestions() != null ? parsed.getQuestions().size() : 0,
-                    sanitized.finalCount,
-                    added,
-                    merged.size(),
-                    totalCount,
-                    sanitized.droppedByReason);
-
-            int shortfall = totalCount - merged.size();
-            if (shortfall <= 0) break;
-            attempt++;
         }
 
         // Trim any overflow (defense in depth: should not happen given the
@@ -465,16 +672,181 @@ public class AiLearningContentService {
         response.setTitle(materialTitle);
         response.setDescription("AI-generated questions from " + materialTitle);
         response.setQuestions(merged);
+        response.setRequestedCount(totalCount);
+        response.setGeneratedCount(merged.size());
 
         if (merged.size() < totalCount) {
-            String msg = "AI generated " + merged.size() + " of " + totalCount
-                    + " valid questions. Please retry.";
-            if (merged.isEmpty()) {
-                response.setErrorMessage(msg);
-            }
+            response.setSuccess(true);
+            response.setPartial(true);
+            response.setCode("AI_PARTIAL_RESULT");
+            String msg = merged.size() + " of " + totalCount
+                    + " questions were generated. Please try again.";
+            response.setErrorMessage(msg);
             log.warn("[AiLearningContent] Shortfall on {}: {}", materialTitle, msg);
         } else {
+            response.setSuccess(true);
+            response.setPartial(false);
             log.info("[AiLearningContent] Successfully generated {} questions for {}", merged.size(), materialTitle);
+        }
+        return response;
+    }
+
+    private void validateSkillSelection(List<String> selectedSkills) {
+        if (selectedSkills == null || selectedSkills.isEmpty()) return;
+        boolean hasWriting = selectedSkills.stream().anyMatch(s -> s != null && "WRITING".equalsIgnoreCase(s));
+        if (hasWriting && selectedSkills.size() > 1) {
+            throw new IllegalArgumentException("WRITING must be generated separately from Vocabulary, Grammar, and Reading.");
+        }
+    }
+
+    private boolean isWritingRequest(List<String> selectedSkills, String questionTypeRaw) {
+        if (selectedSkills != null && selectedSkills.stream().anyMatch(s -> s != null && "WRITING".equalsIgnoreCase(s))) {
+            return true;
+        }
+        if (questionTypeRaw != null && com.midori.ai.dto.WritingMode.parse(questionTypeRaw) != null &&
+            com.midori.ai.util.QuestionTypeValidator.normalize(questionTypeRaw) == null) {
+            return true;
+        }
+        return false;
+    }
+
+    private AiExamParseResponse generateWritingFlow(
+            String materialTitle,
+            String learningContent,
+            int totalCount,
+            String writingModeRaw,
+            int easyPct, int mediumPct, int hardPct,
+            String sourcePassage) {
+
+        DifficultyDistribution.validateCount(totalCount);
+        if (easyPct + mediumPct + hardPct > 0) {
+            DifficultyDistribution.validatePercentages(easyPct, mediumPct, hardPct);
+        }
+        Map<Difficulty, Integer> distribution = (easyPct + mediumPct + hardPct > 0)
+                ? DifficultyDistribution.allocate(totalCount, easyPct, mediumPct, hardPct)
+                : Map.of(Difficulty.MEDIUM, totalCount);
+
+        com.midori.ai.dto.WritingMode mode = com.midori.ai.dto.WritingMode.parse(writingModeRaw);
+
+        log.info("[AiLearningContent] Generating {} WRITING questions (mode={}, distribution={}) for: {}",
+                totalCount, mode, DifficultyDistribution.formatForPrompt(distribution), materialTitle);
+
+        com.midori.ai.core.AiCoreService.setRequestQuestionCount(totalCount);
+        List<AiExamParseResponse.AiQuestionDto> merged = new ArrayList<>();
+        int attempt = 0;
+        int maxAttempts = Math.max(MAX_SUPPLEMENT_ATTEMPTS, (int) Math.ceil((double) totalCount / com.midori.ai.util.AiQuestionBatcher.MAX_QUESTIONS_PER_AI_CALL) + 3);
+
+        while (attempt < maxAttempts) {
+            int needed = Math.min(totalCount - merged.size(), com.midori.ai.util.AiQuestionBatcher.MAX_QUESTIONS_PER_AI_CALL);
+            if (needed <= 0) break;
+
+            try {
+                com.midori.ai.core.AiCoreService.checkTimeout();
+                com.midori.ai.core.AiCoreService.currentRound.set(attempt + 1);
+                com.midori.ai.core.AiCoreService.currentBatchQuestionCount.set(needed);
+
+                String distLine = DifficultyDistribution.formatForPrompt(distribution);
+                String attemptPromptContent = learningContent;
+                if (attempt > 0 && !merged.isEmpty()) {
+                    StringBuilder sb = new StringBuilder(learningContent);
+                    sb.append("\n\nGenerate exactly ").append(needed).append(" NEW writing questions.\n");
+                    sb.append("Do not repeat any of these existing questions:\n");
+                    int limit = Math.min(merged.size(), 15);
+                    for (int i = 0; i < limit; i++) {
+                        sb.append("- ").append(merged.get(i).getContent()).append("\n");
+                    }
+                    attemptPromptContent = sb.toString();
+                }
+
+                String rawResponse = aiCoreService.generateWritingQuestions(
+                        attemptPromptContent, needed, "Any", distLine, mode
+                );
+
+                AiExamParseResponse parsed = parseAiResponse(rawResponse);
+
+                com.midori.ai.util.AiExistingQuestionParser.GenerateSanitizeResult sanitized =
+                        com.midori.ai.util.WritingQuestionValidator.sanitizeWritingQuestions(
+                                parsed.getQuestions(), mode, sourcePassage, distribution
+                        );
+
+                Set<String> seen = new HashSet<>();
+                for (AiExamParseResponse.AiQuestionDto existing : merged) {
+                    seen.add(fingerprint(existing));
+                }
+
+                int added = 0;
+                int duplicates = 0;
+                for (AiExamParseResponse.AiQuestionDto q : sanitized.questions) {
+                    String fp = fingerprint(q);
+                    if (!seen.add(fp)) {
+                        duplicates++;
+                        continue;
+                    }
+                    merged.add(q);
+                    added++;
+                    if (merged.size() >= totalCount) break;
+                }
+                recordSuccessfulGeneration(added);
+
+                log.info("[AiLearningContent] WRITING Attempt {}: requested {}, added {}, total {}, duplicates {}, rejected {}",
+                        attempt + 1, needed, added, merged.size(), duplicates, sanitized.droppedByReason);
+
+                if (merged.size() >= totalCount) break;
+                if (sanitized.finalCount == 0 && sanitized.rawGeneratedCount > 0) {
+                    boolean allDeterministic = com.midori.ai.util.AiExistingQuestionParser.isDeterministicValidationRound(sanitized.droppedByReason);
+                    if (allDeterministic) {
+                        break;
+                    }
+                }
+
+                attempt++;
+            } catch (com.midori.exception.AiException.RequestTimeoutException e) {
+                log.warn("[AiLearningContent] Request deadline reached during writing generation, attempt: {}, merged size: {}", attempt + 1, merged.size());
+                if (merged.isEmpty()) throw e;
+                break;
+            } catch (com.midori.exception.AiException e) {
+                log.error("[AiLearningContent] Error on attempt {} for WRITING: {}", attempt + 1, e.getMessage(), e);
+                if (merged.isEmpty() && (attempt >= maxAttempts - 1 || !isRetryableException(e))) {
+                    throw e;
+                }
+                if (merged.isEmpty()) {
+                    attempt++;
+                    continue;
+                }
+                break;
+            } catch (Exception e) {
+                log.error("[AiLearningContent] Unexpected error on attempt {} for WRITING: {}", attempt + 1, e.getMessage(), e);
+                if (merged.isEmpty()) {
+                    if (e instanceof RuntimeException re) throw re;
+                    throw new RuntimeException(e);
+                }
+                break;
+            }
+        }
+
+        if (merged.size() > totalCount) {
+            merged = new ArrayList<>(merged.subList(0, totalCount));
+        }
+        applyBalancedRandomization(merged);
+
+        AiExamParseResponse response = new AiExamParseResponse();
+        response.setTitle(materialTitle);
+        response.setDescription("AI-generated questions from " + materialTitle);
+        response.setQuestions(merged);
+        response.setRequestedCount(totalCount);
+        response.setGeneratedCount(merged.size());
+
+        if (merged.size() < totalCount) {
+            response.setSuccess(true);
+            response.setPartial(true);
+            response.setCode("AI_PARTIAL_RESULT");
+            String msg = merged.size() + " of " + totalCount + " questions were generated. Please try again.";
+            response.setErrorMessage(msg);
+            log.warn("[AiLearningContent] Shortfall on {}: {}", materialTitle, msg);
+        } else {
+            response.setSuccess(true);
+            response.setPartial(false);
+            log.info("[AiLearningContent] Successfully generated {} WRITING questions for {}", merged.size(), materialTitle);
         }
         return response;
     }
@@ -496,22 +868,77 @@ public class AiLearningContentService {
         return s;
     }
 
-    private static String fingerprint(AiExamParseResponse.AiQuestionDto q) {
+    public static String fingerprint(AiExamParseResponse.AiQuestionDto q) {
         if (q == null) return "";
         StringBuilder sb = new StringBuilder();
         sb.append(q.getType() == null ? "" : q.getType().trim().toUpperCase());
         sb.append('|');
-        sb.append(q.getContent() == null ? "" : q.getContent().trim().toLowerCase());
+        sb.append(q.getCategory() == null ? "" : q.getCategory().trim().toLowerCase());
+        sb.append('|');
+        sb.append(q.getContent() == null ? "" : q.getContent().trim().toLowerCase().replaceAll("\\s+", " "));
         sb.append('|');
         if (q.getAnswers() != null) {
             for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
                 if (a == null) continue;
-                sb.append(a.getContent() == null ? "" : a.getContent().trim().toLowerCase());
+                sb.append(a.getContent() == null ? "" : a.getContent().trim().toLowerCase().replaceAll("\\s+", " "));
                 if (Boolean.TRUE.equals(a.getIsCorrect())) sb.append('*');
                 sb.append(';');
             }
         }
+        if (q.getTranslationMetadata() != null) {
+            sb.append("|trans:").append(q.getTranslationMetadata().getSourceText() == null ? "" : q.getTranslationMetadata().getSourceText().trim().toLowerCase().replaceAll("\\s+", " "));
+            sb.append(";").append(q.getTranslationMetadata().getReferenceAnswer() == null ? "" : q.getTranslationMetadata().getReferenceAnswer().trim().toLowerCase().replaceAll("\\s+", " "));
+        }
+        if (q.getSentenceWritingMetadata() != null) {
+            sb.append("|sent:").append(q.getSentenceWritingMetadata().getPrompt() == null ? "" : q.getSentenceWritingMetadata().getPrompt().trim().toLowerCase().replaceAll("\\s+", " "));
+            sb.append(";").append(q.getSentenceWritingMetadata().getReferenceAnswer() == null ? "" : q.getSentenceWritingMetadata().getReferenceAnswer().trim().toLowerCase().replaceAll("\\s+", " "));
+        }
+        if (q.getErrorCorrectionMetadata() != null) {
+            sb.append("|err:").append(q.getErrorCorrectionMetadata().getIncorrectText() == null ? "" : q.getErrorCorrectionMetadata().getIncorrectText().trim().toLowerCase().replaceAll("\\s+", " "));
+            sb.append(";").append(q.getErrorCorrectionMetadata().getCorrectedText() == null ? "" : q.getErrorCorrectionMetadata().getCorrectedText().trim().toLowerCase().replaceAll("\\s+", " "));
+        }
+        if (q.getMatchingMetadata() != null) {
+            sb.append("|match:");
+            if (q.getMatchingMetadata().getLeftItems() != null) {
+                sb.append(String.join(",", q.getMatchingMetadata().getLeftItems()).trim().toLowerCase().replaceAll("\\s+", " "));
+            }
+            sb.append(";");
+            if (q.getMatchingMetadata().getRightItems() != null) {
+                sb.append(String.join(",", q.getMatchingMetadata().getRightItems()).trim().toLowerCase().replaceAll("\\s+", " "));
+            }
+        }
         return sb.toString();
+    }
+
+    public static boolean isRetryableException(com.midori.exception.AiException e) {
+        if (e instanceof com.midori.exception.AiException.RequestTimeoutException) {
+            return false;
+        }
+        if (e instanceof com.midori.exception.AiException.InvalidApiKeyException) {
+            return false;
+        }
+        if (e instanceof com.midori.exception.AiException.ProviderForbiddenException) {
+            return false;
+        }
+        String code = e.getCode();
+        if (code != null) {
+            switch (code) {
+                case "AI_REQUEST_TIMEOUT":
+                case "AI_INVALID_API_KEY":
+                case "AI_PROVIDER_FORBIDDEN":
+                    return false;
+                default:
+                    break;
+            }
+        }
+        String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+        if (msg.contains("bad request") || msg.contains("400") 
+                || msg.contains("invalid request") || msg.contains("malformed")
+                || msg.contains("unsupported model") || msg.contains("model not found")
+                || msg.contains("authentication") || msg.contains("forbidden") || msg.contains("401") || msg.contains("403")) {
+            return false;
+        }
+        return true;
     }
 
     private static Difficulty bucketOf(AiExamParseResponse.AiQuestionDto q) {
@@ -600,14 +1027,193 @@ public class AiLearningContentService {
             return AiExamParseResponse.empty();
         }
         try {
-            String cleaned = AiExistingQuestionParser.cleanJsonResponse(raw);
-            return AiExistingQuestionParser.parseAndNormalize(cleaned, objectMapper);
+            return AiExistingQuestionParser.parseAndNormalize(raw, objectMapper);
         } catch (Exception e) {
             log.error("[AiLearningContent] Failed to parse AI response: {}. First 200 chars: {}",
                     e.getMessage(),
                     raw.length() > 200 ? raw.substring(0, 200) + "..." : raw);
             return AiExamParseResponse.empty();
         }
+    }
+
+    public List<SourceRecord> extractSourceRecords(String text) {
+        List<SourceRecord> records = new ArrayList<>();
+        if (text == null || text.isBlank()) return records;
+
+        String[] lines = text.split("\\r?\\n");
+        int idCounter = 1;
+
+        int i = 0;
+        while (i < lines.length) {
+            String line = lines[i].trim();
+            if (line.startsWith("- ") && line.contains("[") && line.contains("]")) {
+                try {
+                    int dashIdx = line.indexOf('-');
+                    int openIdx = line.indexOf('[');
+                    int closeIdx = line.indexOf(']');
+                    int colonIdx = line.indexOf(':');
+
+                    if (openIdx > dashIdx && closeIdx > openIdx && colonIdx > closeIdx) {
+                        String kanji = line.substring(dashIdx + 1, openIdx).trim();
+                        String reading = line.substring(openIdx + 1, closeIdx).trim();
+                        String meaning = line.substring(colonIdx + 1).trim();
+                        String example = "";
+
+                        if (i + 1 < lines.length && lines[i + 1].trim().startsWith("Example:")) {
+                            example = lines[i + 1].trim().substring(8).trim();
+                            i++;
+                        }
+
+                        SourceRecord record = new SourceRecord();
+                        record.setId("rec_" + idCounter++);
+                        record.setKanji(kanji);
+                        record.setReading(reading);
+                        record.setMeaning(meaning);
+                        record.setExample(example);
+                        records.add(record);
+                    }
+                } catch (Exception e) {
+                    log.warn("[extractSourceRecords] Error parsing line: {}", line);
+                }
+            } else if (line.contains("(") && line.contains(")")) {
+                try {
+                    int openIdx = line.indexOf('(');
+                    int closeIdx = line.indexOf(')');
+                    if (openIdx > 0 && closeIdx > openIdx) {
+                        String kanji = line.substring(0, openIdx).trim();
+                        String reading = line.substring(openIdx + 1, closeIdx).trim();
+
+                        String romaji = "";
+                        if (i + 1 < lines.length && lines[i + 1].trim().startsWith("[") && lines[i + 1].trim().endsWith("]")) {
+                            romaji = lines[i + 1].trim().substring(1, lines[i + 1].trim().length() - 1);
+                            i++;
+                        }
+
+                        String meaning = "";
+                        if (i + 1 < lines.length && !lines[i + 1].trim().isBlank()) {
+                            meaning = lines[i + 1].trim();
+                            i++;
+                        }
+
+                        SourceRecord record = new SourceRecord();
+                        record.setId("rec_" + idCounter++);
+                        record.setKanji(kanji);
+                        record.setReading(reading);
+                        record.setMeaning(meaning);
+                        record.setExample("");
+                        records.add(record);
+                    }
+                } catch (Exception e) {
+                    log.warn("[extractSourceRecords] Error parsing line: {}", line);
+                }
+            }
+            i++;
+        }
+        return records;
+    }
+
+    public String formatSourceRecords(List<SourceRecord> records) {
+        if (records == null || records.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        sb.append("STRUCTURED SOURCE RECORDS (every question MUST target exactly ONE source record by including its id in the \"sourceRecordId\" field. Do not mix details between records):\n");
+        for (var rec : records) {
+            sb.append("- id: ").append(rec.getId())
+              .append(", kanji: ").append(rec.getKanji())
+              .append(", reading: ").append(rec.getReading())
+              .append(", meaning: ").append(rec.getMeaning());
+            if (rec.getExample() != null && !rec.getExample().isBlank()) {
+                sb.append(", example: ").append(rec.getExample());
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    private String classifyStopReason(Throwable t) {
+        if (t == null) return "maximum regeneration attempts reached";
+        String msg = t.getMessage() != null ? t.getMessage().toLowerCase() : "";
+        if (msg.contains("quota") || msg.contains("rate limit") || msg.contains("429")
+                || msg.contains("too many requests") || msg.contains("403") || msg.contains("exhausted")) {
+            return "provider quota exhausted";
+        }
+        if (msg.contains("unavailable") || msg.contains("timeout") || msg.contains("connection")
+                || msg.contains("network") || msg.contains("502") || msg.contains("503")
+                || msg.contains("504") || msg.contains("upstream error") || msg.contains("model not found")
+                || msg.contains("model unavailable")) {
+            return "provider unavailable";
+        }
+        return "provider unavailable";
+    }
+
+    private List<AiExamParseResponse.AiQuestionDto> filterSemanticallyValidQuestions(
+            List<AiExamParseResponse.AiQuestionDto> questions) {
+        if (questions == null || questions.isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            String questionsJson = objectMapper.writeValueAsString(questions);
+            String validationPrompt = com.midori.ai.prompt.AiPromptBuilder.buildSemanticValidationPrompt(questionsJson);
+            String rawJson = aiCoreService.chat(
+                "You are a Japanese language evaluation assistant. You output ONLY valid JSON.",
+                validationPrompt,
+                null
+            );
+
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(AiExistingQuestionParser.cleanJsonResponse(rawJson));
+            com.fasterxml.jackson.databind.JsonNode evals = root.get("evaluations");
+
+            List<AiExamParseResponse.AiQuestionDto> result = new ArrayList<>();
+            if (evals != null && evals.isArray()) {
+                for (int i = 0; i < questions.size() && i < evals.size(); i++) {
+                    com.fasterxml.jackson.databind.JsonNode node = evals.get(i);
+                    boolean isValid = node.get("isValid").asBoolean();
+                    var q = questions.get(i);
+                    if (isValid) {
+                        result.add(q);
+                    }
+                }
+                return result;
+            }
+        } catch (Exception e) {
+            log.error("[SemanticValidation] AI validation failed: {}", e.getMessage(), e);
+        }
+        return questions;
+    }
+
+    private void recordSuccessfulGeneration(int acceptedCount) {
+        if (acceptedCount <= 0) return;
+        com.midori.ai.core.AiProviderStateManager.RouteInfo route = com.midori.ai.core.AiCoreService.lastSuccessfulRoute.get();
+        if (route != null) {
+            com.midori.ai.core.AiProviderStateManager.recordSuccess(
+                    com.midori.ai.AiTaskType.COMPLEX_REASONING,
+                    route.providerType(),
+                    route.model(),
+                    route.keyIndex(),
+                    route.safeKeyId(),
+                    true,
+                    acceptedCount
+            );
+        }
+    }
+
+    private Map<Difficulty, Integer> capDistributionToBatchLimit(Map<Difficulty, Integer> remaining) {
+        int maxBatch = com.midori.ai.util.AiQuestionBatcher.MAX_QUESTIONS_PER_AI_CALL;
+        Map<Difficulty, Integer> request = new java.util.EnumMap<>(Difficulty.class);
+        int added = 0;
+        for (Map.Entry<Difficulty, Integer> entry : remaining.entrySet()) {
+            int canAdd = Math.min(entry.getValue(), maxBatch - added);
+            if (canAdd > 0) {
+                request.put(entry.getKey(), canAdd);
+                added += canAdd;
+            } else {
+                request.put(entry.getKey(), 0);
+            }
+            if (added >= maxBatch) break;
+        }
+        for (Difficulty d : Difficulty.values()) {
+            request.putIfAbsent(d, 0);
+        }
+        return request;
     }
 }
 

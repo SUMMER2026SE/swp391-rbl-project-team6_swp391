@@ -61,7 +61,12 @@ class AiCoreServiceFallbackTest {
         when(factory.resolve(AiProviderType.GEMINI)).thenReturn(geminiProvider);
         when(factory.resolve(AiProviderType.OPENROUTER)).thenReturn(openRouterProvider);
 
+        when(geminiProvider.hasAvailableRoute(any())).thenAnswer(inv -> geminiProvider.isConfigured());
+        when(openRouterProvider.hasAvailableRoute(any())).thenAnswer(inv -> openRouterProvider.isConfigured());
+
         service = new AiCoreService(factory, config);
+        AiCoreService.resetProviderCallCount();
+        AiCoreService.clearAttemptTraces();
     }
 
     // ============================================================

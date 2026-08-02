@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSearch } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
-import { useQuestionBank } from "../services/questionBankService";
+import { useAdminQuestionBankLessons } from "../services/questionBankService";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
 import { AiPdfImportWorkflow } from "../components/admin/AiPdfImportWorkflow";
 import { ImportedQuestion } from "../components/admin/pdf-import/QuestionEditor";
@@ -27,14 +27,12 @@ function ImportExcelPage() {
   const level = (search.level?.toUpperCase() || "N5") as JLPTLevel;
   const lessonId = parseInt(search.lessonId || "1");
 
-  const { createQuestion, lessons } = useQuestionBank(level);
+  const { createQuestionsBatch, lessons } = useAdminQuestionBankLessons(level);
   const lesson = lessons.find((l) => l.id === lessonId);
   const lessonName = lesson?.lessonName || `Lesson ${lessonId}`;
 
   const handleCreateQuestions = async (importedQuestions: ImportedQuestion[]) => {
-    // Save sequentially to preserve preview order. Backend list sorts by createdAt DESC,
-    // so parallel inserts with the same timestamp let the LAST inserted question surface first.
-    for (const q of importedQuestions) {
+    const questionsData = importedQuestions.map((q) => {
       const correctIndex = q.answers.findIndex((ans) => ans.isCorrect);
       const options = q.answers.map((ans) => ans.content);
 
@@ -54,15 +52,22 @@ function ImportExcelPage() {
         }
       }
 
-      await createQuestion(lessonId, {
-        type: q.category || "Vocabulary",
+      return {
+        type: q.type || "MULTIPLE_CHOICE",
+        skill: (q.category || "Vocabulary").toUpperCase(),
         difficulty: q.difficulty || "MEDIUM",
         questionText,
         options,
         correctIndex: correctIndex >= 0 ? correctIndex : 0,
         explanation: q.explanation || "",
-      });
-    }
+        translationMetadata: q.translationMetadata,
+        sentenceWritingMetadata: q.sentenceWritingMetadata,
+        errorCorrectionMetadata: q.errorCorrectionMetadata,
+        matchingMetadata: q.matchingMetadata,
+      };
+    });
+
+    await createQuestionsBatch(lessonId, questionsData);
 
     navigate({
       to: "/admin/question-bank/lesson-detail",

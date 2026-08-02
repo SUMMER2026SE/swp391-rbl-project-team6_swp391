@@ -55,19 +55,21 @@ class AiPromptBuilderJapaneseTest {
         }
 
         @Test
-        @DisplayName("Does NOT contain the old Vietnamese template strings")
+        @DisplayName("Does NOT contain Vietnamese templates (now uses Japanese)")
         void doesNotContainVietnameseTemplate() {
             String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
                     "Grammar N5", "Particles",
                     3, "MULTIPLE_CHOICE", "Easy",
                     List.of("Grammar"));
 
-            assertTrue(prompt.contains("\"question\": \"Câu hỏi\""),
-                    "Quiz prompt must retain Vietnamese 'Câu hỏi' template");
-            assertTrue(prompt.contains("\"Đáp án A\""),
-                    "Quiz prompt must retain Vietnamese 'Đáp án A' template");
-            assertTrue(prompt.contains("\"Đáp án B\""),
-                    "Quiz prompt must retain Vietnamese 'Đáp án B' template");
+            assertFalse(prompt.contains("Câu hỏi"),
+                    "Quiz prompt must not contain Vietnamese 'Câu hỏi' template");
+            assertFalse(prompt.contains("Đáp án A"),
+                    "Quiz prompt must not contain Vietnamese 'Đáp án A' template");
+            assertFalse(prompt.contains("Đáp án B"),
+                    "Quiz prompt must not contain Vietnamese 'Đáp án B' template");
+            assertFalse(prompt.contains("nghĩa là gì"),
+                    "Quiz prompt must not contain Vietnamese phrasing");
         }
 
         @Test
@@ -113,18 +115,20 @@ class AiPromptBuilderJapaneseTest {
         }
 
         @Test
-        @DisplayName("Removes the old Vietnamese-first template")
+        @DisplayName("Removes Vietnamese templates (now uses Japanese)")
         void removesVietnameseFirst() {
             String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
                     "Grammar N5", "Particles",
                     3, "MULTIPLE_CHOICE", "Easy");
 
-            assertTrue(prompt.contains("Câu hỏi bằng tiếng Việt"),
-                    "Legacy quiz prompt must retain 'Câu hỏi bằng tiếng Việt' template");
-            assertTrue(prompt.contains("Đáp án A"),
-                    "Legacy quiz prompt must retain Vietnamese option placeholder");
-            assertTrue(prompt.contains("Đáp án B"),
-                    "Legacy quiz prompt must retain Vietnamese option placeholder");
+            assertFalse(prompt.contains("Câu hỏi bằng tiếng Việt"),
+                    "Legacy quiz prompt must not contain 'Câu hỏi bằng tiếng Việt'");
+            assertFalse(prompt.contains("Đáp án A"),
+                    "Legacy quiz prompt must not contain Vietnamese 'Đáp án A'");
+            assertFalse(prompt.contains("Đáp án B"),
+                    "Legacy quiz prompt must not contain Vietnamese 'Đáp án B'");
+            assertFalse(prompt.contains("Dưới đây là"),
+                    "Legacy quiz prompt must not contain Vietnamese prose");
         }
 
         @Test

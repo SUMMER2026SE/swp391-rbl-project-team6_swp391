@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth, getDashboardPath } from "@/lib/auth";
 import { ApiError, isApiError } from "@/lib/api/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { prefetchAdminQuestionBankLessons } from "@/services/questionBankService";
 import { z } from "zod";
 
 const loginSearchSchema = z.object({
@@ -18,6 +20,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
   const nav = useNavigate();
+  const queryClient = useQueryClient();
   const { redirect } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,6 +36,9 @@ function LoginPage() {
     setLoading(true);
     try {
       const u = await login(email, password);
+      if (u.role === "admin") {
+        prefetchAdminQuestionBankLessons(queryClient, u).catch(() => {});
+      }
       nav({ to: redirect || getDashboardPath(u), replace: true });
     } catch (err: unknown) {
       console.error("[Login] Error:", err);
@@ -51,6 +57,9 @@ function LoginPage() {
     setGoogleLoading(true);
     try {
       const u = await loginWithGoogle(credential);
+      if (u.role === "admin") {
+        prefetchAdminQuestionBankLessons(queryClient, u).catch(() => {});
+      }
       nav({ to: redirect || getDashboardPath(u), replace: true });
     } catch (err: unknown) {
       console.error("[Login Google] Error:", err);

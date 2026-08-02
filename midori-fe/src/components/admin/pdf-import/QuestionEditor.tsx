@@ -18,6 +18,10 @@ export interface ImportedQuestion {
   answers: Array<{ content: string; isCorrect: boolean }>;
   category?: string; // Vocabulary, Grammar, Reading, Listening
   needsReview?: boolean;
+  translationMetadata?: any;
+  sentenceWritingMetadata?: any;
+  errorCorrectionMetadata?: any;
+  matchingMetadata?: any;
 }
 
 interface QuestionEditorProps {
@@ -51,12 +55,19 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
     if (!question.content.trim()) {
       errors.push("Question text is empty");
     }
-    if (question.answers.length < 2) {
-      errors.push("Needs at least 2 options");
-    }
-    const correctCount = question.answers.filter((a) => a.isCorrect).length;
-    if (correctCount !== 1) {
-      errors.push(`Exactly one correct answer required (currently: ${correctCount})`);
+    if (question.type === "MULTIPLE_CHOICE" || question.type === "TRUE_FALSE") {
+      if (question.answers.length < 2) {
+        errors.push("Needs at least 2 options");
+      }
+      const correctCount = question.answers.filter((a) => a.isCorrect).length;
+      if (correctCount !== 1) {
+        errors.push(`Exactly one correct answer required (currently: ${correctCount})`);
+      }
+    } else if (question.type === "FILL_BLANK") {
+      const correctBlank = question.answers.find((a) => a.isCorrect);
+      if (!correctBlank || !correctBlank.content.trim()) {
+        errors.push("Correct answer is required");
+      }
     }
 
     const correctIndex = question.answers.findIndex((a) => a.isCorrect);

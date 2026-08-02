@@ -41,10 +41,34 @@ public final class AiExistingQuestionParser {
     // Accepted aliases for each logical field. First non-empty value wins.
     private static final String[] TEXT_KEYS       = {"content", "question", "questionText", "text", "prompt"};
     private static final String[] ANSWERS_KEYS    = {"answers", "options", "choices"};
-    private static final String[] CORRECT_KEYS    = {"isCorrect", "correct", "is_correct", "correctAnswer", "correct_answer", "answer", "correctOption", "correctOptionIndex"};
+    private static final String[] CORRECT_KEYS    = {"isCorrect", "correct", "is_correct", "correctAnswer", "correct_answer", "answer", "correctOption", "correctOptionIndex", "referenceAnswer", "reference_answer", "correctText", "referenceText"};
+    /** Direct-answer field names for FILL_BLANK / SHORT_ANSWER / TRUE_FALSE — not an MCQ answers array. */
+    private static final String[] DIRECT_ANSWER_KEYS = {"correctAnswer", "correctText", "referenceAnswer", "referenceText", "correct_answer", "reference_answer"};
+    /** Option label prefix pattern: strips "A.", "A)", "A " etc. from answer option text. */
+    private static final Pattern OPTION_LABEL_PREFIX = Pattern.compile("^([A-Da-d\\uFF21-\\uFF24])[.)\\uFF1A:-]\\s*");
     private static final String[] OPT_CONTENT_KEYS = {"content", "text", "label", "value", "option"};
     private static final String[] OPT_LABEL_KEYS   = {"label", "key", "letter", "id"};
     private static final String[] CATEGORY_KEYS   = {"category", "section", "categoryName", "questionCategory", "skill", "typeName", "questionSkill"};
+
+    private static final Pattern MULTIPLE_WHITESPACE_PATTERN = Pattern.compile("[ \\t]+");
+    private static final Pattern MULTIPLE_BLANK_LINES_PATTERN = Pattern.compile("(?:\\n[ \\t]*){2,}");
+    private static final Pattern ASCII_WHITESPACE_PATTERN = Pattern.compile("\\s+");
+    private static final Pattern READING_PREFIX_PATTERN = Pattern.compile("(?i)^(?:read\\s*the\\s*(?:passage|text)|reading\\s*passage)[^\\n]*\\n+question[:\\s]*");
+    private static final Pattern CORRECT_TEXT_LINE = Pattern.compile(
+            "(?im)^\\s*(?:Correct\\s*Text|CorrectText|Text|Đáp\\s*án\\s*đúng)\\s*[:.]?\\s*(.+)",
+            Pattern.MULTILINE
+    );
+    private static final Pattern REFERENCE_ANSWER_LINE = Pattern.compile(
+            "(?im)^\\s*(?:Reference\\s*Answer|ReferenceAnswer|Đáp\\s*án\\s*tham\\s*khảo)\\s*[:.]?\\s*(.+)",
+            Pattern.MULTILINE
+    );
+    private static final ObjectMapper LENIENT_MAPPER = createLenientMapper();
+
+    private static ObjectMapper createLenientMapper() {
+        ObjectMapper m = new ObjectMapper();
+        m.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return m;
+    }
 
     // =============================================================
     // PHẦN 1: TEXT NORMALIZATION (NFKC, CRLF, spaces, Japanese spacing)
@@ -72,9 +96,9 @@ public final class AiExistingQuestionParser {
         result = Normalizer.normalize(result, Normalizer.Form.NFKC);
 
         // 3. Collapse multiple newlines/tabs/spaces
-        result = result.replaceAll("[ \\t]+", " ");
+        result = MULTIPLE_WHITESPACE_PATTERN.matcher(result).replaceAll(" ");
         // Collapse multiple blank lines
-        result = result.replaceAll("(?:\n[ \\t]*){2,}", "\n\n");
+        result = MULTIPLE_BLANK_LINES_PATTERN.matcher(result).replaceAll("\n\n");
 
         // 4. Fix Japanese character spacing artifacts from PDF extractor.
         // PDF extractors sometimes insert spaces between CJK characters.
@@ -150,7 +174,7 @@ public final class AiExistingQuestionParser {
      */
     private static String normalizeAsciiLowercase(String s) {
         if (s == null) return "";
-        return s.replaceAll("\\s+", " ").toLowerCase().trim();
+        return ASCII_WHITESPACE_PATTERN.matcher(s).replaceAll(" ").toLowerCase().trim();
     }
 
     // =============================================================
@@ -253,12 +277,7 @@ public final class AiExistingQuestionParser {
      */
     private static String stripReadingPrefix(String content) {
         if (content == null) return "";
-        String s = content;
-        // Remove leading "Read the passage: ...\n\nQuestion: " pattern
-        s = s.replaceFirst("(?i)^read\\s*the\\s*passage[^\\n]*\\n+question[:\\s]*", "");
-        s = s.replaceFirst("(?i)^read\\s*the\\s*text[^\\n]*\\n+question[:\\s]*", "");
-        s = s.replaceFirst("(?i)^reading\\s*passage[^\\n]*\\n+question[:\\s]*", "");
-        return s.trim();
+        return READING_PREFIX_PATTERN.matcher(content).replaceFirst("").trim();
     }
 
     // =============================================================
@@ -519,12 +538,10 @@ public final class AiExistingQuestionParser {
         if (raw == null || raw.isBlank()) {
             throw new IllegalArgumentException("AI returned an empty response. Please try again.");
         }
-        if (mapper == null) mapper = new ObjectMapper();
-        ObjectMapper m = mapper.copy();
-        // Defense in depth: the DTO already declares ignoreUnknown, but this
-        // also lets Jackson tolerate weird trailing tokens inside a balanced
-        // object. The cleaner should normally extract only the JSON.
-        m.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        ObjectMapper m = (mapper != null) ? mapper : LENIENT_MAPPER;
+        com.fasterxml.jackson.databind.ObjectReader responseReader = m.readerFor(AiQuizGenerationResponse.class)
+                .without(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        com.fasterxml.jackson.databind.ObjectReader treeReader = m.reader();
 
         String extracted = extractGenerateJson(raw);
         if (extracted == null || extracted.isBlank()) {
@@ -533,7 +550,7 @@ public final class AiExistingQuestionParser {
 
         JsonNode root;
         try {
-            root = m.readTree(extracted);
+            root = treeReader.readTree(extracted);
         } catch (Exception e) {
             throw new IllegalArgumentException("AI returned an invalid response. Please try again.");
         }
@@ -554,17 +571,17 @@ public final class AiExistingQuestionParser {
         }
 
         try {
-            return m.treeToValue(root, AiQuizGenerationResponse.class);
+            return responseReader.readValue(root);
         } catch (Exception e) {
             throw new IllegalArgumentException("AI returned an invalid response. Please try again.");
         }
     }
 
     private static JsonNode readTreeLenient(ObjectMapper mapper, String body) {
-        if (mapper == null) mapper = new ObjectMapper();
+        ObjectMapper m = (mapper != null) ? mapper : LENIENT_MAPPER;
         if (body == null) return null;
         try {
-            return mapper.readTree(body);
+            return m.readTree(body);
         } catch (Exception ignored) {
             return null;
         }
@@ -598,9 +615,21 @@ public final class AiExistingQuestionParser {
             if (exp != null && !exp.isNull()) normalized.set("explanation", exp);
             JsonNode cat = pickField(in, CATEGORY_KEYS);
             if (cat != null && !cat.isNull()) normalized.set("category", cat);
+            JsonNode rp = pickField(in, "readingPassage", "sourcePassage");
+            if (rp != null && !rp.isNull()) {
+                normalized.set("readingPassage", rp);
+                normalized.set("sourcePassage", rp);
+            }
+
+            // Pick the type string for format-aware answer normalization
+            String typeStr = (typeNode != null && typeNode.isTextual()) ? typeNode.asText().toUpperCase() : "";
+
+            // For FILL_BLANK / SHORT_ANSWER / TRUE_FALSE: prefer direct answer field over MCQ answers array
+            JsonNode directAnswerNode = pickField(in, DIRECT_ANSWER_KEYS);
 
             JsonNode answersNode = pickField(in, ANSWERS_KEYS);
-            ArrayNode answersArr = normalizeAnswers(root, answersNode, pickField(in, CORRECT_KEYS));
+            ArrayNode answersArr = normalizeAnswers(root, answersNode, pickField(in, CORRECT_KEYS),
+                    directAnswerNode, typeStr);
             normalized.set("answers", answersArr);
             outQuestions.add(normalized);
         }
@@ -609,17 +638,56 @@ public final class AiExistingQuestionParser {
     }
 
     private static ArrayNode normalizeAnswers(ObjectNode parent, JsonNode raw, JsonNode directCorrect) {
+        return normalizeAnswers(parent, raw, directCorrect, null, "");
+    }
+
+    /**
+     * Normalize an answers array, with special handling for non-MCQ formats.
+     *
+     * @param directAnswerNode the directAnswer/correctText/referenceAnswer field from the question JSON
+     * @param typeStr the question type string (e.g. "FILL_BLANK", "SHORT_ANSWER", "TRUE_FALSE", "MULTIPLE_CHOICE")
+     */
+    private static ArrayNode normalizeAnswers(ObjectNode parent, JsonNode raw, JsonNode directCorrect,
+                                              JsonNode directAnswerNode, String typeStr) {
         ArrayNode out = parent.arrayNode();
-        if (raw == null || raw.isNull()) return out;
+
+        // Resolve correctVal from the CORRECT_KEYS or DIRECT_ANSWER_KEYS
+        String correctVal = null;
+        if (directCorrect != null && !directCorrect.isNull() && (directCorrect.isTextual() || directCorrect.isNumber() || directCorrect.isBoolean())) {
+            correctVal = directCorrect.asText();
+        }
+        // For FILL_BLANK / SHORT_ANSWER / TRUE_FALSE: direct answer field takes priority over MCQ isCorrect logic
+        String directAnswer = null;
+        if (directAnswerNode != null && !directAnswerNode.isNull() && directAnswerNode.isTextual()) {
+            directAnswer = directAnswerNode.asText().trim();
+        }
+        if (directAnswer != null && !directAnswer.isEmpty()) {
+            correctVal = directAnswer;
+        }
+
+        boolean isNonMcq = typeStr.equals("FILL_BLANK") || typeStr.equals("SHORT_ANSWER");
+
+        if (raw == null || raw.isNull()) {
+            if (correctVal != null && !correctVal.isEmpty()) {
+                AiAnswerSlot s = new AiAnswerSlot();
+                s.content = correctVal;
+                s.isCorrect = Boolean.TRUE;
+                out.add(s.toNode(parent));
+            }
+            return out;
+        }
+
         if (raw.isArray()) {
             for (JsonNode item : raw) {
                 AiAnswerSlot slot = readAsAnswerSlot(item, parent);
                 if (slot == null) continue;
+                // Strip option-label prefix from MCQ option content (e.g. "A. としょかん" → "としょかん")
+                if (!isNonMcq && slot.content != null) {
+                    slot.content = stripOptionLabelPrefix(slot.content);
+                }
                 out.add(slot.toNode(parent));
             }
-            return out;
-        }
-        if (raw.isObject()) {
+        } else if (raw.isObject()) {
             Iterator<Map.Entry<String, JsonNode>> it = raw.fields();
             while (it.hasNext()) {
                 Map.Entry<String, JsonNode> e = it.next();
@@ -627,23 +695,84 @@ public final class AiExistingQuestionParser {
                 if (slot == null) continue;
                 if (slot.content == null || slot.content.isBlank()) slot.content = e.getKey();
                 if (slot.label == null) slot.label = e.getKey();
+                if (!isNonMcq && slot.content != null) {
+                    slot.content = stripOptionLabelPrefix(slot.content);
+                }
                 out.add(slot.toNode(parent));
             }
-            return out;
-        }
-        if (raw.isTextual()) {
+        } else if (raw.isTextual()) {
             AiAnswerSlot s = new AiAnswerSlot();
             s.content = raw.asText();
             s.isCorrect = Boolean.FALSE;
             out.add(s.toNode(parent));
         }
-        if (out.isEmpty() && directCorrect != null && !directCorrect.isNull()) {
+
+        boolean foundMatch = false;
+        if (correctVal != null) {
+            String strippedCorrect = stripOptionLabelPrefix(correctVal);
+            for (JsonNode n : out) {
+                JsonNode contentField = n.get("content");
+                if (contentField != null) {
+                    String optText = stripOptionLabelPrefix(contentField.asText().trim());
+                    if (optText.equalsIgnoreCase(strippedCorrect.trim())) {
+                        if (n instanceof ObjectNode) {
+                            ((ObjectNode) n).put("isCorrect", true);
+                        }
+                        foundMatch = true;
+                    }
+                }
+            }
+        }
+
+        if (!foundMatch && out.isEmpty() && correctVal != null && !correctVal.isEmpty()) {
             AiAnswerSlot s = new AiAnswerSlot();
-            s.content = directCorrect.isTextual() ? directCorrect.asText() : directCorrect.toString();
+            s.content = stripOptionLabelPrefix(correctVal);
             s.isCorrect = Boolean.TRUE;
             out.add(s.toNode(parent));
         }
+
         return out;
+    }
+
+    /**
+     * Strip the standard option-label prefix from an answer option string.
+     * Handles: "A.", "A)", "A ", "A. ", "a)", "a. ", "(A)", "(A) " etc.
+     * Does NOT strip legitimate leading letters from normal text.
+     */
+    public static String stripOptionLabelPrefix(String text) {
+        if (text == null) return null;
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) return trimmed;
+
+        // 1. Punctuation prefix: "A.", "A)", "A:", "A-", "a.", "a)", "a:", "a-"
+        Matcher m1 = OPTION_LABEL_PREFIX.matcher(trimmed);
+        if (m1.find()) {
+            String remaining = trimmed.substring(m1.end()).trim();
+            if (!remaining.isEmpty()) {
+                return remaining;
+            }
+        }
+
+        // 2. Space prefix: "A ", "B ", "C ", "D " (only uppercase A-D, to avoid "a book")
+        Pattern spacePattern = Pattern.compile("^([A-D\\uFF21-\\uFF24])\\s+");
+        Matcher m2 = spacePattern.matcher(trimmed);
+        if (m2.find()) {
+            String remaining = trimmed.substring(m2.end()).trim();
+            if (!remaining.isEmpty()) {
+                boolean isJapanese = CJK_CHAR.matcher(remaining).find();
+                boolean isSingleWord = !remaining.contains(" ") && !remaining.contains("\t");
+                boolean startsWithLowercase = Character.isLowerCase(remaining.charAt(0));
+                
+                if (isJapanese || isSingleWord || !startsWithLowercase) {
+                    if (trimmed.startsWith("Câu") || trimmed.startsWith("Đáp") || trimmed.startsWith("Bệnh")) {
+                        return trimmed;
+                    }
+                    return remaining;
+                }
+            }
+        }
+
+        return trimmed;
     }
 
     private static AiAnswerSlot readAsAnswerSlot(JsonNode item, ObjectNode parent) {
@@ -735,34 +864,53 @@ public final class AiExistingQuestionParser {
         if (parsed == null) {
             return AiExamParseResponse.empty();
         }
+        if (checkMalformedCollapse(parsed.getQuestions())) {
+            parsed.setSuccess(false);
+            parsed.setCode("PARSER_BLOCK_SEGMENTATION_FAILED");
+            parsed.setErrorMessage("PARSER_BLOCK_SEGMENTATION_FAILED");
+            parsed.setQuestions(new ArrayList<>());
+            return parsed;
+        }
         if (parsed.getQuestions() == null) {
             parsed.setQuestions(new ArrayList<>());
         }
         List<AiExamParseResponse.AiQuestionDto> kept = new ArrayList<>();
         for (AiExamParseResponse.AiQuestionDto q : parsed.getQuestions()) {
             if (q == null) continue;
+            splitReadingPassageIfPresent(q);
             if (q.getContent() == null || q.getContent().isBlank()) continue;
-            if (q.getAnswers() == null || q.getAnswers().isEmpty()) continue;
-            for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
-                if (a.getContent() == null) a.setContent("");
-                if (a.getIsCorrect() == null) a.setIsCorrect(Boolean.FALSE);
+            if (q.getAnswers() == null) {
+                q.setAnswers(new ArrayList<>());
             }
-            long correctCount = q.getAnswers().stream()
-                    .filter(a -> Boolean.TRUE.equals(a.getIsCorrect()))
-                    .count();
-            if (correctCount == 0) {
-                q.getAnswers().get(0).setIsCorrect(Boolean.TRUE);
-            } else if (correctCount > 1) {
-                boolean first = true;
-                for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
-                    if (Boolean.TRUE.equals(a.getIsCorrect())) {
-                        if (!first) a.setIsCorrect(Boolean.FALSE);
-                        first = false;
-                    }
-                }
-            }
+            // Normalize type first so we can skip MCQ rules for non-MCQ formats
             if (q.getType() == null || q.getType().isBlank()) {
                 q.setType("MULTIPLE_CHOICE");
+            }
+            boolean isMcqLike = isMcqLikeType(q.getType());
+            for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
+                if (a.getContent() == null) a.setContent("");
+                // Strip option-label prefix from MCQ options if still present
+                if (isMcqLike) {
+                    a.setContent(stripOptionLabelPrefix(a.getContent()));
+                }
+                if (a.getIsCorrect() == null) a.setIsCorrect(Boolean.FALSE);
+            }
+            // MCQ / TRUE_FALSE: enforce exactly one correct answer
+            if (isMcqLike) {
+                long correctCount = q.getAnswers().stream()
+                        .filter(a -> Boolean.TRUE.equals(a.getIsCorrect()))
+                        .count();
+                if (correctCount == 0 && !q.getAnswers().isEmpty()) {
+                    q.getAnswers().get(0).setIsCorrect(Boolean.TRUE);
+                } else if (correctCount > 1) {
+                    boolean first = true;
+                    for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
+                        if (Boolean.TRUE.equals(a.getIsCorrect())) {
+                            if (!first) a.setIsCorrect(Boolean.FALSE);
+                            first = false;
+                        }
+                    }
+                }
             }
             if (q.getDifficulty() == null || q.getDifficulty().isBlank()) {
                 q.setDifficulty("MEDIUM");
@@ -770,11 +918,94 @@ public final class AiExistingQuestionParser {
             if (q.getExplanation() == null) {
                 q.setExplanation("");
             }
-            q.setCategory(normalizeCategory(q.getCategory(), q.getContent()));
+            q.setCategory(normalizeCategoryWithReadingPassage(q.getCategory(), q.getContent(), q.getReadingPassage()));
             kept.add(q);
         }
         parsed.setQuestions(kept);
         return parsed;
+     }
+
+    public static void splitReadingPassageIfPresent(AiExamParseResponse.AiQuestionDto q) {
+        if (q == null || q.getContent() == null) return;
+        String content = q.getContent().trim();
+
+        // If q already has readingPassage/sourcePassage set (set directly by parseBlock),
+        // do nothing — the Reading category was already set via getCategoryFromMetadata.
+        if ((q.getReadingPassage() != null && !q.getReadingPassage().isBlank()) ||
+            (q.getSourcePassage() != null && !q.getSourcePassage().isBlank())) {
+            return;
+        }
+
+        // Matcher patterns for "Read the passage: <passage>\n\nQuestion: <question>"
+        Pattern enRead = Pattern.compile("(?s)^\\s*Read\\s+the\\s+passage\\s*[:\\-]\\s*(.*?)\\s+Question\\s*[:\\-]\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+        Pattern enPassage = Pattern.compile("(?s)^\\s*Passage\\s*[:\\-]\\s*(.*?)\\s+Question\\s*[:\\-]\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+        Pattern viDoc = Pattern.compile("(?s)^\\s*Đọc\\s+(?:đoạn\\s*văn|bài\\s*đọc)\\s*[:\\-]\\s*(.*?)\\s+Câu\\s+hỏi\\s*[:\\-]\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+        // Handle both "Reading Passage: <passage>\n\nQuestion: <question>" AND
+        //        "Reading Passage: <passage>\n\n<statement>" (e.g. a True/False statement)
+        Pattern jpRead = Pattern.compile("(?s)^\\s*Reading\\s*Passage\\s*[:\\-]\\s*(.+?)\\s+Question\\s*[:\\-]\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+        Pattern jpReadStatement = Pattern.compile("(?s)^\\s*Reading\\s*Passage\\s*[:\\-]\\s*(.+?)\\s*\\n\\s*\\n\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+
+        Matcher m = enRead.matcher(content);
+        if (m.matches()) {
+            q.setReadingPassage(m.group(1).trim());
+            q.setSourcePassage(m.group(1).trim());
+            q.setContent(m.group(2).trim());
+            return;
+        }
+        m = enPassage.matcher(content);
+        if (m.matches()) {
+            q.setReadingPassage(m.group(1).trim());
+            q.setSourcePassage(m.group(1).trim());
+            q.setContent(m.group(2).trim());
+            return;
+        }
+        m = viDoc.matcher(content);
+        if (m.matches()) {
+            q.setReadingPassage(m.group(1).trim());
+            q.setSourcePassage(m.group(1).trim());
+            q.setContent(m.group(2).trim());
+            return;
+        }
+        m = jpRead.matcher(content);
+        if (m.matches()) {
+            q.setReadingPassage(m.group(1).trim());
+            q.setSourcePassage(m.group(1).trim());
+            q.setContent(m.group(2).trim());
+            return;
+        }
+        // Also handle "Reading Passage: <passage>\n\n<statement>" (e.g. a True/False statement with passage)
+        Matcher sm2 = jpReadStatement.matcher(content);
+        if (sm2.matches()) {
+            q.setReadingPassage(sm2.group(1).trim());
+            q.setSourcePassage(sm2.group(1).trim());
+            q.setContent(sm2.group(2).trim());
+            return;
+        }
+
+        // Handle standalone "Reading Passage: <text>" (no "Question:" after it).
+        // Only matches when the content is EXACTLY just a passage (no statement/question after).
+        // Uses a non-greedy match that stops at the first paragraph break.
+        Pattern standalone = Pattern.compile(
+                "(?is)^\\s*reading\\s*passage\\s*[:\\-]\\s*(.+?)\\s*\\n\\s*\\n\\s*$",
+                Pattern.CASE_INSENSITIVE);
+        Matcher sm = standalone.matcher(content);
+        if (sm.matches()) {
+            q.setReadingPassage(sm.group(1).trim());
+            q.setSourcePassage(sm.group(1).trim());
+            q.setContent(null);
+            return;
+        }
+    }
+
+    /**
+     * Returns true for question types that use MCQ-style multiple-option answers
+     * and require exactly one correct answer.
+     * FILL_BLANK and SHORT_ANSWER use a direct reference answer instead.
+     */
+    public static boolean isMcqLikeType(String type) {
+        if (type == null) return true; // default to MCQ behaviour
+        String upper = type.toUpperCase().trim();
+        return !upper.equals("FILL_BLANK") && !upper.equals("SHORT_ANSWER") && !upper.equals("FILL_IN_BLANK");
     }
 
     public static AiExamParseResponse sanitize(AiExamParseResponse parsed, String targetSkill) {
@@ -789,7 +1020,9 @@ public final class AiExistingQuestionParser {
         for (AiExamParseResponse.AiQuestionDto q : parsed.getQuestions()) {
             if (q == null) continue;
             if (q.getContent() == null || q.getContent().isBlank()) continue;
-            if (q.getAnswers() == null || q.getAnswers().isEmpty()) continue;
+            if (q.getAnswers() == null) {
+                q.setAnswers(new ArrayList<>());
+            }
             for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
                 if (a.getContent() == null) a.setContent("");
                 if (a.getIsCorrect() == null) a.setIsCorrect(Boolean.FALSE);
@@ -797,7 +1030,7 @@ public final class AiExistingQuestionParser {
             long correctCount = q.getAnswers().stream()
                     .filter(a -> Boolean.TRUE.equals(a.getIsCorrect()))
                     .count();
-            if (correctCount == 0) {
+            if (correctCount == 0 && !q.getAnswers().isEmpty()) {
                 q.getAnswers().get(0).setIsCorrect(Boolean.TRUE);
             } else if (correctCount > 1) {
                 boolean first = true;
@@ -828,51 +1061,79 @@ public final class AiExistingQuestionParser {
         if (parsed == null) {
             return AiExamParseResponse.empty();
         }
+        if (checkMalformedCollapse(parsed.getQuestions())) {
+            parsed.setSuccess(false);
+            parsed.setCode("PARSER_BLOCK_SEGMENTATION_FAILED");
+            parsed.setErrorMessage("PARSER_BLOCK_SEGMENTATION_FAILED");
+            parsed.setQuestions(new ArrayList<>());
+            return parsed;
+        }
         if (parsed.getQuestions() == null) {
             parsed.setQuestions(new ArrayList<>());
         }
         if (selectedSkills == null || selectedSkills.isEmpty()) {
             return sanitize(parsed);
         }
-        Set<String> validSkillsLower = new HashSet<>();
-        for (String skill : selectedSkills) {
-            if (skill != null && !skill.isBlank()) {
-                validSkillsLower.add(skill.toUpperCase().trim());
-            }
-        }
         List<AiExamParseResponse.AiQuestionDto> kept = new ArrayList<>();
         for (AiExamParseResponse.AiQuestionDto q : parsed.getQuestions()) {
             if (q == null) continue;
+            splitReadingPassageIfPresent(q);
             if (q.getContent() == null || q.getContent().isBlank()) continue;
-            if (q.getAnswers() == null || q.getAnswers().isEmpty()) continue;
+            // Normalize type first (needed for format-aware checks below)
+            if (q.getType() == null || q.getType().isBlank()) {
+                q.setType("MULTIPLE_CHOICE");
+            }
+            boolean isMcqLike = isMcqLikeType(q.getType());
+            if (q.getAnswers() == null) {
+                q.setAnswers(new ArrayList<>());
+            }
+            // For MCQ-like types, require at least one answer to be present.
+            // FILL_BLANK and SHORT_ANSWER may legitimately have zero or one answer entry.
+            if (isMcqLike && q.getAnswers().isEmpty()) continue;
 
-            String normalizedCat = normalizeCategoryWithSelectedSkillsList(q.getCategory(), q.getContent(), selectedSkills);
-            String catUpper = normalizedCat != null ? normalizedCat.toUpperCase() : "";
-            if (!validSkillsLower.contains(catUpper)) {
+            String normalizedCat = normalizeCategoryWithSelectedSkillsList(q, selectedSkills);
+            boolean matches = false;
+            for (String skill : selectedSkills) {
+                if (skill != null && isCompatible(normalizedCat, normalizeCategory(skill))) {
+                    matches = true;
+                    break;
+                }
+            }
+            if (!matches) {
+                String reason = "skill_not_selected";
+                if ("unknown".equals(normalizedCat) || normalizedCat == null) {
+                    reason = "unknown_skill";
+                }
+                log.info("[Import] Dropped question: reason={}, category={}, content_prefix={}",
+                        reason, normalizedCat, q.getContent() != null ? q.getContent().substring(0, Math.min(40, q.getContent().length())) : "");
                 continue;
             }
             q.setCategory(normalizedCat);
 
             for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
                 if (a.getContent() == null) a.setContent("");
+                // Strip option-label prefix from MCQ options if still present after normalizeRoot
+                if (isMcqLike) {
+                    a.setContent(stripOptionLabelPrefix(a.getContent()));
+                }
                 if (a.getIsCorrect() == null) a.setIsCorrect(Boolean.FALSE);
             }
-            long correctCount = q.getAnswers().stream()
-                    .filter(a -> Boolean.TRUE.equals(a.getIsCorrect()))
-                    .count();
-            if (correctCount == 0) {
-                q.getAnswers().get(0).setIsCorrect(Boolean.TRUE);
-            } else if (correctCount > 1) {
-                boolean first = true;
-                for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
-                    if (Boolean.TRUE.equals(a.getIsCorrect())) {
-                        if (!first) a.setIsCorrect(Boolean.FALSE);
-                        first = false;
+            // MCQ / TRUE_FALSE: enforce exactly one correct answer
+            if (isMcqLike) {
+                long correctCount = q.getAnswers().stream()
+                        .filter(a -> Boolean.TRUE.equals(a.getIsCorrect()))
+                        .count();
+                if (correctCount == 0 && !q.getAnswers().isEmpty()) {
+                    q.getAnswers().get(0).setIsCorrect(Boolean.TRUE);
+                } else if (correctCount > 1) {
+                    boolean first = true;
+                    for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
+                        if (Boolean.TRUE.equals(a.getIsCorrect())) {
+                            if (!first) a.setIsCorrect(Boolean.FALSE);
+                            first = false;
+                        }
                     }
                 }
-            }
-            if (q.getType() == null || q.getType().isBlank()) {
-                q.setType("MULTIPLE_CHOICE");
             }
             if (q.getDifficulty() == null || q.getDifficulty().isBlank()) {
                 q.setDifficulty("MEDIUM");
@@ -886,24 +1147,51 @@ public final class AiExistingQuestionParser {
         return parsed;
     }
 
-    private static String normalizeCategoryWithSelectedSkillsList(String rawCategory, String questionContent, List<String> selectedSkills) {
-        String cat = rawCategory != null ? rawCategory.trim() : "";
-        if (!cat.isEmpty()) {
-            String lc = cat.toLowerCase();
-            if (lc.equals("vocabulary") || lc.equals("grammar") || lc.equals("reading")) {
-                return cat.substring(0, 1).toUpperCase() + cat.substring(1).toLowerCase();
+    private static String normalizeCategoryWithSelectedSkillsList(AiExamParseResponse.AiQuestionDto q, List<String> selectedSkills) {
+        if (q == null) return "unknown";
+        String category = normalizeCategory(q.getCategory());
+        // Force re-inference when the question has a reading passage or reading content,
+        // so a mistakenly-set Vocabulary category doesn't override the correct Reading skill.
+        if (category == null || q.getReadingPassage() != null || q.getSourcePassage() != null) {
+            String inferred = inferCategoryFromQuestionDto(q);
+            if (inferred != null) {
+                category = inferred;
             }
         }
-        if (selectedSkills != null && selectedSkills.size() == 1) {
-            String skill = selectedSkills.get(0);
-            if (skill != null && !skill.isBlank()) {
-                String lc = skill.toLowerCase();
-                if (lc.equals("vocabulary") || lc.equals("grammar") || lc.equals("reading")) {
-                    return skill.substring(0, 1).toUpperCase() + skill.substring(1).toLowerCase();
+        if (category == null) {
+            category = inferCategorySemantic(q.getContent(), selectedSkills);
+        }
+        if ("unknown".equals(category) || category == null) {
+            if (selectedSkills != null && selectedSkills.size() == 1) {
+                String singleSkill = selectedSkills.get(0);
+                String norm = normalizeCategory(singleSkill);
+                if (norm != null) {
+                    category = norm;
+                } else {
+                    category = "unknown";
                 }
+            } else {
+                category = "unknown";
             }
         }
-        return inferCategorySemantic(questionContent);
+        return category;
+    }
+
+    public static String inferCategoryFromQuestionDto(AiExamParseResponse.AiQuestionDto q) {
+        if (q == null) return null;
+        String content = q.getContent();
+        if (content != null && (content.contains("Reading Passage:") || content.contains("read the passage:") || content.contains("Bài đọc:") || content.contains("文章読解"))) {
+            return "Reading";
+        }
+        // If the question has a readingPassage set (set by parseBlock), it is a
+        // Reading question regardless of the raw content label.
+        if (q.getReadingPassage() != null && !q.getReadingPassage().isBlank()) {
+            return "Reading";
+        }
+        if (q.getErrorCorrectionMetadata() != null || q.getSentenceWritingMetadata() != null || q.getTranslationMetadata() != null) {
+            return "Writing";
+        }
+        return null;
     }
 
     private static int countChar(String s, char c) {
@@ -1095,11 +1383,16 @@ public final class AiExistingQuestionParser {
             return EvidenceCheck.fail("blank question content");
         }
 
+        String typeUpper = q.getType() != null ? q.getType().toUpperCase().trim() : "MULTIPLE_CHOICE";
+        boolean isFillBlank = typeUpper.equals("FILL_BLANK") || typeUpper.equals("FILL_IN_BLANK");
+        boolean isShortAnswer = typeUpper.equals("SHORT_ANSWER");
+        boolean isTrueFalse = typeUpper.equals("TRUE_FALSE");
+        boolean isNonMcq = isFillBlank || isShortAnswer;
+
         String cat = q.getCategory() != null ? q.getCategory().toLowerCase() : "";
         boolean isReading = cat.contains("read");
 
-        // 1. For Reading: check if passage or question appears in source (soft)
-        //    For non-Reading: question text must appear
+        // 1. Question text must appear in source
         if (isReading) {
             // Reading: try to find passage substring in source
             if (!passageMatchesSource(content, src)) {
@@ -1118,11 +1411,34 @@ public final class AiExistingQuestionParser {
             }
         }
 
-        // 2. At least 2 options must appear in the source.
+        // 2. For FILL_BLANK / SHORT_ANSWER: only need the single correct answer in source
         List<AiExamParseResponse.AiAnswerDto> answers = q.getAnswers();
+        if (isNonMcq) {
+            // Accept if there's at least one answer entry whose content appears in source
+            if (answers == null || answers.isEmpty()) {
+                // No answers array at all — accept if question text was found above (already passed)
+                return EvidenceCheck.ok();
+            }
+            for (AiExamParseResponse.AiAnswerDto a : answers) {
+                String ac = a == null || a.getContent() == null ? "" : a.getContent().trim();
+                if (ac.isEmpty()) continue;
+                String acNorm = normalizeForEvidence(ac);
+                if (acNorm.isEmpty()) continue;
+                if (src.contains(acNorm) || textAppearsInSourceSoft(acNorm, src)) {
+                    return EvidenceCheck.ok();
+                }
+            }
+            // Correct answer not found in source — still accept if we already matched question text
+            // (reference answer may have been generated; be lenient for fill_blank/short_answer)
+            return EvidenceCheck.ok();
+        }
+
+        // 3. MCQ / TRUE_FALSE: at least 2 options must appear in the source.
+        //    For TRUE_FALSE with only 2 options (True/False), require at least 1.
         if (answers == null || answers.isEmpty()) {
             return EvidenceCheck.fail("no answers");
         }
+        int requiredMatches = isTrueFalse ? 1 : 2;
         int matchedOptions = 0;
         for (AiExamParseResponse.AiAnswerDto a : answers) {
             String ac = a == null || a.getContent() == null ? "" : a.getContent().trim();
@@ -1139,9 +1455,9 @@ public final class AiExistingQuestionParser {
                 }
             }
         }
-        if (matchedOptions < 2) {
+        if (matchedOptions < requiredMatches) {
             return EvidenceCheck.fail(
-                    "only " + matchedOptions + " option(s) matched in source (need >=2)");
+                    "only " + matchedOptions + " option(s) matched in source (need >=" + requiredMatches + ")");
         }
 
         // 3. The marked-correct option must be supported by evidence.
@@ -1381,22 +1697,31 @@ public final class AiExistingQuestionParser {
         return normalizeCategoryWithTargetSkill(rawCategory, questionContent, null);
     }
 
+    public static String normalizeCategoryWithReadingPassage(String rawCategory, String questionContent, String readingPassage) {
+        // If readingPassage is set (from parseBlock for Reading questions), the answer is
+        // unambiguously Reading. This handles questions whose content doesn't contain
+        // "Read the passage:" but still belong to the Reading section.
+        // This takes priority over any other category inference.
+        if (readingPassage != null && !readingPassage.isBlank()) {
+            return "Reading";
+        }
+        String category = normalizeCategory(rawCategory);
+        if (category == null) {
+            category = inferCategorySemantic(questionContent, null);
+        }
+        return category;
+    }
+
     public static String normalizeCategoryWithTargetSkill(String rawCategory, String questionContent, String targetSkill) {
-        String cat = rawCategory != null ? rawCategory.trim() : "";
-        if (!cat.isEmpty()) {
-            String lc = cat.toLowerCase();
-            if (lc.equals("vocabulary") || lc.equals("grammar")
-                    || lc.equals("reading") || lc.equals("listening")) {
-                return cat.substring(0, 1).toUpperCase() + cat.substring(1).toLowerCase();
-            }
+        String category = normalizeCategory(rawCategory);
+        if (category == null && targetSkill != null && !targetSkill.isBlank()) {
+            category = normalizeCategory(targetSkill);
         }
-        if (targetSkill != null && !targetSkill.isBlank()) {
-            String lc = targetSkill.toLowerCase().trim();
-            if (lc.equals("vocabulary") || lc.equals("grammar") || lc.equals("reading")) {
-                return targetSkill.substring(0, 1).toUpperCase() + targetSkill.substring(1).toLowerCase();
-            }
+        if (category == null) {
+            List<String> selectedSkills = targetSkill != null ? List.of(targetSkill) : null;
+            category = inferCategorySemantic(questionContent, selectedSkills);
         }
-        return inferCategorySemantic(questionContent);
+        return category;
     }
 
     public static String parseTargetSkill(String targetSkill) {
@@ -1428,27 +1753,103 @@ public final class AiExistingQuestionParser {
         }
     }
 
+    public static String normalizeCategory(String rawCategory) {
+        if (rawCategory == null || rawCategory.isBlank()) {
+            return null;
+        }
+        String lc = rawCategory.trim().toLowerCase();
+        switch (lc) {
+            case "vocabulary":
+            case "vocab":
+            case "word":
+            case "words":
+            case "lexical":
+                return "Vocabulary";
+            case "grammar":
+            case "pattern":
+            case "structure":
+            case "particle":
+            case "conjugation":
+                return "Grammar";
+            case "reading":
+            case "reading comprehension":
+            case "comprehension":
+            case "passage":
+            case "text":
+                return "Reading";
+            case "writing":
+                return "Writing";
+            case "sentence writing":
+            case "sentence_writing":
+                return "Sentence Writing";
+            case "kanji":
+            case "character":
+                return "Kanji";
+            case "listening":
+            case "audio comprehension":
+                return "Listening";
+            case "translation":
+            case "translate":
+                return "Translation";
+            case "error correction":
+            case "error_correction":
+            case "correction":
+                return "Error Correction";
+            default:
+                return null;
+        }
+    }
+
+    public static boolean isCompatible(String category, String skill) {
+        if (category == null || skill == null) return false;
+        if (category.equals(skill)) return true;
+
+        // Writing skill allows Translation, Sentence Writing, Error Correction
+        if (skill.equals("Writing") &&
+            (category.equals("Translation") || category.equals("Sentence Writing") || category.equals("Error Correction"))) {
+            return true;
+        }
+        // Grammar skill allows Error Correction, Translation, Sentence Writing
+        if (skill.equals("Grammar") &&
+            (category.equals("Error Correction") || category.equals("Translation") || category.equals("Sentence Writing"))) {
+            return true;
+        }
+        // Vocabulary skill allows Translation
+        if (skill.equals("Vocabulary") && category.equals("Translation")) {
+            return true;
+        }
+        return false;
+    }
+
     public static String inferCategorySemantic(String content) {
-        if (content == null || content.isBlank()) return "Vocabulary";
+        return inferCategorySemantic(content, (java.util.Collection<String>) null);
+    }
+
+    private static String getFallbackCategory(java.util.Collection<String> allowedSkills) {
+        if (allowedSkills != null && !allowedSkills.isEmpty()) {
+            if (allowedSkills.size() == 1) {
+                String singleSkill = allowedSkills.iterator().next();
+                if (singleSkill != null && !singleSkill.isBlank()) {
+                    String norm = normalizeCategory(singleSkill);
+                    return norm != null ? norm : "Vocabulary";
+                }
+            }
+            return "unknown";
+        }
+        return "Vocabulary";
+    }
+
+    public static String inferCategorySemantic(String content, java.util.Collection<String> allowedSkills) {
+        if (content == null || content.isBlank()) {
+            return getFallbackCategory(allowedSkills);
+        }
         String c = content.toLowerCase();
 
-        if (containsAny(c, "trong câu", "in the sentence", "in sentence")
-                && (containsAny(c, "biểu thị", "indicate", "means", "nghĩa", "dùng", "chức năng", "express", "function"))) {
-            return "Grammar";
-        }
-
-        if (containsAny(c, "difference between") && (containsAny(c, "は", "が", "に", "で", "を", "と", "も") || containsAny(c, "particle", "particles"))) {
-            return "Grammar";
-        }
-
-        // Reading check FIRST and with the broadest Vietnamese/English/Japanese
-        // markers — Reading must take priority over Vocabulary when a question
-        // asks "Theo bài đọc / Theo passage / Theo đoạn văn ..." etc.
+        // 1. Reading
         if (containsAny(c,
                 "read the passage", "read the dialogue", "read the text",
                 "according to the passage", "based on the text", "based on the passage",
-                "according to the text",
-                "the passage states", "the passage says", "the text implies",
+                "according to the text", "the passage states", "the passage says", "the text implies",
                 "main idea of the passage", "main idea of the text",
                 "can be inferred from the passage", "can be inferred from the text",
                 "what can be inferred", "the author suggests",
@@ -1460,36 +1861,130 @@ public final class AiExistingQuestionParser {
                 "đoạn văn sau", "bài đọc sau",
                 "trả lời câu hỏi theo bài đọc", "trả lời theo bài đọc",
                 "bài đọc ghi", "passage ghi",
-                "文章読解", "読解", "本文", "文章の内容")) {
+                "passage", "paragraph", "main idea", "comprehension", "according to the text", "inference from passage",
+                "文章読解", "読解", "本文", "文章の内容",
+                // MUST come before Vocabulary inference: "reading" keyword in Vocabulary catches these
+                "reading passage:", "reading passage :", "reading passage -",
+                "reading passage", "bài đọc:", "đoạn đọc:")) {
             return "Reading";
         }
 
+        // Check if new categories are allowed in allowedSkills or if we should fallback/coerce
+        boolean allowAll = allowedSkills != null && !allowedSkills.isEmpty();
+        boolean allowWriting = allowAll || (allowedSkills != null && allowedSkills.contains("Writing"));
+        boolean allowErrorCorrection = allowAll || (allowedSkills != null && allowedSkills.contains("Error Correction"));
+        boolean allowSentenceWriting = allowAll || (allowedSkills != null && allowedSkills.contains("Sentence Writing"));
+        boolean allowTranslation = allowAll || (allowedSkills != null && allowedSkills.contains("Translation"));
+        boolean allowListening = allowAll || (allowedSkills != null && allowedSkills.contains("Listening"));
+        boolean allowKanji = allowAll || (allowedSkills != null && allowedSkills.contains("Kanji"));
+        boolean allowVocabulary = allowAll || (allowedSkills != null && allowedSkills.contains("Vocabulary"));
+
+        // 2. Error Correction
         if (containsAny(c,
-                "particle", "trợ từ", "ngữ pháp",
-                "mẫu câu", "mẫu", "cấu trúc", "pattern", "sentence pattern", "sentence ending", "sentence structure",
+                "find the error", "correct the sentence", "incorrect part",
+                "tìm lỗi sai", "sửa lỗi sai", "lỗi sai")) {
+            if (allowErrorCorrection || allowWriting) {
+                return "Error Correction";
+            } else {
+                return "Grammar"; // Fall back to Grammar for legacy
+            }
+        }
+
+        // 3. Sentence Writing
+        if (containsAny(c,
+                "create a sentence", "write a sentence using", "sentence composition",
+                "viết câu sử dụng", "đặt câu với")) {
+            if (allowSentenceWriting || allowWriting) {
+                return "Sentence Writing";
+            } else {
+                return "Vocabulary"; // Fall back to Vocabulary for legacy
+            }
+        }
+
+        // 4. Writing
+        if (containsAny(c,
+                "write a sentence", "compose", "answer in japanese",
+                "reorder words", "sentence construction",
+                "viết câu", "đặt câu", "sắp xếp từ")) {
+            if (allowWriting) {
+                return "Writing";
+            } else {
+                return "Vocabulary"; // Fall back to Vocabulary for legacy
+            }
+        }
+
+        // 5. Translation
+        if (containsAny(c,
+                "translate into japanese", "translate into vietnamese", "translation",
+                "dịch sang", "dịch câu", "dịch")) {
+            if (allowTranslation || allowWriting || allowVocabulary) {
+                if (allowedSkills != null && (allowedSkills.contains("Writing") || allowedSkills.contains("Translation"))) {
+                    return "Translation";
+                }
+                return "Vocabulary";
+            } else {
+                return "Vocabulary";
+            }
+        }
+
+        // 6. Listening
+        if (containsAny(c,
+                "audio", "listen", "speaker", "conversation", "recording",
+                "nghe", "đoạn hội thoại", "bài nghe")) {
+            if (allowListening) {
+                return "Listening";
+            } else {
+                return "Vocabulary";
+            }
+        }
+
+        // 7. Kanji
+        if (containsAny(c,
+                "kanji reading", "character meaning", "choose the kanji",
+                "onyomi", "kunyomi", "chữ hán", "âm hán", "cách đọc kanji", "kanji")) {
+            if (allowKanji) {
+                return "Kanji";
+            } else {
+                return "Vocabulary";
+            }
+        }
+
+        // 8. Grammar
+        if (containsAny(c, "trong câu", "in the sentence", "in sentence")
+                && (containsAny(c, "biểu thị", "indicate", "means", "nghĩa", "dùng", "chức năng", "express", "function"))) {
+            return "Grammar";
+        }
+        if (containsAny(c, "difference between") && (containsAny(c, "は", "が", "に", "で", "を", "と", "も") || containsAny(c, "particle", "particles"))) {
+            return "Grammar";
+        }
+        if (containsAny(c,
+                "particle", "particles", "trợ từ", "ngữ pháp", "mẫu câu", "mẫu", "cấu trúc",
+                "pattern", "sentence pattern", "sentence ending", "sentence structure",
                 "dùng để", "cách dùng", "dùng như thế nào", "dùng ra sao",
                 "used to", "how to use", "usage of",
-                "conjugation", "chia thể", "liên từ", "giới từ",
+                "conjugation", "conjugations", "chia thể", "liên từ", "giới từ",
                 "dùng để nói gì", "biểu thị", "diễn đạt", "express",
                 "what does the particle", "what does the sentence ending",
-                "usually express", "used to express")) {
+                "usually express", "used to express", "verb forms", "verb form", "ending", "endings",
+                "ています", "ている", "たいです", "たい", "てください", "ませんか", "ましょう", "てみる", "〜")) {
             return "Grammar";
         }
 
+        // 9. Vocabulary
         if (containsAny(c,
                 "nghĩa là gì", "nghĩa tiếng việt", "có nghĩa là", "có nghĩa",
-                "what is the meaning", "meaning of",
-                "cách đọc", "romaji", "pronunciation",
-                "dịch", "translate", "translation")
-                || (c.contains("what does") && !c.contains("be inferred"))) {
+                "what is the meaning", "meaning of", "cách đọc", "romaji", "pronunciation",
+                "word meaning", "synonym", "antonym", "word choice", "synonyms", "antonyms",
+                "correct reading", "reading of",
+                "word for", "japanese word", "fill in the blank", "fill in", "điền vào chỗ trống", "chỗ trống", "blank",
+                "読み方", "読み", "意味", "どの意味", "どういう意味", "正しい読み方")
+                || (c.contains("what does") && !c.contains("be inferred"))
+                || (c.contains("japanese word for"))
+                || (c.contains("「") && (c.contains("mean") || c.contains("nghĩa")))) {
             return "Vocabulary";
         }
 
-        if (c.contains("「") && (c.contains("mean") || c.contains("nghĩa"))) {
-            return "Vocabulary";
-        }
-
-        return "Vocabulary";
+        return getFallbackCategory(allowedSkills);
     }
 
     private static boolean containsAny(String text, String... keywords) {
@@ -1567,6 +2062,343 @@ public final class AiExistingQuestionParser {
         if (ROMAJI_HONORIFIC.matcher(trimmed).find()) return true;
         if (ROMAJI_NAME_BARE.matcher(trimmed).find()
                 && CJK_CHAR.matcher(trimmed).find()) return true;
+        return false;
+    }
+
+    public static String findRomajiViolationToken(String text) {
+        if (text == null || text.isBlank()) return null;
+        String trimmed = text.trim();
+        java.util.regex.Matcher m = ROMAJI_TOKEN.matcher(trimmed);
+        if (m.find()) {
+            return m.group();
+        }
+        m = ROMAJI_HONORIFIC.matcher(trimmed);
+        if (m.find()) {
+            return m.group();
+        }
+        if (CJK_CHAR.matcher(trimmed).find()) {
+            m = ROMAJI_NAME_BARE.matcher(trimmed);
+            if (m.find()) {
+                return m.group();
+            }
+        }
+        return null;
+    }
+
+    private static boolean checkFieldRomaji(String fieldName, String fieldValue) {
+        if (fieldValue == null || fieldValue.isBlank()) return false;
+        String token = findRomajiViolationToken(fieldValue);
+        if (token != null) {
+            String excerpt = fieldValue.length() > 60 ? fieldValue.substring(0, 60) + "..." : fieldValue;
+            log.info("romaji_content field={} token=\"{}\" excerpt=\"{}\"",
+                     fieldName, token, excerpt.replace("\n", " "));
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean checkRomajiContent(AiExamParseResponse.AiQuestionDto q, String finalCategory) {
+        if (q == null) return false;
+        boolean isReading = finalCategory != null && "reading".equalsIgnoreCase(finalCategory.trim());
+
+        // 1. Question text field
+        String content = q.getContent() == null ? "" : q.getContent();
+        String questionText;
+        if (isReading) {
+            String lowerContent = content.toLowerCase(java.util.Locale.ENGLISH);
+            if (lowerContent.contains("read the passage")
+                    || lowerContent.contains("reading passage")
+                    || content.contains("本文") || content.contains("文章")) {
+                int qIdx = content.lastIndexOf("Question:");
+                if (qIdx < 0) qIdx = content.lastIndexOf("question:");
+                if (qIdx >= 0 && qIdx < content.length() - 9) {
+                    questionText = content.substring(qIdx + "Question:".length()).trim();
+                } else {
+                    String[] splitParts = splitQuestionContentForReading(content);
+                    questionText = (splitParts[0] != null) ? splitParts[1] : content;
+                }
+            } else {
+                questionText = content;
+            }
+        } else {
+            questionText = content;
+        }
+
+        if (checkFieldRomaji("questionText", questionText)) {
+            return true;
+        }
+
+        // 2. Options / Answers
+        if (q.getAnswers() != null) {
+            int idx = 0;
+            for (var a : q.getAnswers()) {
+                if (a != null && a.getContent() != null) {
+                    if (checkFieldRomaji("option_" + idx, a.getContent())) {
+                        return true;
+                    }
+                }
+                idx++;
+            }
+        }
+
+        // 3. Explanation (only check if NOT a READING question)
+        if (!isReading) {
+            if (checkFieldRomaji("explanation", q.getExplanation())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extracts only the answerable fields of a question for romaji validation.
+     *
+     * <p>For Reading questions the full {@code q.getContent()} contains the
+     * entire reading passage (e.g. "Read the passage:\nMIDORI - JLPT N5 ...
+     * Passage 1 - Morning routine ..."). That passage may legitimately contain
+     * English metadata tokens ("MIDORI", "JLPT", "Passage", "Reference") that
+     * would cause false-positive {@code romaji_content} rejections.
+     *
+     * <p>This method strips the passage portion and returns only the
+     * question-only part of the content (the part after "Question: ") together
+     * with the option texts and the explanation. These fields are AI-generated
+     * answerable content and must not contain romaji.
+     *
+     * @param q the question DTO
+     * @return a string containing only the fields that must be romaji-free
+     */
+    public static String extractAnswerableFieldsForRomajiCheck(
+            AiExamParseResponse.AiQuestionDto q) {
+        if (q == null) return "";
+        StringBuilder sb = new StringBuilder();
+
+        // For the question content: if it looks like a reading-format question
+        // (contains "Read the passage:") extract only the question-only part.
+        // This avoids false-positive romaji rejections caused by English metadata
+        // in the PDF source passage ("MIDORI", "JLPT", "Passage N - ...", etc.)
+        String content = q.getContent() == null ? "" : q.getContent();
+        String questionOnly;
+        String lowerContent = content.toLowerCase(java.util.Locale.ENGLISH);
+        if (lowerContent.contains("read the passage")
+                || lowerContent.contains("reading passage")
+                || content.contains("本文") || content.contains("文章")) {
+            // Find the last occurrence of "Question:" or "question:" which marks
+            // where the actual answerable question text begins (after the passage).
+            // We use the last occurrence to handle cases where "question" also
+            // appears inside the passage text (e.g., "Reference question").
+            int qIdx = content.lastIndexOf("Question:");
+            if (qIdx < 0) qIdx = content.lastIndexOf("question:");
+            if (qIdx >= 0 && qIdx < content.length() - 9) {
+                // Extract only the text after "Question:" as the answerable part
+                questionOnly = content.substring(qIdx + "Question:".length()).trim();
+            } else {
+                // No "Question:" marker found — try using splitQuestionContentForReading
+                // as a fallback; if it can split, use the question part only.
+                String[] splitParts = splitQuestionContentForReading(content);
+                questionOnly = (splitParts[0] != null) ? splitParts[1] : content;
+            }
+        } else {
+            // Not a reading question — use the full content for the romaji check.
+            questionOnly = content;
+        }
+        sb.append(questionOnly).append('\n');
+
+        // Options / answers
+        if (q.getAnswers() != null) {
+            for (var a : q.getAnswers()) {
+                if (a != null && a.getContent() != null) {
+                    sb.append(a.getContent()).append('\n');
+                }
+            }
+        }
+
+        // Explanation is AI-generated prose — check it too
+        if (q.getExplanation() != null) {
+            sb.append(q.getExplanation()).append('\n');
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Strips English document-title and generation-instruction lines from a
+     * reading passage so they do not pollute the romaji-check blob or the
+     * stored passage text displayed to learners.
+     *
+     * <p>Lines removed:
+     * <ul>
+     *   <li>Lines whose trimmed form is entirely ASCII and matches a known
+     *       metadata pattern such as "MIDORI - JLPT N5 AI Question Generation
+     *       Test Material", "JLPT N5 Reading Practice", "Passage N - …",
+     *       "Reference question", "Reference answer", "Searchable Japanese
+     *       passages with …", "Use for READING + …").</li>
+     *   <li>Blank-only lines left after removal are collapsed.</li>
+     * </ul>
+     *
+     * <p>Japanese-only content lines are always preserved.
+     *
+     * @param passage raw passage text; may be {@code null}
+     * @return cleaned passage, or {@code null} if the input was {@code null}
+     */
+    public static String cleanReadingPassageForStorage(String passage) {
+        if (passage == null) return null;
+        // Metadata-heading lines to strip (case-insensitive, matched against
+        // the trimmed line)
+        java.util.regex.Pattern metaLine = java.util.regex.Pattern.compile(
+                "(?i)^(" +
+                        "MIDORI\\s*-.*|" +               // "MIDORI - JLPT N5 ..."
+                        "JLPT\\s*N[1-5]\\s.*|" +        // "JLPT N5 Reading Practice"
+                        "Searchable\\s+Japanese.*|" +    // "Searchable Japanese passages..."
+                        "Use\\s+for\\s+READING.*|" +    // "Use for READING + ..."
+                        "Passage\\s+\\d+\\s*[-\u2013\u2014].*|" + // "Passage 1 - Morning routine"
+                        "Reference\\s+(question|answer).*|" + // "Reference question" / "Reference answer"
+                        "SHORT_ANSWER\\s+generation.*" + // trailing instruction
+                        ")$"
+        );
+        String[] lines = passage.split("\n", -1);
+        StringBuilder out = new StringBuilder();
+        for (String line : lines) {
+            String trimmed = line.trim();
+            // Always keep lines that contain at least one CJK/kana character
+            boolean hasCjk = CJK_CHAR.matcher(trimmed).find();
+            if (hasCjk) {
+                out.append(line).append('\n');
+                continue;
+            }
+            // Skip metadata-only ASCII lines
+            if (metaLine.matcher(trimmed).matches()) {
+                continue;
+            }
+            // Keep other non-empty lines (e.g. Passage titles in Japanese, etc.)
+            if (!trimmed.isEmpty()) {
+                out.append(line).append('\n');
+            }
+        }
+        String result = out.toString().trim();
+        return result.isEmpty() ? passage.trim() : result;
+    }
+
+    // Boundary-form mapping: kana suffix → kanji counter.
+    // E.g. detecting "じ時" means answer already contains the counter 時.
+    private static final java.util.Map<String, String> COUNTER_BOUNDARY_MAP;
+    static {
+        java.util.Map<String, String> m = new java.util.LinkedHashMap<>();
+        // Counter duplication pairs: (kana-tail → kanji-counter)
+        m.put("じ",    "時");  // ろくじ時
+        m.put("ふん",  "分");  // いちふん分
+        m.put("ぷん",  "分");  // よんじゅっぷん分
+        m.put("にん",  "人");
+        m.put("ほん",  "本");
+        m.put("ぼん",  "本");
+        m.put("ぽん",  "本");
+        m.put("まい",  "枚");
+        m.put("かい",  "回");
+        m.put("ねん",  "年");
+        m.put("がつ",  "月");
+        m.put("にち",  "日");
+        m.put("か",   "日");   // みっか日 (short form)
+        COUNTER_BOUNDARY_MAP = java.util.Collections.unmodifiableMap(m);
+    }
+
+    // Kanji-counter self-duplication: 時時, 分分, 人人 …
+    private static final java.util.Set<String> SELF_DUPLICATE_COUNTERS =
+            new java.util.HashSet<>(java.util.Arrays.asList(
+                    "時", "分", "人", "本", "枚", "回", "年", "月", "日"));
+
+    /**
+     * Returns {@code true} when a FILL_BLANK question has a boundary
+     * duplication: the correct answer already contains the counter/suffix that
+     * immediately follows (or precedes) the blank marker in the question text,
+     * causing the rendered sentence to show the counter twice.
+     *
+     * <p>Examples that return {@code true} (should be rejected):
+     * <ul>
+     *   <li>question="電車で___分かかります。" answer="よんじゅっぷん" → suffix 分 outside
+     *       blank; answer ends with ぷん (maps to 分) → boundary duplication.</li>
+     *   <li>question="午後___時" answer="ろくじ" → kanji 時 outside blank; answer
+     *       ends with じ (maps to 時).</li>
+     *   <li>question="___人います" answer="三人" → 人 outside blank; answer ends
+     *       with 人 (self-duplicate).</li>
+     * </ul>
+     *
+     * <p>Does NOT flag cases where the blank consumes the counter:
+     * <ul>
+     *   <li>question="___時に起きます" answer="ろくじ" → blank at start, 時 is the
+     *       first token after blank; but here 時 is inside the answer span
+     *       only if the answer does not end with じ — if it does, reject.</li>
+     *   <li>question="電車で___分かかります" answer="よんじゅう" (no counter) → clean.</li>
+     * </ul>
+     *
+     * @param questionText the question sentence containing {@code ___}
+     * @param answerText   the correct answer string
+     * @return {@code true} when boundary duplication is detected
+     */
+    public static boolean detectFillBlankBoundaryDuplication(
+            String questionText, String answerText) {
+        if (questionText == null || answerText == null) return false;
+        int blankIdx = questionText.indexOf("___");
+        if (blankIdx < 0) return false;
+
+        int afterBlank = blankIdx + 3;
+        String afterPart = afterBlank < questionText.length()
+                ? questionText.substring(afterBlank).trim() : "";
+
+        if (!afterPart.isEmpty()) {
+            // Check kanji self-duplicate: 分分, 時時, …
+            char firstAfter = afterPart.charAt(0);
+            String firstAfterStr = String.valueOf(firstAfter);
+            if (SELF_DUPLICATE_COUNTERS.contains(firstAfterStr)) {
+                // Does the answer end with this kanji counter itself?
+                if (answerText.endsWith(firstAfterStr)) {
+                    return true;
+                }
+            }
+
+            // Check kana-tail → kanji-counter mapping
+            for (java.util.Map.Entry<String, String> entry : COUNTER_BOUNDARY_MAP.entrySet()) {
+                String kanaTail = entry.getKey();
+                String kanjiCounter = entry.getValue();
+                // Is the kanji counter immediately after the blank?
+                if (afterPart.startsWith(kanjiCounter)) {
+                    // Does the answer end with this kana tail?
+                    if (answerText.endsWith(kanaTail)) {
+                        return true;
+                    }
+                    // Does the answer end with the kanji counter itself? (e.g. answer="六時", blank=___時)
+                    if (answerText.endsWith(kanjiCounter)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns {@code true} if the given text contains Vietnamese prose
+     * meta-commentary that indicates the AI leaked explanatory prose
+     * (e.g. question headers, answer labels, explanatory sentences)
+     * into a field that should contain only Japanese or English content.
+     *
+     * <p>Japanese-only or English-only text returns {@code false}.
+     *
+     * @param text the text to inspect; {@code null} or blank returns {@code false}
+     * @return {@code true} if Vietnamese prose markers are detected
+     */
+    public static boolean containsVietnameseProse(String text) {
+        if (text == null || text.isBlank()) return false;
+        String lower = text.toLowerCase();
+        // Common Vietnamese AI meta-commentary patterns
+        if (lower.contains("dưới đây là")) return true;
+        if (lower.contains("câu hỏi")) return true;
+        if (lower.contains("đáp án")) return true;
+        if (lower.contains("giải thích")) return true;
+        if (lower.contains("hãy chọn")) return true;
+        if (lower.contains("nghĩa của")) return true;
+        if (lower.contains("chọn đáp án")) return true;
+        if (lower.contains("các câu hỏi")) return true;
+        if (lower.contains("vì sao")) return true;
         return false;
     }
 
@@ -1665,14 +2497,15 @@ public final class AiExistingQuestionParser {
         Map<String, Integer> dropped = new LinkedHashMap<>();
         Map<String, Integer> countsAfterNormalize = new LinkedHashMap<>();
         Map<String, Integer> countsAfterFilter = new LinkedHashMap<>();
-        for (String s : new String[]{"Vocabulary", "Grammar", "Reading", "unknown"}) {
+        for (String s : new String[]{"Vocabulary", "Grammar", "Reading", "Writing", "Listening", "Kanji", "Translation", "Error Correction", "Sentence Writing", "unknown"}) {
             countsAfterNormalize.put(s, 0);
             countsAfterFilter.put(s, 0);
         }
         for (String reason : new String[]{
                 "duplicate_options", "romaji_content", "no_correct_answer",
                 "too_few_options", "blank_content", "off_skill",
-                "missing_reading_passage"}) {
+                "missing_reading_passage",
+                "vietnamese_prose_in_question", "vietnamese_prose_in_options"}) {
             dropped.put(reason, 0);
         }
 
@@ -1683,7 +2516,8 @@ public final class AiExistingQuestionParser {
             for (String s : selectedSkills) {
                 if (s == null) continue;
                 String lc = s.trim().toLowerCase();
-                if (lc.equals("vocabulary") || lc.equals("grammar") || lc.equals("reading")) {
+                if (lc.equals("vocabulary") || lc.equals("grammar") || lc.equals("reading")
+                        || lc.equals("writing") || lc.equals("listening") || lc.equals("kanji")) {
                     allowedSkills.add(lc.substring(0, 1).toUpperCase() + lc.substring(1));
                 }
             }
@@ -1697,23 +2531,73 @@ public final class AiExistingQuestionParser {
         for (AiExamParseResponse.AiQuestionDto q : rawQuestions) {
             if (q == null) continue;
             if (q.getContent() == null || q.getContent().isBlank()) {
+                log.info("[AiCategoryInference] Question dropped: content=null/blank, status=DROPPED, dropReason=blank_content");
                 dropped.merge("blank_content", 1, Integer::sum);
                 continue;
             }
 
-            // 1. Re-infer category from content (defense in depth)
-            String inferred = inferCategorySemantic(q.getContent());
-            q.setCategory(inferred);
-            countsAfterNormalize.merge(inferred, 1, Integer::sum);
+            // 1. Normalize and infer category
+            String rawCategory = q.getCategory();
+            String normalizedCategory = normalizeCategory(rawCategory);
+            if (normalizedCategory == null && q.getType() != null) {
+                normalizedCategory = normalizeCategory(q.getType());
+            }
+            String inferredCategory = null;
+            String finalCategory = normalizedCategory;
+            if (finalCategory == null) {
+                inferredCategory = inferCategorySemantic(q.getContent(), allowedSkills);
+                finalCategory = inferredCategory;
+            }
+            q.setCategory(finalCategory);
+            countsAfterNormalize.merge(finalCategory, 1, Integer::sum);
 
             // 2. Off-skill filter
-            if (!allowedSkills.isEmpty() && !allowedSkills.contains(inferred)) {
+            boolean matches = false;
+            if (allowedSkills.isEmpty()) {
+                matches = true;
+            } else {
+                for (String allowed : allowedSkills) {
+                    if (isCompatible(finalCategory, allowed)) {
+                        matches = true;
+                        break;
+                    }
+                }
+            }
+            if (!matches) {
+                log.info("[AiCategoryInference] Category mismatch: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=off_skill",
+                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                 dropped.merge("off_skill", 1, Integer::sum);
                 continue;
             }
 
+            // 2a. Vietnamese prose guard
+            boolean isTranslation = q.getType() != null && "TRANSLATION".equalsIgnoreCase(q.getType().trim());
+            if (!isTranslation) {
+                if (containsVietnameseProse(q.getContent())) {
+                    log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=vietnamese_prose_in_question",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("vietnamese_prose_in_question", 1, Integer::sum);
+                    continue;
+                }
+                boolean optionsContainVietnamese = false;
+                if (q.getAnswers() != null) {
+                    for (var ans : q.getAnswers()) {
+                        if (ans != null && containsVietnameseProse(ans.getContent())) {
+                            optionsContainVietnamese = true;
+                            break;
+                        }
+                    }
+                }
+                if (optionsContainVietnamese) {
+                    log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=vietnamese_prose_in_options",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("vietnamese_prose_in_options", 1, Integer::sum);
+                    continue;
+                }
+            }
+
             // 2b. Reading passage injection (Reading only)
-            if ("Reading".equals(inferred)) {
+            if ("Reading".equals(finalCategory)) {
                 String[] split = splitQuestionContentForReading(q.getContent());
                 String existingPassage = split[0];
                 String questionOnly = split[1];
@@ -1722,6 +2606,8 @@ public final class AiExistingQuestionParser {
                     chosenPassage = sourcePassage;
                 }
                 if (chosenPassage == null || chosenPassage.isBlank()) {
+                    log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=missing_reading_passage",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                     dropped.merge("missing_reading_passage", 1, Integer::sum);
                     continue;
                 }
@@ -1730,6 +2616,8 @@ public final class AiExistingQuestionParser {
 
             // 3. Validate options
             if (q.getAnswers() == null || q.getAnswers().size() < 2) {
+                log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=too_few_options",
+                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                 dropped.merge("too_few_options", 1, Integer::sum);
                 continue;
             }
@@ -1739,18 +2627,29 @@ public final class AiExistingQuestionParser {
             }
             List<Integer> dups = findDuplicateOptionIndices(optionTexts);
             if (!dups.isEmpty()) {
+                log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=duplicate_options",
+                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                 dropped.merge("duplicate_options", 1, Integer::sum);
                 continue;
             }
 
-            // 4. Romaji guard (apply to question + options + explanation)
-            StringBuilder blob = new StringBuilder();
-            blob.append(q.getContent()).append('\n');
-            for (var a : q.getAnswers()) {
-                if (a != null && a.getContent() != null) blob.append(a.getContent()).append('\n');
+            // 4a. FILL_BLANK boundary-duplication guard
+            if ("FILL_BLANK".equalsIgnoreCase(q.getType())) {
+                String fbContent = q.getContent() == null ? "" : q.getContent();
+                String fbAnswer = (q.getAnswers() != null && !q.getAnswers().isEmpty()
+                        && q.getAnswers().get(0) != null)
+                        ? q.getAnswers().get(0).getContent() : null;
+                if (detectFillBlankBoundaryDuplication(fbContent, fbAnswer)) {
+                    log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=fill_blank_boundary_duplication",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("fill_blank_boundary_duplication", 1, Integer::sum);
+                    continue;
+                }
             }
-            if (q.getExplanation() != null) blob.append(q.getExplanation()).append('\n');
-            if (containsRomaji(blob.toString())) {
+
+            if (checkRomajiContent(q, finalCategory)) {
+                log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=romaji_content",
+                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                 dropped.merge("romaji_content", 1, Integer::sum);
                 continue;
             }
@@ -1760,11 +2659,15 @@ public final class AiExistingQuestionParser {
                     .filter(a -> a != null && Boolean.TRUE.equals(a.getIsCorrect()))
                     .count();
             if (correctCount != 1) {
+                log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=no_correct_answer",
+                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                 dropped.merge("no_correct_answer", 1, Integer::sum);
                 continue;
             }
 
-            countsAfterFilter.merge(inferred, 1, Integer::sum);
+            log.info("[AiCategoryInference] Question accepted: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=ACCEPTED",
+                     q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+            countsAfterFilter.merge(finalCategory, 1, Integer::sum);
             out.add(q);
         }
 
@@ -1924,14 +2827,14 @@ public final class AiExistingQuestionParser {
         Map<String, Integer> dropped = new LinkedHashMap<>();
         Map<String, Integer> countsAfterNormalize = new LinkedHashMap<>();
         Map<String, Integer> countsAfterFilter = new LinkedHashMap<>();
-        for (String s : new String[]{"Vocabulary", "Grammar", "Reading", "unknown"}) {
+        for (String s : new String[]{"Vocabulary", "Grammar", "Reading", "Writing", "Listening", "Kanji", "Translation", "Error Correction", "Sentence Writing", "unknown"}) {
             countsAfterNormalize.put(s, 0);
             countsAfterFilter.put(s, 0);
         }
         for (String reason : new String[]{
                 "duplicate_options", "romaji_content", "no_correct_answer",
                 "too_few_options", "blank_content", "off_skill",
-                "missing_reading_passage", "invalid_type_structure"}) {
+                "missing_reading_passage", "invalid_type_structure", "missing_correct_answer"}) {
             dropped.put(reason, 0);
         }
 
@@ -1942,7 +2845,8 @@ public final class AiExistingQuestionParser {
             for (String s : selectedSkills) {
                 if (s == null) continue;
                 String lc = s.trim().toLowerCase();
-                if (lc.equals("vocabulary") || lc.equals("grammar") || lc.equals("reading")) {
+                if (lc.equals("vocabulary") || lc.equals("grammar") || lc.equals("reading")
+                        || lc.equals("writing") || lc.equals("listening") || lc.equals("kanji")) {
                     allowedSkills.add(lc.substring(0, 1).toUpperCase() + lc.substring(1));
                 }
             }
@@ -1953,28 +2857,57 @@ public final class AiExistingQuestionParser {
         }
 
         boolean relaxedTypes = expectedType == QuestionType.FILL_BLANK
-                || expectedType == QuestionType.SHORT_ANSWER;
+                || expectedType == QuestionType.SHORT_ANSWER
+                || expectedType == QuestionType.TRANSLATION
+                || expectedType == QuestionType.SENTENCE_WRITING
+                || expectedType == QuestionType.ERROR_CORRECTION;
 
         for (AiExamParseResponse.AiQuestionDto q : rawQuestions) {
             if (q == null) continue;
             QuestionType declared = QuestionTypeValidator.normalize(q.getType());
-            boolean questionIsRelaxed = (declared == null) ? relaxedTypes : (declared == QuestionType.FILL_BLANK || declared == QuestionType.SHORT_ANSWER);
+            boolean questionIsRelaxed = (declared == null) ? relaxedTypes : (declared == QuestionType.FILL_BLANK || declared == QuestionType.SHORT_ANSWER || declared == QuestionType.TRANSLATION || declared == QuestionType.SENTENCE_WRITING || declared == QuestionType.ERROR_CORRECTION);
 
             if (q.getContent() == null || q.getContent().isBlank()) {
+                log.info("[AiCategoryInference] Question dropped: content=null/blank, status=DROPPED, dropReason=blank_content");
                 dropped.merge("blank_content", 1, Integer::sum);
                 continue;
             }
 
-            String inferred = inferCategorySemantic(q.getContent());
-            q.setCategory(inferred);
-            countsAfterNormalize.merge(inferred, 1, Integer::sum);
+            // 1. Normalize and infer category
+            String rawCategory = q.getCategory();
+            String normalizedCategory = normalizeCategory(rawCategory);
+            if (normalizedCategory == null && q.getType() != null) {
+                normalizedCategory = normalizeCategory(q.getType());
+            }
+            String inferredCategory = null;
+            String finalCategory = normalizedCategory;
+            if (finalCategory == null) {
+                inferredCategory = inferCategorySemantic(q.getContent(), allowedSkills);
+                finalCategory = inferredCategory;
+            }
+            q.setCategory(finalCategory);
+            countsAfterNormalize.merge(finalCategory, 1, Integer::sum);
 
-            if (!allowedSkills.isEmpty() && !allowedSkills.contains(inferred)) {
+            // 2. Off-skill filter
+            boolean matches = false;
+            if (allowedSkills.isEmpty()) {
+                matches = true;
+            } else {
+                for (String allowed : allowedSkills) {
+                    if (isCompatible(finalCategory, allowed)) {
+                        matches = true;
+                        break;
+                    }
+                }
+            }
+            if (!matches) {
+                log.info("[AiCategoryInference] Category mismatch (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=off_skill",
+                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                 dropped.merge("off_skill", 1, Integer::sum);
                 continue;
             }
 
-            if ("Reading".equals(inferred)) {
+            if ("Reading".equals(finalCategory)) {
                 String[] split = splitQuestionContentForReading(q.getContent());
                 String existingPassage = split[0];
                 String questionOnly = split[1];
@@ -1983,6 +2916,8 @@ public final class AiExistingQuestionParser {
                     chosenPassage = sourcePassage;
                 }
                 if (chosenPassage == null || chosenPassage.isBlank()) {
+                    log.info("[AiCategoryInference] Question dropped (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=missing_reading_passage",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                     dropped.merge("missing_reading_passage", 1, Integer::sum);
                     continue;
                 }
@@ -1990,7 +2925,15 @@ public final class AiExistingQuestionParser {
             }
 
             if (q.getAnswers() == null || q.getAnswers().isEmpty()) {
-                dropped.merge("too_few_options", 1, Integer::sum);
+                if (questionIsRelaxed) {
+                    log.info("[AiCategoryInference] Question dropped (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=missing_correct_answer",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("missing_correct_answer", 1, Integer::sum);
+                } else {
+                    log.info("[AiCategoryInference] Question dropped (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=too_few_options",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("too_few_options", 1, Integer::sum);
+                }
                 continue;
             }
             // For MCQ / TRUE_FALSE require ≥ 2 distinct options and exactly 1
@@ -1998,6 +2941,8 @@ public final class AiExistingQuestionParser {
             // single-text answer slot can survive to the type-repair layer.
             if (!questionIsRelaxed) {
                 if (q.getAnswers().size() < 2) {
+                    log.info("[AiCategoryInference] Question dropped (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=too_few_options",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                     dropped.merge("too_few_options", 1, Integer::sum);
                     continue;
                 }
@@ -2007,6 +2952,8 @@ public final class AiExistingQuestionParser {
                 }
                 List<Integer> dups = findDuplicateOptionIndices(optionTexts);
                 if (!dups.isEmpty()) {
+                    log.info("[AiCategoryInference] Question dropped (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=duplicate_options",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                     dropped.merge("duplicate_options", 1, Integer::sum);
                     continue;
                 }
@@ -2014,24 +2961,37 @@ public final class AiExistingQuestionParser {
                         .filter(a -> a != null && Boolean.TRUE.equals(a.getIsCorrect()))
                         .count();
                 if (correctCount != 1) {
+                    log.info("[AiCategoryInference] Question dropped (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=no_correct_answer",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                     dropped.merge("no_correct_answer", 1, Integer::sum);
                     continue;
                 }
             }
 
-            // Romaji guard applies to all types including FILL_BLANK.
-            StringBuilder blob = new StringBuilder();
-            blob.append(q.getContent()).append('\n');
-            for (var a : q.getAnswers()) {
-                if (a != null && a.getContent() != null) blob.append(a.getContent()).append('\n');
+            // FILL_BLANK boundary-duplication guard (structural path)
+            if ("FILL_BLANK".equalsIgnoreCase(q.getType())) {
+                String fbContent = q.getContent() == null ? "" : q.getContent();
+                String fbAnswer = (q.getAnswers() != null && !q.getAnswers().isEmpty()
+                        && q.getAnswers().get(0) != null)
+                        ? q.getAnswers().get(0).getContent() : null;
+                if (detectFillBlankBoundaryDuplication(fbContent, fbAnswer)) {
+                    log.info("[AiCategoryInference] Question dropped (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=fill_blank_boundary_duplication",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("fill_blank_boundary_duplication", 1, Integer::sum);
+                    continue;
+                }
             }
-            if (q.getExplanation() != null) blob.append(q.getExplanation()).append('\n');
-            if (containsRomaji(blob.toString())) {
+
+            if (checkRomajiContent(q, finalCategory)) {
+                log.info("[AiCategoryInference] Question dropped (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=romaji_content",
+                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
                 dropped.merge("romaji_content", 1, Integer::sum);
                 continue;
             }
 
-            countsAfterFilter.merge(inferred, 1, Integer::sum);
+            log.info("[AiCategoryInference] Question accepted (structural): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=ACCEPTED",
+                     q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+            countsAfterFilter.merge(finalCategory, 1, Integer::sum);
             out.add(q);
         }
 
@@ -2212,7 +3172,7 @@ public final class AiExistingQuestionParser {
 
     // Question number patterns: 1. 1) 問1: 問題1: 質問1: Q1: Question 1:
     private static final Pattern QUESTION_MARKER_SIMPLE = Pattern.compile(
-            "(?m)^(?:(\\d+)[.)]\\s+|(問|問題|質問|Q)[\\s:]*(\\d+)[.):]?\\s*|Question\\s+(\\d+)[.):]?\\s*)"
+            "(?im)^(?:(\\d+)[.)]\\s+|(問|問題|質問|Q|Câu|Question|Câu\\s*hỏi|Cau|Cau\\s*hoi)[\\s:]*(\\d+)[.):]?\\s*|Question\\s+(\\d+)[.):]?\\s*)"
     );
 
     // Section header pattern: detects "Skill: Vocabulary", "Skill: Grammar",
@@ -2256,19 +3216,29 @@ public final class AiExistingQuestionParser {
             "(?im)^\\s*(?:"
                     + "read\\s*(?:the)?\\s*passage|"
                     + "reading\\s*passage|"
-                    + "passage[:\\s]*|"
-                    + "本文[:\\s]*|"
-                    + "文章[:\\s]*|"
+                    + "passage|"
+                    + "本文|"
+                    + "文章|"
                     + "đọc\\s*(?:đoạn\\s*văn|bài\\s*đọc)|"
                     + "passage\\s*(?:text)?|"
-                    + "text[:\\s]*"
-                    + ")[:：]?\\s*(?:\\n|$)",
+                    + "text"
+                    + ")\\s*(?:[:：.]\\s*|(?=\\n|\\r|$))",
             Pattern.CASE_INSENSITIVE
     );
 
     private static final Pattern ANSWER_LINE = Pattern.compile(
             "(?im)^\\s*(?:Correct\\s*(?:answer)?|Answer|Đáp\\s*án|正解|答え)\\s*[:.]?\\s*([A-Da-d]|一二三四)[^A-Za-z]*",
             Pattern.MULTILINE
+    );
+    // Sentinel inserted by stripAllPassages before each question that was preceded by
+    // a stripped passage. splitIntoBlocks splits on this so orphan questions get
+    // their own block instead of merging with the previous one.
+    private static final String ORPHAN_QUESTION_MARKER = "\n__MIDORI_ORPHAN__\n";
+    // Pattern for splitting blocks on passage headers: matches the start of a passage line
+    // so "Reading Passage: Tanaka-san..." becomes a separate block from the question.
+    private static final Pattern PASSAGE_HEADER_SPLITTER = Pattern.compile(
+            "(?im)^\\s*(?:read(?:ing)?\\s*passage|đọc\\s*(?:đoạn\\s*văn|bài\\s*đọc)|本文|文章)",
+            Pattern.CASE_INSENSITIVE | Pattern.MULTILINE
     );
     private static final Pattern ANSWER_LINE_TEXT = Pattern.compile(
             "(?im)^\\s*(?:Correct\\s*(?:answer)?|Answer|Đáp\\s*án|正解|答え)\\s*[:.]?\\s*(.+)",
@@ -2277,7 +3247,7 @@ public final class AiExistingQuestionParser {
 
     // Option patterns: A. A) A: Ａ. ア. イ. ウ. エ.
     private static final Pattern OPTION_LINE = Pattern.compile(
-            "(?m)^\\s*([A-Da-dＡ-Ｄ]|ア、イ、ウ、エ)[.)::]?\\s*(.+)$"
+            "(?m)^\\s*([A-Da-dＡ-Ｄ]|ア、イ、ウ、エ)(?:[.):：]|\\s+)\\s*(.+)$"
     );
 
     private static final Pattern OPTION_INLINE = Pattern.compile(
@@ -2329,27 +3299,18 @@ public final class AiExistingQuestionParser {
 
         String normalized = normalizeForEvidence(text);
 
-        // 1. Build section/passage context map: for every question block, what
-        //    is the active passage (if any) and active section at that point.
-        BlockContext ctx = buildBlockContext(normalized);
+        // 1. Build section/passage context map on the ORIGINAL text (with passages).
+        BlockContext ctx = buildBlockContextForSplit(normalized);
+
+        // 1b. Insert orphan question markers BEFORE stripping so splitIntoBlocks can
+        //     find them in textForBlocks. Do this on the original normalized text.
+        String textWithOrphans = insertOrphanMarkers(normalized, ctx);
 
         // 2. Remove the passage block from text so it doesn't create spurious
         //    question blocks. Keep backward-compat: if no Skill: section
         //    header was found AND the global findAndRemovePassage works, use
         //    that path (preserves the legacy single-skill Reading PDF test).
-        String textForBlocks;
-        if (ctx.hasExplicitSections) {
-            textForBlocks = stripPassageBlocksInReadingSections(normalized, ctx);
-        } else {
-            int[] bounds = findPassageBoundaries(normalized);
-            if (bounds != null) {
-                textForBlocks = normalized.substring(0, bounds[0]).trim()
-                        + "\n\n"
-                        + normalized.substring(bounds[1]).trim();
-            } else {
-                textForBlocks = normalized;
-            }
-        }
+        String textForBlocks = stripAllPassages(textWithOrphans, ctx);
 
         // 3. Build answer-key map
         Map<String, String> answerKey = extractAnswerKey(textForBlocks);
@@ -2357,23 +3318,65 @@ public final class AiExistingQuestionParser {
         // 4. Split into question blocks
         List<String> blocks = splitIntoBlocks(textForBlocks);
 
-        // 5. Parse each block with its own passage context (NOT a global passage)
+        // 5. Parse each block with its own passage context.
+        //    Pass the ORIGINAL normalized text (with passages) so we can extract
+        //    passage content from the correct positions.
+        List<AiExamParseResponse.AiQuestionDto> questions = parseBlocksWithContext(
+                blocks, ctx, answerKey, normalized, currentReadingPassage);
+
+        // 6. Build response
+        AiExamParseResponse response = new AiExamParseResponse();
+        response.setTitle("");
+        response.setDescription("Parsed from PDF text");
+        response.setQuestions(questions);
+        return sanitize(response);
+    }
+
+    /**
+     * Parse blocks with their context. Pass the original normalized text so passage
+     * extraction uses correct positions. Handles passage-only blocks by carrying
+     * their passage content to the next actual question block.
+     */
+    private static List<AiExamParseResponse.AiQuestionDto> parseBlocksWithContext(
+            List<String> blocks,
+            BlockContext ctx,
+            Map<String, String> answerKey,
+            String originalNormalizedText,
+            String currentReadingPassage) {
+
         List<AiExamParseResponse.AiQuestionDto> questions = new ArrayList<>();
+        String pendingPassage = null;
+
         for (int qi = 0; qi < blocks.size(); qi++) {
             String block = blocks.get(qi);
             PerBlockContext pbc = ctx.perBlock.get(Math.min(qi, ctx.perBlock.size() - 1));
-            String blockPassage = null;
-            if (pbc != null && pbc.passage != null) {
+
+            // Skip passage-only blocks; carry their passage to the next question
+            if (pbc != null && pbc.isPassageBlock) {
+                String pass = extractPassageFromOriginal(pbc, originalNormalizedText, ctx.passageRanges);
+                if (pass != null && !pass.isBlank()) {
+                    pendingPassage = pass;
+                }
+                continue;
+            }
+
+            // For question blocks, check if a previous passage-only block set pendingPassage
+            String blockPassage = pendingPassage;
+            pendingPassage = null; // reset after use
+
+            if (blockPassage == null && pbc != null && pbc.passage != null) {
                 blockPassage = pbc.passage;
-            } else if (!ctx.hasExplicitSections && currentReadingPassage != null) {
-                // Legacy behavior: when no Skill: section was found, fall back
-                // to caller-provided passage (existing API contract).
+            }
+
+            if (blockPassage == null && !ctx.hasExplicitSections && currentReadingPassage != null) {
                 blockPassage = currentReadingPassage;
             }
+
             String blockSection = pbc != null ? pbc.section : null;
 
             AiExamParseResponse.AiQuestionDto q = parseBlock(
                     block, qi, answerKey, blockPassage, blockSection);
+
             if (q != null) {
                 // If the block carries an explicit Skill: line, surface it as
                 // a category hint so sanitize() / inferCategorySemantic keep it.
@@ -2383,13 +3386,20 @@ public final class AiExistingQuestionParser {
                 questions.add(q);
             }
         }
+        return questions;
+    }
 
-        // 6. Build response
-        AiExamParseResponse response = new AiExamParseResponse();
-        response.setTitle("");
-        response.setDescription("Parsed from PDF text");
-        response.setQuestions(questions);
-        return sanitize(response);
+    /**
+     * Extract passage content from the original text using the PerBlockContext's passage info.
+     */
+    private static String extractPassageFromOriginal(
+            PerBlockContext pbc,
+            String originalText,
+            List<int[]> passageRanges) {
+        if (pbc == null || pbc.passage == null) return null;
+        // The pbc.passage field already contains the passage text from buildBlockContextForSplit.
+        // Just return it directly.
+        return pbc.passage;
     }
 
     /**
@@ -2407,6 +3417,7 @@ public final class AiExistingQuestionParser {
     private static final class BlockContext {
         boolean hasExplicitSections;
         final List<PerBlockContext> perBlock = new ArrayList<>();
+        final List<int[]> passageRanges = new ArrayList<>();
 
         BlockContext() {
         }
@@ -2419,6 +3430,8 @@ public final class AiExistingQuestionParser {
         String passage;
         /** Explicit Skill: category hint inside the block, or null. */
         String explicitCategory;
+        /** True if this block was created by a passage header split (no question marker). */
+        boolean isPassageBlock;
     }
 
     /**
@@ -2431,131 +3444,216 @@ public final class AiExistingQuestionParser {
     private static BlockContext buildBlockContext(String normalized) {
         BlockContext out = new BlockContext();
 
-        // First, did the document declare any Skill: section header?
         Matcher secHead = SECTION_HEADER.matcher(normalized);
         boolean hasAnySkillHeader = secHead.find();
         out.hasExplicitSections = hasAnySkillHeader;
 
-        if (!hasAnySkillHeader) {
-            // Legacy path: no Skill: sections in this PDF. Build perBlock
-            // entries only for the question markers we find, so the caller's
-            // per-block indexing in parseFromSourceText always has a context
-            // entry to read. Without this, blocks.size() > perBlock.size()
-            // causes IndexOutOfBoundsException.
-            Matcher qm = QUESTION_MARKER_SIMPLE.matcher(normalized);
-            while (qm.find()) {
-                out.perBlock.add(new PerBlockContext());
+        // 1. Collect all passage ranges
+        Matcher passHead = PASSAGE_HEADER.matcher(normalized);
+        while (passHead.find()) {
+            int[] bounds = findPassageBoundariesFrom(normalized, passHead.start());
+            if (bounds != null) {
+                boolean duplicate = false;
+                for (int[] r : out.passageRanges) {
+                    if (r[0] == bounds[0] && r[1] == bounds[1]) {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate) {
+                    out.passageRanges.add(bounds);
+                }
             }
-            // If splitIntoBlocks later adds a fallback whole-text block,
-            // ensure perBlock is at least size 1 to satisfy index math.
-            if (out.perBlock.isEmpty()) {
-                out.perBlock.add(new PerBlockContext());
-            }
-            return out;
         }
 
-        // Second pass: walk every question-marker line, snapshot the
-        // section/passage/explicitSkill that are active at that line.
+        // 2. Walk every question-marker line
         secHead = SECTION_HEADER.matcher(normalized);
-        Matcher passHead = PASSAGE_HEADER.matcher(normalized);
         Matcher qHead = QUESTION_MARKER_SIMPLE.matcher(normalized);
 
         String activeSection = null;
-        String activePassage = null;
-        // Last passage header position (char offset) seen in current Reading section
-        int lastPassageStart = -1;
-        // Track each passage header's [start, end) so we can extract passage text
-        // for that specific occurrence only.
-        List<int[]> passageRanges = new ArrayList<>();
-        while (passHead.find()) {
-            passageRanges.add(new int[]{passHead.start(), passHead.end()});
-        }
-        // Active passage (string) keyed by the passage-header position
-        Map<Integer, String> passageTextByStart = new HashMap<>();
-        for (int[] r : passageRanges) {
-            int[] bounds = findPassageBoundaries(normalized);
-            if (bounds != null) {
-                String text = normalized.substring(bounds[0], bounds[1]).trim();
-                if (text.length() >= 10) {
-                    passageTextByStart.put(r[0], text);
-                }
-            }
-            // findPassageBoundaries only returns the FIRST match — for our
-            // typical case (one Reading section per PDF) this is fine.
-            break;
-        }
-
-        // Reset secHead to walk again from the top.
-        secHead = SECTION_HEADER.matcher(normalized);
-
-        // For each question-marker line, determine the active section by
-        // walking forward from the previous marker / start of text.
-        int cursor = 0;
         int secCursor = 0;
-        int passCursor = 0;
-        int passageHeaderPos = -1;
 
         while (qHead.find()) {
             int markerStart = qHead.start();
 
             // Update activeSection: latest SECTION_HEADER at or before markerStart
-            while (secCursor < normalized.length()) {
-                if (secHead.find(secCursor)) {
-                    if (secHead.start() <= markerStart) {
-                        activeSection = normalizeSectionName(secHead.group(2));
-                        secCursor = secHead.end();
+            if (hasAnySkillHeader) {
+                while (secCursor < normalized.length()) {
+                    if (secHead.find(secCursor)) {
+                        if (secHead.start() <= markerStart) {
+                            activeSection = normalizeSectionName(secHead.group(2));
+                            secCursor = secHead.end();
+                        } else {
+                            break;
+                        }
                     } else {
                         break;
                     }
-                } else {
-                    break;
                 }
             }
 
-            // Update passage: latest passage-header in a Reading section at or before markerStart
-            // Only attach the passage if the active section is Reading AND the passage header
-            // appears in the current Reading section (after the last Skill: Reading header).
-            if ("Reading".equals(activeSection)) {
-                // Find the most recent SECTION_HEADER position; passage must come after it.
-                int sectionStartPos = lastSectionHeaderPosAt(normalized, markerStart);
+            // Update passage: latest passage-header at or before markerStart
+            String activePassage = null;
+            if ("Reading".equals(activeSection) || activeSection == null) {
+                int sectionStartPos = (activeSection != null) ? lastSectionHeaderPosAt(normalized, markerStart) : -1;
                 int latestPassagePos = -1;
-                for (Map.Entry<Integer, String> e : passageTextByStart.entrySet()) {
-                    int pos = e.getKey();
-                    if (pos <= markerStart && pos >= sectionStartPos) {
-                        if (pos > latestPassagePos) {
-                            latestPassagePos = pos;
+                for (int[] range : out.passageRanges) {
+                    int startPos = range[0];
+                    if (startPos <= markerStart && startPos >= sectionStartPos) {
+                        if (startPos > latestPassagePos) {
+                            latestPassagePos = startPos;
                         }
                     }
                 }
                 if (latestPassagePos >= 0) {
-                    activePassage = passageTextByStart.get(latestPassagePos);
-                } else {
-                    activePassage = null;
+                    for (int[] range : out.passageRanges) {
+                        if (range[0] == latestPassagePos) {
+                            activePassage = normalized.substring(range[0], range[1]).trim();
+                            break;
+                        }
+                    }
                 }
-            } else {
-                // Vocabulary / Grammar / null section => never inherit the passage
-                activePassage = null;
             }
 
-            // Build PerBlockContext. Note: markerStart here is the char offset
-            // in the normalized text. splitIntoBlocks works on
-            // textForBlocks (which is the post-passage-removal text), so we
-            // cannot pre-resolve which "block index" this marker corresponds
-            // to. Instead we append perBlock entries keyed by markerStart and
-            // map them by position-order in parseFromSourceText.
             PerBlockContext pbc = new PerBlockContext();
             pbc.section = activeSection;
             pbc.passage = activePassage;
-            // Detect in-block "Skill: X" line by scanning the next ~6 lines
             pbc.explicitCategory = findExplicitSkillInBlockStartingAt(normalized, markerStart);
             out.perBlock.add(pbc);
         }
 
-        // Ensure at least one entry so parseFromSourceText's min(qi, size-1) is safe
         if (out.perBlock.isEmpty()) {
             out.perBlock.add(new PerBlockContext());
         }
         return out;
+    }
+
+    /**
+     * Build block context for use with splitIntoBlocks.
+     * Walks the original text tracking passage headers that will appear as orphaned
+     * single-line blocks in the stripped text (the passage body is removed by
+     * stripAllPassages, leaving only the header line).
+     *
+     * <p>For each orphaned passage header, this method assigns the passage context
+     * to the *following* question block (the one whose number marker immediately
+     * follows the header). No extra perBlock entry is emitted for the passage-only
+     * block since splitIntoBlocks will not produce one (the orphan marker at the
+     * passage start is consumed without creating a separate block).
+     */
+    private static BlockContext buildBlockContextForSplit(String normalized) {
+        BlockContext out = new BlockContext();
+
+        Matcher secHead = SECTION_HEADER.matcher(normalized);
+        boolean hasAnySkillHeader = secHead.find();
+        out.hasExplicitSections = hasAnySkillHeader;
+
+        // Collect passage ranges from PASSAGE_HEADER (used to extract passage content)
+        Matcher passHead = PASSAGE_HEADER.matcher(normalized);
+        while (passHead.find()) {
+            int[] bounds = findPassageBoundariesFrom(normalized, passHead.start());
+            if (bounds != null) {
+                boolean duplicate = false;
+                for (int[] r : out.passageRanges) {
+                    if (r[0] == bounds[0] && r[1] == bounds[1]) {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate) {
+                    out.passageRanges.add(bounds);
+                }
+            }
+        }
+
+        // Walk question markers. For each question preceded by a passage header
+        // (the header will become an orphaned single-line block after stripping),
+        // assign the passage context directly to this question block.
+        // No extra perBlock entry is emitted for the orphaned header since
+        // splitIntoBlocks consumes the orphan marker without producing a block for it.
+        Matcher qHead = QUESTION_MARKER_SIMPLE.matcher(normalized);
+        // Use passageRanges to detect which questions are preceded by a passage.
+        // insertOrphanMarkers puts the orphan marker at r[0], so after stripping,
+        // the orphaned header line appears between the orphan marker and the question number.
+        // We use the same r[0] position to find the matching header.
+        String activeSection = null;
+        int secCursor = 0;
+
+        while (qHead.find()) {
+            int markerStart = qHead.start();
+
+            // Update activeSection: latest SECTION_HEADER at or before markerStart
+            if (hasAnySkillHeader) {
+                secHead = SECTION_HEADER.matcher(normalized);
+                secCursor = 0;
+                while (secCursor < normalized.length()) {
+                    if (secHead.find(secCursor)) {
+                        if (secHead.start() <= markerStart) {
+                            activeSection = normalizeSectionName(secHead.group(2));
+                            secCursor = secHead.end();
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            // Check if this question is preceded by a passage whose body will be stripped.
+            // A question is preceded by a passage if there is a passage range whose r[1]
+            // (passage end, right before the next numbered question) is <= markerStart.
+            // We look for the most recent such passage.
+            String activePassage = null;
+            if ("Reading".equals(activeSection) || activeSection == null) {
+                int bestPassagePos = -1;
+                for (int[] r : out.passageRanges) {
+                    int sectionStartPos = (activeSection != null) ? lastSectionHeaderPosAt(normalized, r[0]) : -1;
+                    // Check if this passage is inside the active section and ends before this marker
+                    if (r[1] <= markerStart && r[1] > bestPassagePos) {
+                        // Verify it's inside the active section
+                        if (activeSection != null) {
+                            if (sectionStartPos >= 0 && sectionStartPos <= r[0]) {
+                                bestPassagePos = r[1];
+                            }
+                        } else {
+                            bestPassagePos = r[1];
+                        }
+                    }
+                }
+                if (bestPassagePos >= 0) {
+                    for (int[] r : out.passageRanges) {
+                        if (r[1] == bestPassagePos) {
+                            activePassage = extractPassageContentAt(normalized, r[0], out.passageRanges);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Emit PerBlockContext for the question block
+            PerBlockContext pbc = new PerBlockContext();
+            pbc.section = activeSection;
+            pbc.passage = activePassage;
+            pbc.explicitCategory = findExplicitSkillInBlockStartingAt(normalized, markerStart);
+            out.perBlock.add(pbc);
+        }
+
+        if (out.perBlock.isEmpty()) {
+            out.perBlock.add(new PerBlockContext());
+        }
+        return out;
+    }
+
+    /**
+     * Extract the full passage text starting at the given position.
+     */
+    private static String extractPassageContentAt(String normalized, int passStart, List<int[]> passageRanges) {
+        for (int[] range : passageRanges) {
+            if (range[0] == passStart) {
+                return normalized.substring(range[0], range[1]).trim();
+            }
+        }
+        return null;
     }
 
     private static String normalizeSectionName(String raw) {
@@ -2609,6 +3707,60 @@ public final class AiExistingQuestionParser {
     }
 
     /**
+     * Insert orphan question markers into the original text BEFORE stripAllPassages.
+     * These markers mark where questions that were preceded by a passage will appear
+     * after the passage is stripped, so splitIntoBlocks can find them.
+     */
+    private static String insertOrphanMarkers(String normalized, BlockContext ctx) {
+        // Collect all positions where orphan markers should go.
+        // An orphan marker is placed at the START of each stripped passage so that
+        // after stripAllPassages removes the passage body, the marker appears
+        // between the previous question's content and the orphaned passage header.
+        // splitIntoBlocks handles the orphan header by emitting it as a separate
+        // block and placing an orphan marker at the end of the header line so the
+        // following question starts a fresh block.
+        List<int[]> orphanRanges = new ArrayList<>();
+        for (int[] r : ctx.passageRanges) {
+            boolean shouldStrip = true;
+            if (ctx.hasExplicitSections) {
+                int sectionStart = lastSectionHeaderPosAt(normalized, r[0]);
+                String activeSec = null;
+                if (sectionStart >= 0) {
+                    Matcher m = SECTION_HEADER.matcher(normalized);
+                    if (m.find(sectionStart)) {
+                        activeSec = normalizeSectionName(m.group(2));
+                    }
+                }
+                shouldStrip = "Reading".equals(activeSec);
+            }
+            if (shouldStrip) {
+                // Check if there are question markers inside the passage body
+                String passageBody = normalized.substring(r[0], Math.min(r[1], normalized.length()));
+                Matcher qInPassage = QUESTION_MARKER_SIMPLE.matcher(passageBody);
+                if (qInPassage.find()) {
+                    orphanRanges.add(new int[]{r[0], r[1]});
+                }
+            }
+        }
+
+        if (orphanRanges.isEmpty()) {
+            return normalized;
+        }
+
+        // Sort by position descending so inserting from the end doesn't shift earlier offsets
+        orphanRanges.sort((a, b) -> Integer.compare(b[0], a[0]));
+
+        StringBuilder sb = new StringBuilder(normalized);
+        for (int[] r : orphanRanges) {
+            // Place marker at passage START so it survives stripAllPassages.
+            // The marker appears between the previous question's answer and the
+            // orphaned passage header in the stripped text.
+            sb.insert(r[0], ORPHAN_QUESTION_MARKER);
+        }
+        return sb.toString();
+    }
+
+    /**
      * Strip every passage block that sits inside a Reading section, so the
      * resulting text can be safely split into question blocks without the
      * passage itself becoming a spurious block.
@@ -2616,43 +3768,52 @@ public final class AiExistingQuestionParser {
      * <p>Passage blocks outside any Reading section are left untouched (legacy
      * behavior).
      */
-    private static String stripPassageBlocksInReadingSections(String normalized, BlockContext ctx) {
-        // Find all passage boundaries (currently findPassageBoundaries returns
-        // only the first match). If the first passage is inside a Reading
-        // section, strip it. Repeat for any subsequent passages (rare).
-        String result = normalized;
-        int safety = 0;
-        while (safety++ < 5) {
-            int[] bounds = findPassageBoundaries(result);
-            if (bounds == null) break;
-            int passageStart = bounds[0];
-
-            // Find the SECTION_HEADER at or just before this passage
-            int sectionStart = lastSectionHeaderPosAt(result, passageStart);
-            String activeSection = null;
-            if (sectionStart >= 0) {
-                Matcher m = SECTION_HEADER.matcher(result);
-                if (m.find(sectionStart)) {
-                    activeSection = normalizeSectionName(m.group(2));
+    private static String stripAllPassages(String normalized, BlockContext ctx) {
+        List<int[]> excludeRanges = new ArrayList<>();
+        for (int[] r : ctx.passageRanges) {
+            boolean shouldStrip = true;
+            if (ctx.hasExplicitSections) {
+                int sectionStart = lastSectionHeaderPosAt(normalized, r[0]);
+                String activeSec = null;
+                if (sectionStart >= 0) {
+                    Matcher m = SECTION_HEADER.matcher(normalized);
+                    if (m.find(sectionStart)) {
+                        activeSec = normalizeSectionName(m.group(2));
+                    }
                 }
+                shouldStrip = "Reading".equals(activeSec);
             }
-            if (!"Reading".equals(activeSection)) {
-                // Passage is outside a Reading section — leave it alone to
-                // preserve legacy behavior for non-mixed PDFs.
-                break;
+            if (shouldStrip) {
+                int headerStart = -1;
+                Matcher ph = PASSAGE_HEADER.matcher(normalized);
+                while (ph.find()) {
+                    int nextBodyStart = skipLeadingNewlines(normalized, ph.end());
+                    if (nextBodyStart == r[0]) {
+                        headerStart = ph.start();
+                        break;
+                    }
+                }
+                int stripStart = (headerStart >= 0) ? headerStart : r[0];
+                excludeRanges.add(new int[]{stripStart, r[1]});
             }
-            result = result.substring(0, passageStart).trim()
-                    + "\n\n"
-                    + result.substring(bounds[1]).trim();
         }
-        return result;
+
+        excludeRanges.sort((a, b) -> Integer.compare(a[0], b[0]));
+
+        StringBuilder sb = new StringBuilder();
+        int lastIndex = 0;
+        for (int[] range : excludeRanges) {
+            if (range[0] > lastIndex) {
+                sb.append(normalized, lastIndex, range[0]).append("\n\n");
+            }
+            lastIndex = range[1];
+        }
+        if (lastIndex < normalized.length()) {
+            sb.append(normalized, lastIndex, normalized.length());
+        }
+        return sb.toString().trim();
     }
 
-    /**
-     * Find the Reading passage block from the text.
-     * Returns the passage text if found, null otherwise.
-     * The original text is NOT modified.
-     */
     private static String findAndRemovePassage(String normalized) {
         int[] bounds = findPassageBoundaries(normalized);
         if (bounds == null) return null;
@@ -2661,30 +3822,27 @@ public final class AiExistingQuestionParser {
         return normalized.substring(passageStart, passageEnd).trim();
     }
 
-    /**
-     * Find the start and end (exclusive) indices of the passage block in the text.
-     * Returns null if no passage is found.
-     */
     private static int[] findPassageBoundaries(String normalized) {
-        Matcher header = PASSAGE_HEADER.matcher(normalized);
+        return findPassageBoundariesFrom(normalized, 0);
+    }
 
-        while (header.find()) {
+    private static int[] findPassageBoundariesFrom(String normalized, int startSearchPos) {
+        Matcher header = PASSAGE_HEADER.matcher(normalized);
+        if (header.find(startSearchPos)) {
             int headerStart = header.start();
             int headerEnd = header.end();
 
-            // Skip any whitespace/newlines after the header line
             int bodyStart = skipLeadingNewlines(normalized, headerEnd);
             String afterHeader = normalized.substring(bodyStart);
 
-            // Find where passage ends (numbered question)
-            Pattern passageEnd = Pattern.compile("(?m)^\\s*\\d[.):]");
+            // Find where passage ends (numbered question or Cau/Câu N)
+            Pattern passageEnd = Pattern.compile("(?m)^\\s*(?:\\d+[.):]|C[âa]?u\\s*\\d+)");
             Matcher endMatcher = passageEnd.matcher(afterHeader);
 
             int passageEndIndex;
             if (endMatcher.find()) {
                 passageEndIndex = endMatcher.start();
             } else {
-                // No numbered question found — look for first "N. " pattern
                 passageEndIndex = -1;
                 for (int i = 0; i + 2 < afterHeader.length(); i++) {
                     if (afterHeader.charAt(i) >= '0' && afterHeader.charAt(i) <= '9') {
@@ -2705,7 +3863,6 @@ public final class AiExistingQuestionParser {
 
             String passage = afterHeader.substring(0, passageEndIndex).trim();
             if (passage.length() >= 10) {
-                // Return passage start (after header+newlines) and end
                 int passageStart = bodyStart;
                 int passageEndOffset = bodyStart + passageEndIndex;
                 return new int[]{passageStart, passageEndOffset};
@@ -2745,17 +3902,80 @@ public final class AiExistingQuestionParser {
     private static List<String> splitIntoBlocks(String text) {
         List<String> blocks = new ArrayList<>();
         Matcher m = QUESTION_MARKER_SIMPLE.matcher(text);
+        Matcher passSplit = PASSAGE_HEADER_SPLITTER.matcher(text);
+        if (!passSplit.find()) {
+            passSplit = null;
+        }
         int blockStart = -1;
+        int passSplitPos = passSplit != null ? passSplit.start() : Integer.MAX_VALUE;
 
         while (m.find()) {
             int markerStart = m.start();
-            if (blockStart >= 0) {
-                String block = text.substring(blockStart, markerStart).trim();
-                if (isValidBlock(block)) {
-                    blocks.add(block);
+            // If a passage header appears before the next question marker, treat it as a block boundary.
+            // Emit the previous block up to the passage header (NOT including it), then emit the
+            // passage header as its own block, then continue with the question at markerStart.
+            if (passSplit != null && passSplit.start() < markerStart) {
+                // Emit any accumulated block so far (before this passage)
+                if (blockStart >= 0) {
+                    String block = text.substring(blockStart, passSplit.start()).trim();
+                    if (isValidBlock(block)) {
+                        blocks.add(block);
+                    }
                 }
+                // Emit the passage line as its own block
+                int passEnd = passSplit.end();
+                String passBlock = text.substring(passSplit.start(), passEnd).trim();
+                if (isValidBlock(passBlock)) {
+                    blocks.add(passBlock);
+                }
+                blockStart = markerStart;
+                // Advance passSplit to the next passage header
+                if (passSplit.find(passEnd)) {
+                    passSplitPos = passSplit.start();
+                } else {
+                    passSplit = null;
+                    passSplitPos = Integer.MAX_VALUE;
+                }
+            } else {
+                // Check if an orphan question marker appears between blockStart and markerStart.
+                // This happens when stripAllPassages removed a passage body but left the
+                // passage header line (now orphaned). The orphan marker was placed at the
+                // start of the passage so it appears between the previous question and
+                // the orphaned header. We emit everything up to the orphan marker as
+                // a valid block, then skip past it so the orphaned header gets its
+                // own processing below.
+                if (blockStart >= 0) {
+                    int orphanPos = text.indexOf(ORPHAN_QUESTION_MARKER, blockStart);
+                    while (orphanPos >= 0 && orphanPos < markerStart) {
+                        // Emit block from blockStart to orphan marker
+                        String block = text.substring(blockStart, orphanPos).trim();
+                        if (isValidBlock(block)) {
+                            blocks.add(block);
+                        }
+                        blockStart = orphanPos + ORPHAN_QUESTION_MARKER.length();
+                        orphanPos = text.indexOf(ORPHAN_QUESTION_MARKER, blockStart);
+                    }
+                    // After consuming orphan markers, check if orphaned passage header(s) now
+                    // appear at the start of the current block (between blockStart and markerStart).
+                    // Emit each orphaned header as a separate block and skip it.
+                    Matcher orphanHeader = PASSAGE_HEADER_SPLITTER.matcher(text);
+                    while (orphanHeader.find(blockStart) && orphanHeader.start() < markerStart) {
+                        int headerEnd = orphanHeader.end();
+                        String orphanBlock = text.substring(blockStart, headerEnd).trim();
+                        if (isValidBlock(orphanBlock)) {
+                            blocks.add(orphanBlock);
+                        }
+                        blockStart = headerEnd;
+                    }
+                }
+                if (blockStart >= 0) {
+                    String block = text.substring(blockStart, markerStart).trim();
+                    if (isValidBlock(block)) {
+                        blocks.add(block);
+                    }
+                }
+                blockStart = markerStart;
             }
-            blockStart = markerStart;
         }
 
         if (blockStart >= 0) {
@@ -2769,7 +3989,42 @@ public final class AiExistingQuestionParser {
             blocks.add(text.trim());
         }
 
+        // Fail-safe assertions: verify block integrity
+        assertBlockIntegrity(blocks, text);
+
         return blocks;
+    }
+
+    /**
+     * Fail-safe assertion: verify no block contains more than one numbered question marker,
+     * and no Reading block contains two "Reading Passage:" headers.
+     * Logs and rejects (returns empty) with a clear parser reason if invariant is violated.
+     */
+    private static void assertBlockIntegrity(List<String> blocks, String originalText) {
+        Pattern numberedQ = Pattern.compile("(?m)^\\s*\\d+[.):]");
+        Pattern passageHeader = Pattern.compile("(?im)^\\s*reading\\s*passage\\s*[:\\-]");
+        for (int i = 0; i < blocks.size(); i++) {
+            String block = blocks.get(i);
+            java.util.regex.Matcher qm = numberedQ.matcher(block);
+            int count = 0;
+            while (qm.find()) count++;
+            if (count > 1) {
+                log.warn("[Parser Assertion] Block {} contains {} numbered question markers (expected 1). " +
+                        "Block: {}", i, count, block.substring(0, Math.min(100, block.length())));
+                // Don't throw — return empty to signal failure to caller
+                blocks.clear();
+                return;
+            }
+            java.util.regex.Matcher phm = passageHeader.matcher(block);
+            int pcount = 0;
+            while (phm.find()) pcount++;
+            if (pcount > 1) {
+                log.warn("[Parser Assertion] Block {} contains {} Reading Passage headers (expected 1). " +
+                        "Block: {}", i, pcount, block.substring(0, Math.min(100, block.length())));
+                blocks.clear();
+                return;
+            }
+        }
     }
 
     /**
@@ -2879,6 +4134,16 @@ public final class AiExistingQuestionParser {
             if (fromKey != null) correctLetter = fromKey.toUpperCase();
         }
 
+        // 2b. Extract correctText/referenceAnswer
+        Matcher ctl = CORRECT_TEXT_LINE.matcher(block);
+        if (ctl.find()) {
+            correctText = ctl.group(1).trim();
+        }
+        Matcher ral = REFERENCE_ANSWER_LINE.matcher(block);
+        if (ral.find()) {
+            correctText = ral.group(1).trim();
+        }
+
         // 3. Parse options
         List<String[]> rawOptions = new ArrayList<>();
         Matcher ol = OPTION_LINE.matcher(block);
@@ -2898,7 +4163,47 @@ public final class AiExistingQuestionParser {
             }
         }
 
-        if (rawOptions.isEmpty()) return null;
+        List<AiExamParseResponse.AiAnswerDto> answers = new ArrayList<>();
+        String inferredType = "MULTIPLE_CHOICE";
+        if (block.toLowerCase().contains("true/false") || block.toLowerCase().contains("true / false") 
+                || block.toLowerCase().contains("đúng/sai") || block.toLowerCase().contains("đúng hay sai")) {
+            inferredType = "TRUE_FALSE";
+        } else if (block.toLowerCase().contains("fill in the blank") || block.toLowerCase().contains("điền vào chỗ trống") 
+                || CORRECT_TEXT_LINE.matcher(block).find()) {
+            inferredType = "FILL_BLANK";
+        } else if (REFERENCE_ANSWER_LINE.matcher(block).find() || block.toLowerCase().contains("short answer")) {
+            inferredType = "SHORT_ANSWER";
+        }
+
+        if (rawOptions.isEmpty()) {
+            if ("TRUE_FALSE".equals(inferredType)) {
+                String ansText = (correctText != null) ? correctText : "";
+                boolean isTrueCorrect = ansText.toLowerCase().contains("true") 
+                        || ansText.toLowerCase().contains("đúng")
+                        || "true".equalsIgnoreCase(correctLetter);
+                
+                AiExamParseResponse.AiAnswerDto a1 = new AiExamParseResponse.AiAnswerDto();
+                a1.setContent("True");
+                a1.setIsCorrect(isTrueCorrect);
+                
+                AiExamParseResponse.AiAnswerDto a2 = new AiExamParseResponse.AiAnswerDto();
+                a2.setContent("False");
+                a2.setIsCorrect(!isTrueCorrect);
+                
+                answers.add(a1);
+                answers.add(a2);
+            } else if ("FILL_BLANK".equals(inferredType) || "SHORT_ANSWER".equals(inferredType)) {
+                String ansText = (correctText != null) ? correctText : "";
+                if (ansText.isEmpty() && correctLetter != null) ansText = correctLetter;
+                
+                AiExamParseResponse.AiAnswerDto a = new AiExamParseResponse.AiAnswerDto();
+                a.setContent(ansText);
+                a.setIsCorrect(true);
+                answers.add(a);
+            } else {
+                return null;
+            }
+        }
 
         // 4. Extract explanation
         String explanation = "";
@@ -2916,6 +4221,7 @@ public final class AiExistingQuestionParser {
         questionText = questionText.replaceFirst("^\\s*\\d+[.)]\\s+", "");
         questionText = questionText.replaceFirst("^\\s*(?:問|問題|質問|Q)\\s*\\d+[):]?\\s*", "");
         questionText = questionText.replaceFirst("^\\s*Question\\s+\\d+[):]?\\s*", "");
+        questionText = questionText.replaceFirst("(?i)^\\s*(?:Câu|Câu\\s*hỏi|Cau|Cau\\s*hoi)\\s*\\d+[):.]?\\s*", "");
         // Strip an inline "Skill: X" hint from the first line so it doesn't
         // become the question text. The category itself is captured by the
         // caller's per-block explicit-category check.
@@ -2936,6 +4242,7 @@ public final class AiExistingQuestionParser {
                 line = line.replaceFirst("^\\s*(?:問|問題|質問|Q)\\s*\\d+[):]?\\s*", "");
                 line = line.replaceFirst("^\\s*Question\\s+\\d+[):]?\\s*", "");
                 line = line.replaceFirst("^\\s*Question\\s*[:：]?\\s*", "");
+                line = line.replaceFirst("(?i)^\\s*(?:Câu|Câu\\s*hỏi|Cau|Cau\\s*hoi)\\s*\\d+[):.]?\\s*", "");
                 line = line.replaceFirst(
                         "(?i)^\\s*Skill\\s*[:：]?\\s*(Vocabulary|Grammar|Reading|Vocabulaire|Grammaire|Lecture)\\s*[:：]?\\s*",
                         "");
@@ -2950,57 +4257,54 @@ public final class AiExistingQuestionParser {
             questionText = questionText.substring(0, 500);
         }
 
-        // 6. If currentPassage is set AND the explicit section (if any) is
-        //    Reading (or unknown), AND the question text doesn't already
-        //    contain it, compose content as "Read the passage: <passage>\n\nQuestion: <question>"
+        // 6. Set readingPassage/sourcePassage directly from currentPassage.
+        //    Do NOT prepend "Read the passage:" to content — that causes truncation
+        //    when the 500-char limit is applied. The Reading category is detected
+        //    via the readingPassage check in getCategoryFromMetadata.
         String finalContent = questionText;
-        boolean hasPassageInContent = questionText.toLowerCase().contains("read the passage")
-                || questionText.toLowerCase().contains("passage:")
-                || questionText.contains("本文");
         // Block passage attachment when the block's explicit section is
         // Vocabulary or Grammar — those sections must never inherit the
         // Reading passage (regression: mixed-skill PDF was tagging all 9
         // questions as Reading).
         boolean sectionAllowsPassage = (explicitSection == null)
                 || "Reading".equalsIgnoreCase(explicitSection);
-        if (sectionAllowsPassage
-                && currentPassage != null && !currentPassage.isBlank()
-                && !hasPassageInContent) {
-            finalContent = "Read the passage: " + currentPassage + "\n\nQuestion: " + questionText;
-        }
+        // Don't prepend to content; readingPassage/sourcePassage carry the passage.
+        // The question text alone is the content; the Reading category comes from
+        // the readingPassage check in inferCategorySemantic (via sanitize).}
 
         // 7. Build answers
-        List<AiExamParseResponse.AiAnswerDto> answers = new ArrayList<>();
         int posA = -1, posB = -1, posC = -1, posD = -1;
         int insertIdx = 0;
 
-        for (String[] opt : rawOptions) {
-            String letter = opt[0];
-            String content = opt[1];
+        if (!rawOptions.isEmpty()) {
+            for (String[] opt : rawOptions) {
+                String letter = opt[0];
+                String content = opt[1];
 
-            if (letter.equals("A") && posA < 0) posA = insertIdx;
-            if (letter.equals("B") && posB < 0) posB = insertIdx;
-            if (letter.equals("C") && posC < 0) posC = insertIdx;
-            if (letter.equals("D") && posD < 0) posD = insertIdx;
+                if (letter.equals("A") && posA < 0) posA = insertIdx;
+                if (letter.equals("B") && posB < 0) posB = insertIdx;
+                if (letter.equals("C") && posC < 0) posC = insertIdx;
+                if (letter.equals("D") && posD < 0) posD = insertIdx;
 
-            boolean isCorrect = false;
-            if (correctLetter != null && letter.equals(correctLetter)) {
-                isCorrect = true;
+                boolean isCorrect = false;
+                if (correctLetter != null && letter.equals(correctLetter)) {
+                    isCorrect = true;
+                }
+                if (!isCorrect && correctText != null && !correctText.isBlank()) {
+                    isCorrect = content.equalsIgnoreCase(correctText.trim())
+                            || content.toLowerCase().contains(correctText.toLowerCase().trim());
+                }
+
+                AiExamParseResponse.AiAnswerDto a = new AiExamParseResponse.AiAnswerDto();
+                a.setContent(content);
+                a.setIsCorrect(isCorrect);
+                answers.add(a);
+                insertIdx++;
             }
-            if (!isCorrect && correctText != null && !correctText.isBlank()) {
-                isCorrect = content.equalsIgnoreCase(correctText.trim())
-                        || content.toLowerCase().contains(correctText.toLowerCase().trim());
-            }
-
-            AiExamParseResponse.AiAnswerDto a = new AiExamParseResponse.AiAnswerDto();
-            a.setContent(content);
-            a.setIsCorrect(isCorrect);
-            answers.add(a);
-            insertIdx++;
         }
 
         // 8. Position-based fallback
-        if (correctLetter != null && answers.stream().noneMatch(a -> Boolean.TRUE.equals(a.getIsCorrect()))) {
+        if (!rawOptions.isEmpty() && correctLetter != null && answers.stream().noneMatch(a -> Boolean.TRUE.equals(a.getIsCorrect()))) {
             int targetPos = -1;
             if (correctLetter.equals("A")) targetPos = posA;
             else if (correctLetter.equals("B")) targetPos = posB;
@@ -3014,7 +4318,7 @@ public final class AiExistingQuestionParser {
         }
 
         // 9. Default first correct
-        if (answers.stream().noneMatch(a -> Boolean.TRUE.equals(a.getIsCorrect()))) {
+        if (!rawOptions.isEmpty() && answers.stream().noneMatch(a -> Boolean.TRUE.equals(a.getIsCorrect()))) {
             answers.get(0).setIsCorrect(Boolean.TRUE);
         }
 
@@ -3028,16 +4332,42 @@ public final class AiExistingQuestionParser {
         }
 
         // 11. Validate
-        if (questionText.isBlank() || answers.size() < 2) {
+        if (questionText.isBlank()) {
+            return null;
+        }
+        if ("MULTIPLE_CHOICE".equals(inferredType) && answers.size() < 2) {
+            return null;
+        }
+        if ("TRUE_FALSE".equals(inferredType) && answers.size() != 2) {
             return null;
         }
 
         AiExamParseResponse.AiQuestionDto q = new AiExamParseResponse.AiQuestionDto();
-        q.setType("MULTIPLE_CHOICE");
+        q.setType(inferredType);
         q.setContent(finalContent);
         q.setDifficulty("MEDIUM");
         q.setExplanation(explanation);
         q.setAnswers(answers);
+        // Propagate readingPassage/sourcePassage so that inferCategorySemantic in sanitize()
+        // can detect Reading via the readingPassage check (getCategoryFromMetadata path).
+        // Guard: only set readingPassage when the question's category was NOT explicitly set
+        // to Vocabulary or Grammar (those questions have "Skill: Vocabulary/Grammar" in their
+        // block content, which sets q.setCategory() in parseBlocksWithContext).
+        // Reading questions have "Skill: Reading" in their block, so q.getCategory() would be
+        // "Reading" from that explicit setting — but then normalizeCategory returns "Reading"
+        // anyway and normalizeCategoryWithReadingPassage skips the override. The readingPassage
+        // is still useful for the Reading questions' own field population.
+        // We guard on the ORIGINAL category string to avoid overriding explicit Vocab/Grammar.
+        if (sectionAllowsPassage && currentPassage != null && !currentPassage.isBlank()) {
+            // Only set readingPassage if the question doesn't have an explicit Vocab/Grammar category.
+            // The normalizeCategoryWithReadingPassage override in sanitize() will handle
+            // the Reading detection for questions where category is null/"unknown".
+            String cat = q.getCategory();
+            if (!"Vocabulary".equalsIgnoreCase(cat) && !"Grammar".equalsIgnoreCase(cat)) {
+                q.setReadingPassage(currentPassage);
+                q.setSourcePassage(currentPassage);
+            }
+        }
         return q;
     }
 
@@ -3161,4 +4491,84 @@ public final class AiExistingQuestionParser {
             int parsedCharCount,
             boolean endOfText
     ) {}
+
+    private static boolean checkMalformedCollapse(List<AiExamParseResponse.AiQuestionDto> questions) {
+        if (questions == null || questions.isEmpty()) return false;
+
+        Pattern questionMarkerInline = Pattern.compile("(?i)\\b(?:Câu|Question|Câu\\s*hỏi|Cau|Cau\\s*hoi|問|問題|質問)\\s*\\d+");
+        Pattern skillMarker = Pattern.compile("(?i)\\bSkill\\b");
+        Pattern typeMarker = Pattern.compile("(?i)\\bType\\b");
+
+        for (AiExamParseResponse.AiQuestionDto q : questions) {
+            if (q == null) continue;
+
+            boolean isMcq = "MULTIPLE_CHOICE".equalsIgnoreCase(q.getType());
+            boolean isTf = "TRUE_FALSE".equalsIgnoreCase(q.getType());
+            boolean isDirectAnswer = "FILL_BLANK".equalsIgnoreCase(q.getType()) || "SHORT_ANSWER".equalsIgnoreCase(q.getType());
+            int answerCount = q.getAnswers() != null ? q.getAnswers().size() : 0;
+
+            if (isMcq && answerCount > 6) {
+                log.warn("[Parser FailSafe] Rejecting malformed MCQ: option count {} exceeds limit 6", answerCount);
+                return true;
+            }
+            if (isTf && answerCount > 0 && answerCount != 2) {
+                log.warn("[Parser FailSafe] Rejecting malformed True/False: option count {} is not 2", answerCount);
+                return true;
+            }
+            if (isDirectAnswer && answerCount > 2) {
+                log.warn("[Parser FailSafe] Rejecting malformed direct-answer question: option count {} is greater than 2", answerCount);
+                return true;
+            }
+            if (answerCount > 8) {
+                log.warn("[Parser FailSafe] Rejecting malformed question: total options count {} exceeds 8", answerCount);
+                return true;
+            }
+
+            if (q.getAnswers() != null) {
+                for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
+                    if (a.getContent() != null) {
+                        if (questionMarkerInline.matcher(a.getContent()).find()) {
+                            log.warn("[Parser FailSafe] Rejecting: Option contains embedded question marker: '{}'", a.getContent());
+                            return true;
+                        }
+                        if (skillMarker.matcher(a.getContent()).find() || typeMarker.matcher(a.getContent()).find()) {
+                            log.warn("[Parser FailSafe] Rejecting: Option contains embedded metadata marker: '{}'", a.getContent());
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            if (q.getContent() != null) {
+                int skillCount = countOccurrences(q.getContent().toLowerCase(), "skill:");
+                int typeCount = countOccurrences(q.getContent().toLowerCase(), "type:");
+                if (skillCount > 1 || typeCount > 1) {
+                    log.warn("[Parser FailSafe] Rejecting: Multiple metadata markers in question content: skillCount={}, typeCount={}", skillCount, typeCount);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean isDeterministicValidationFailure(String reason) {
+        if (reason == null) return false;
+        String normalized = reason.trim().toLowerCase();
+        return "off_skill".equals(normalized) || "missing_reading_passage".equals(normalized);
+    }
+
+    public static boolean isDeterministicValidationRound(Map<String, Integer> droppedByReason) {
+        if (droppedByReason == null || droppedByReason.isEmpty()) return false;
+        boolean hasRejection = false;
+        for (Map.Entry<String, Integer> entry : droppedByReason.entrySet()) {
+            if (entry.getValue() > 0) {
+                hasRejection = true;
+                if (!isDeterministicValidationFailure(entry.getKey())) {
+                    return false;
+                }
+            }
+        }
+        return hasRejection;
+    }
 }
+

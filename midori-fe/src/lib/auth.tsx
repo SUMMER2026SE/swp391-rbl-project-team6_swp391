@@ -378,6 +378,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout: () => {
       api.removeToken();
       localStorage.removeItem(TOKEN_KEY);
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith("midori_admin_qb_cache_")) {
+            localStorage.removeItem(k);
+          }
+        }
+      } catch {}
       setToken(null);
       persistUser(null);
       queryClient.setQueryData(["me"], null);

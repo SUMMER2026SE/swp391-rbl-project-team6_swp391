@@ -1,7 +1,11 @@
 import React from "react";
 import { AiContentGenerate, type AiQuestionResponse } from "./AiContentGenerate";
-import { examsApi, AiExamGenerateResponse } from "@/lib/api/exams";
-import { useQueryClient } from "@tanstack/react-query";
+import { examsApi } from "@/lib/api/exams";
+import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
+import type { BuilderQuestion } from "@/types/question";
+import {
+  mapBuilderQuestionToRequest,
+} from "@/lib/teacherHomeworkMapping";
 
 interface AiExamGenerateProps {
   lockedClass?: { id: string; name: string; level: string } | null;
@@ -12,8 +16,6 @@ export const AiExamGenerate: React.FC<AiExamGenerateProps> = ({
   lockedClass,
   onDone,
 }) => {
-  const queryClient = useQueryClient();
-
   return (
     <AiContentGenerate
       config={{
@@ -25,12 +27,23 @@ export const AiExamGenerate: React.FC<AiExamGenerateProps> = ({
           return res as unknown as AiQuestionResponse;
         },
         onDone,
-        onSave: async ({ questions, classId, title, level, shouldPublish, metadata, createQuestion, queryClient }) => {
-          const savedQuestionIds: string[] = [];
-          for (const q of questions) {
-            const res = await createQuestion(q);
-            savedQuestionIds.push(res.id);
-          }
+        onSave: async ({
+          questions,
+          classId,
+          title,
+          level,
+          shouldPublish,
+          metadata,
+          queryClient,
+        }) => {
+          const batchQuestions = questions.map((q: BuilderQuestion) =>
+            mapBuilderQuestionToRequest(q, level, "EXAM")
+          );
+
+          const res = await teacherQuestionsApi.createQuestionsBatch({
+            questions: batchQuestions,
+          });
+          const savedQuestionIds = res.savedQuestions.map((q) => q.id);
 
           const examTitle = title || `AI Generated Exam - ${level} Lesson`;
           const savedExam = await examsApi.createExam({

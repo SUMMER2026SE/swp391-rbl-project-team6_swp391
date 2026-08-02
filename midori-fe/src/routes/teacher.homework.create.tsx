@@ -18,11 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { teacherQuestionsApi, type TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
+import { normalizeImportedQuestionType } from "@/lib/teacherHomeworkMapping";
 import { AiPdfImportWorkflow } from "@/components/admin/AiPdfImportWorkflow";
 import type { ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
+import { ClassLockNotice } from "@/components/teacher/ClassLockNotice";
 import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
 import { DifficultyDistribution, isDistValid } from "@/components/teacher/difficulty-distribution";
+import { TeacherMethodLayout } from "@/components/teacher/TeacherMethodLayout";
 import {
   ArrowLeft,
   ClipboardList,
@@ -112,36 +115,29 @@ function CreateHomework() {
 
   if (!method) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader
-          eyebrow="New homework"
-          title="How do you want to create this homework?"
-          subtitle="Pick the source of the questions and content."
-          showBack={true}
-          onBack={handleBack}
-        />
-        <div className="grid gap-3 md:grid-cols-2">
+      <TeacherMethodLayout
+        eyebrow="New homework"
+        title="How do you want to create this homework?"
+        subtitle="Pick the source of the questions and content."
+        showBack={true}
+        onBack={handleBack}
+        lockedClass={lockedClass}
+      >
+        <div className="grid gap-5 md:grid-cols-2 w-full max-w-4xl mx-auto">
           <MethodCard
             icon={Sparkles}
             title="AI PDF Homework"
             desc="Upload a PDF and let AI generate homework questions automatically."
-            badge="AI Generator"
             onClick={() => setMethod("ai-pdf")}
           />
           <MethodCard
             icon={HelpCircle}
             title="From Question Bank"
-            desc="Generate practice questions by difficulty."
-            badge="Generator"
+            desc="Generate practice questions by selecting topics and difficulty."
             onClick={() => setMethod("question-bank")}
           />
         </div>
-        {lockedClass && (
-          <p className="text-center text-xs text-muted-foreground">
-            Class locked: <b>{lockedClass.name}</b>
-          </p>
-        )}
-      </div>
+      </TeacherMethodLayout>
     );
   }
 
@@ -175,7 +171,7 @@ function MethodCard({
   icon: React.ElementType;
   title: string;
   desc: string;
-  badge: string;
+  badge?: string;
   onClick: () => void;
 }) {
   return (
@@ -187,9 +183,11 @@ function MethodCard({
         <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
           <Icon className="h-5 w-5" />
         </div>
-        <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {badge}
-        </span>
+        {badge && (
+          <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {badge}
+          </span>
+        )}
       </div>
       <h3 className="font-display text-base font-semibold">{title}</h3>
       <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
@@ -1183,7 +1181,7 @@ function HomeworkAiPdf({
         options: q.answers.map((a) => a.content),
         correctAnswerIndex: correctIndex,
         points: 1,
-        questionType: "MULTIPLE_CHOICE",
+        questionType: normalizeImportedQuestionType(q.type),
         difficulty: q.difficulty as "EASY" | "MEDIUM" | "HARD",
         explanation: q.explanation || "",
         level: targetLevel,

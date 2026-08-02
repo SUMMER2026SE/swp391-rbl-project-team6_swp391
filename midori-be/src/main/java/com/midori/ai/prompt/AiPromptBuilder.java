@@ -120,120 +120,160 @@ public final class AiPromptBuilder {
         String skillsInstruction = buildSkillsInstruction(selectedSkills);
         return """
                 You are an expert exam-digitization assistant. Your job is to read
-                the text below and convert every question, option, and answer into
-                structured JSON.
+                the text below and convert EVERY question into structured JSON.
 
-                The document may be in any language (English, Vietnamese, Japanese,
-                mixed). Treat it as a flat list of multiple-choice questions.
-                Common shapes you will see:
+                The document may be in any language (English, Vietnamese, Japanese, mixed).
+                Support ALL of these question types: MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK, SHORT_ANSWER.
+                NEVER convert TRUE_FALSE, FILL_BLANK, or SHORT_ANSWER questions into MULTIPLE_CHOICE.
+                Keep each question's original format exactly.
+
+                ## SUPPORTED FORMATS
+
+                ### MULTIPLE_CHOICE — standard A/B/C/D
                   1. Question text
                   A. Option A
                   B. Option B
                   C. Option C
                   D. Option D
                   Correct answer: B
-                  Explanation: ...
+                JSON:
+                {
+                  "type": "MULTIPLE_CHOICE",
+                  "content": "Question text",
+                  "answers": [
+                    { "content": "Option A", "isCorrect": false },
+                    { "content": "Option B", "isCorrect": true },
+                    { "content": "Option C", "isCorrect": false },
+                    { "content": "Option D", "isCorrect": false }
+                  ]
+                }
+                IMPORTANT: Strip the option-label prefix from option content.
+                  WRONG: { "content": "A. としょかん" } or { "content": "A としょかん" }
+                  RIGHT: { "content": "としょかん" }
+                The option content must NEVER start with "A.", "B.", "A)", "B)", "A ", "B " etc.
 
-                Or with an answer key at the end:
-                  1. Question text
-                  A. Option A
-                  B. Option B
-                  ...
-                  Answer Key
-                  1. B   2. A   3. D   ...
+                ### TRUE_FALSE — statement true/false
+                  True/False: 〜ます is used for polite present-tense.
+                  Correct answer: True
+                JSON:
+                {
+                  "type": "TRUE_FALSE",
+                  "content": "Statement text",
+                  "correctAnswer": "True",
+                  "answers": [
+                    { "content": "True", "isCorrect": true },
+                    { "content": "False", "isCorrect": false }
+                  ]
+                }
+
+                ### FILL_BLANK — fill in the blank (no A/B/C/D options)
+                  Fill in the blank: 私は___に行きます。
+                  Correct Text: お店
+                JSON:
+                {
+                  "type": "FILL_BLANK",
+                  "content": "私は___に行きます。",
+                  "correctAnswer": "お店",
+                  "answers": [
+                    { "content": "お店", "isCorrect": true }
+                  ]
+                }
+
+                ### SHORT_ANSWER — open-ended with reference answer
+                  Short Answer: What does 「図書館」mean in English?
+                  Reference Answer: Library
+                JSON:
+                {
+                  "type": "SHORT_ANSWER",
+                  "content": "What does 「図書館」mean in English?",
+                  "correctAnswer": "Library",
+                  "referenceAnswer": "Library",
+                  "answers": [
+                    { "content": "Library", "isCorrect": true }
+                  ]
+                }
 
                 """ + skillsInstruction + """
 
-                ## CRITICAL RULES — DO NOT GENERATE
+                ## CRITICAL RULES — EXTRACT ONLY, DO NOT GENERATE
 
-                EXTRACT ONLY. Do not create, infer, translate, rewrite, or generate
-                any question, option, passage, dialogue, or example.
-                If no matching existing question exists in the document, return an
-                empty questions array. NEVER invent content from outside the source.
+                Do not create, infer, translate, rewrite, or generate any question, option, passage,
+                dialogue, or example. If no matching question exists in the document, return an empty
+                questions array. NEVER invent content from outside the source.
 
-                A question only counts as "existing in the PDF" when ALL of these
-                hold for that question:
-                  - The question text (or a large part of it) appears literally in
-                    the source text below.
-                  - At least 2 of its answer options appear literally in the source.
-                  - The correct answer is either labeled inline ("Correct answer: X",
-                    "Answer: X", "Đáp án: X") or appears in a trailing answer-key
-                    section that is also part of the source.
+                A question only counts as "existing in the PDF" when:
+                  - MULTIPLE_CHOICE: question text appears in source AND at least 2 options appear in source.
+                  - TRUE_FALSE: statement text appears in source AND correct answer label is present.
+                  - FILL_BLANK: question text (with blank) appears in source AND correct text is present.
+                  - SHORT_ANSWER: question text appears in source AND reference answer is present.
 
-                Reading questions additionally require the actual passage/dialogue
-                text to be present in the source. If a Reading passage is not in
-                the source, do NOT create one — return zero Reading questions.
-
-                """ + """
+                Reading questions require the passage/dialogue text to be in the source.
 
                 ## RULES
 
-                1. Extract EVERY question. Do not skip any.
-                2. Preserve the EXACT spelling, capitalization, and punctuation of the
-                   question text and the options as written in the document. Do NOT
-                   translate between languages.
-                3. For every question, capture all answer options (A/B/C/D/...).
-                   Use the order they appear in the document for the options array.
-                4. The correct answer is determined by, in order:
-                   a) an inline "Correct answer: X" or "Answer: X" line right after the question;
-                   b) the matching entry in a trailing answer-key block ("1. B  2. A …");
-                   c) ONLY when (a) and (b) are both unavailable in the source — never
-                      guess based on common sense. If you cannot find an explicit
-                      correct-answer marker in the source, omit the question from
-                      the output instead of guessing.
-                   Mark EXACTLY ONE option as isCorrect=true. The rest are false.
-                5. If an explanation is provided, copy it as-is. Otherwise use an
-                   empty string.
-                6. Set "type" to "MULTIPLE_CHOICE" for standard A/B/C/D questions.
-                   Use "TRUE_FALSE" only if the document explicitly says so.
-                7. Set "difficulty" to one of "EASY", "MEDIUM", "HARD". Default to "MEDIUM".
-                8. Set "title" to the document title if present; otherwise use the filename
-                   without the .pdf extension.
-                9. Set "description" to a short one-line summary if visible; otherwise "".
+                1. Extract EVERY question in order of appearance. Do not skip any format.
+                2. Preserve EXACT spelling, capitalization, and punctuation from the document.
+                3. For MULTIPLE_CHOICE: strip option-label prefix (A. / A) / A ) from option text.
+                4. For FILL_BLANK/SHORT_ANSWER: use "correctAnswer" field; do NOT add fake A/B/C/D options.
+                5. For Reading: include full passage in "content" as: "Reading Passage: [passage]\\n\\nQuestion: [text]"
+                6. Mark EXACTLY ONE option as isCorrect=true for MCQ and TRUE_FALSE.
+                7. For FILL_BLANK/SHORT_ANSWER: include the answer as a single answers entry with isCorrect=true.
+                8. Correct answer source priority: (a) inline label, (b) trailing answer key, (c) omit if unknown.
+                9. If an explanation is provided, copy it. Otherwise use "".
+                10. "difficulty": one of "EASY", "MEDIUM", "HARD" — default "MEDIUM".
+                11. "category": classify by educational intent — "Vocabulary", "Grammar", "Reading", or "Writing".
 
-                ## OUTPUT FORMAT — STRICT JSON
+                ## OUTPUT FORMAT — STRICT JSON ONLY
 
-                Output ONLY a single JSON object. No markdown fences. No commentary.
-                Use this exact shape, with the canonical field names shown:
+                Output ONLY a single JSON object. No markdown fences. No commentary before or after.
 
                 {
-                  "title": "string",
-                  "description": "string",
+                  "title": "document title or filename",
+                  "description": "one-line summary or empty string",
                   "questions": [
                     {
                       "type": "MULTIPLE_CHOICE",
-                      "content": "Question text exactly as in the document",
+                      "content": "Question text",
                       "category": "Vocabulary",
                       "difficulty": "MEDIUM",
-                      "explanation": "Explanation text or empty string",
+                      "explanation": "",
                       "answers": [
-                        { "content": "Option A text", "isCorrect": false },
-                        { "content": "Option B text", "isCorrect": true },
-                        { "content": "Option C text", "isCorrect": false },
-                        { "content": "Option D text", "isCorrect": false }
+                        { "content": "Option A stripped of prefix", "isCorrect": false },
+                        { "content": "Option B stripped of prefix", "isCorrect": true },
+                        { "content": "Option C stripped of prefix", "isCorrect": false },
+                        { "content": "Option D stripped of prefix", "isCorrect": false }
+                      ]
+                    },
+                    {
+                      "type": "FILL_BLANK",
+                      "content": "Fill in the blank: ___",
+                      "category": "Grammar",
+                      "difficulty": "EASY",
+                      "explanation": "",
+                      "correctAnswer": "correct text here",
+                      "answers": [
+                        { "content": "correct text here", "isCorrect": true }
                       ]
                     }
                   ]
                 }
 
-                Acceptable aliases (the parser understands them, but prefer the canonical
-                shape above when possible):
-                  - question / questionText / text / prompt   → "content"
-                  - section / category / categoryName / questionCategory → "category"
-                  - options / choices                          → "answers"
-                  - "correct": true / false, "correctAnswer":
-                    "Option B text", "answer": "B", "correctOption": 1 → "isCorrect"
+                Acceptable aliases (the parser understands them):
+                  - question / questionText / text / prompt    → "content"
+                  - section / category / categoryName / questionCategory / skill → "category"
+                  - options / choices                           → "answers"
+                  - correctText / referenceAnswer / answer      → "correctAnswer"
+                  - "correct": true/false, "correctAnswer": "text" → "isCorrect"
 
-                If the document contains zero questions, return
-                {"title":"","description":"","questions":[]} and nothing else.
+                If the document contains zero questions, return:
+                {"title":"","description":"","questions":[]}
 
                 ## SOURCE
 
                 Filename: """ + safeFilename + """
 
-                Extracted text below. Each page may be on its own block. Use the order
-                of appearance as the question order. If you see "Correct answer: X"
-                next to a question, prefer that over the trailing answer key.
+                Extracted text below. Extract ALL questions in the order they appear.
+                Preserve each question's original format. Do not merge or skip questions.
 
                 """ + "\n\n" + extractedText;
     }
@@ -245,7 +285,7 @@ public final class AiPromptBuilder {
         StringBuilder sb = new StringBuilder();
         sb.append("## SKILL RULE - CRITICAL\n");
         sb.append("For each question, determine the SKILL based on the EDUCATIONAL INTENT of the question,\n");
-        sb.append("NOT on fixed keywords. Choose ONE of: \"Vocabulary\" | \"Grammar\" | \"Reading\"\n\n");
+        sb.append("NOT on fixed keywords. Choose ONE of: \"Vocabulary\" | \"Grammar\" | \"Reading\" | \"Writing\"\n\n");
 
         if (selectedSkills != null && !selectedSkills.isBlank()) {
             sb.append("### SELECTED SKILLS: ").append(selectedSkills).append("\n");
@@ -258,46 +298,50 @@ public final class AiPromptBuilder {
         }
 
         sb.append("Vocabulary questions ask about:\n");
-        sb.append("  - Word meaning / translation (nghĩa là gì, nghĩa tiếng Việt)\n");
-        sb.append("  - Reading / pronunciation (cách đọc, romaji, hiragana, katakana)\n");
-        sb.append("  - Kanji reading\n");
-        sb.append("  - \"What does [word] mean\", \"Choose the correct reading for [kanji]\", \"Meaning of [word]\"\n");
-        sb.append("  - Translation between Japanese and Vietnamese\n");
-        sb.append("  - \"dịch\", \"translate\", \"có nghĩa là\", \"nghĩa\"\n\n");
+        sb.append("  - Word meaning: ask in Japanese or English about Japanese vocabulary (e.g., \u300c\u56f3\u66f8\u9928\u300d\u306e\u610f\u5473\u306f\u4f55\u3067\u3059\u304b\u3002 / What does \u300c\u56f3\u66f8\u9928\u300d mean?)\n");
+        sb.append("  - Reading: choose correct hiragana/katakana for kanji (e.g., \u300c\u5b66\u751f\u300d\u306e\u8aad\u307f\u65b9\u3092\u9078\u3093\u3067\u304f\u3060\u3055\u3044\u3002)\n");
+        sb.append("  - Kanji reading: identify correct hiragana pronunciation\n");
+        sb.append("  - Translation: translate between Japanese and English only (NOT Vietnamese)\n");
+        sb.append("  - NEVER ask about meaning/translation in Vietnamese.\n\n");
 
         sb.append("Grammar questions ask about:\n");
-        sb.append("  - Sentence patterns / structures (mẫu câu, cấu trúc, pattern, sentence pattern)\n");
-        sb.append("  - Particle / particle function (trợ từ, で, に, を, が, は, から, まで, と, や, へ, のに, ので, ば, たら, なら, ために, ように, そうだ, らしい, だろう, ようだ)\n");
-        sb.append("  - Sentence endings (ません, ました, だろう, ようだ, そうだ, らしい, べき, つもり, たい, ない, ている, てある, てみる, ておく, てしまう, ば, たら, ない)\n");
-        sb.append("  - Conjugation rules, verb forms\n");
-        sb.append("  - How a grammar pattern is used\n");
-        sb.append("  - What a particle indicates/means in context\n");
-        sb.append("  - \"Mẫu [pattern]\", \"Cấu trúc [structure]\", \"Cách dùng\", \"dùng để\"\n");
-        sb.append("  - \"How to use\", \"used to express\", \"what does the particle\", \"what does the sentence ending\"\n\n");
+        sb.append("  - Sentence patterns / structures (NはBです, NにNがあります, etc.)\n");
+        sb.append("  - Particle function: で, に, を, が, は, から, まで, と, や, へ, のに, ので, ば, たら, なら, ために, ように, そうだ, らしい, だろう, ようだ\n");
+        sb.append("  - Sentence endings: ません, ました, だろう, ようだ, そうだ, らしい, べき, つもり, たい, ない, ている, てある, てみる, ておく, てしまう\n");
+        sb.append("  - Conjugation rules, verb forms, how grammar patterns are used\n");
+        sb.append("  - Example questions:\n");
+        sb.append("    - 「N は B です」の使い方を説明してください。\n");
+        sb.append("    - 「で」と「に」の違いは何ですか。\n");
+        sb.append("    - Choose the correct particle for this sentence.\n");
+        sb.append("    - What does the sentence ending 「ましょう」表示しますか。\n");
 
         sb.append("Reading questions ask about:\n");
         sb.append("  - Passage/dialogue/text comprehension\n");
         sb.append("  - Questions based on a reading text or paragraph\n");
-        sb.append("  - \"Read the passage\", \"Read the dialogue\", \"According to the passage\", \"Based on the text\"\n");
-        sb.append("  - \"What is the main idea of the passage\", \"What can be inferred from the passage\"\n");
-        sb.append("  - \"Ý chính của đoạn văn\", \"Đọc đoạn văn\", \"đọc hiểu\"\n");
-        sb.append("  - \"Theo bài đọc\", \"Theo đoạn văn\", \"Dựa vào bài đọc\"\n");
-        sb.append("  - Questions about characters, events, or details from a given passage/dialogue\n");
-        sb.append("  - Passage + multiple-choice questions about that passage's content\n\n");
+        sb.append("  - \"Read the passage and answer the question: ...\" → Reading\n");
+        sb.append("  - \"According to the passage, who went to school?\" → Reading\n");
+        sb.append("  - \"What is the main idea of the passage?\" → Reading\n");
+        sb.append("  - Questions about characters, events, or details from a passage\n\n");
+
+        sb.append("Writing questions ask about:\n");
+        sb.append("  - Translation from Japanese to English or English to Japanese (NOT Vietnamese)\n");
+        sb.append("  - Sentence construction using specific vocabulary or grammar\n");
+        sb.append("  - Write a sentence using the given pattern/vocabulary\n");
+        sb.append("  - Error correction / fix the mistake\n");
+        sb.append("  - NEVER translate to or from Vietnamese.\n\n");
 
         sb.append("IMPORTANT EXAMPLES:\n");
         sb.append("  - \"What does 「こんにちは」 mean?\" → Vocabulary\n");
-        sb.append("  - \"Mẫu 「N は N です」 dùng để nói gì?\" → Grammar\n");
-        sb.append("  - \"Trong câu 学校で勉強します, trợ từ で biểu thị gì?\" → Grammar\n");
-        sb.append("  - \"What does the particle 「で」 indicate?\" → Grammar\n");
         sb.append("  - \"Choose the correct reading for 「学生」\" → Vocabulary\n");
-        sb.append("  - \"「ありがとう」 nghĩa là gì?\" → Vocabulary\n");
+        sb.append("  - 「N は B です」の使い方は？ → Grammar\n");
+        sb.append("  - In the sentence 学校で勉強します, what does the particle 「で」 indicate? → Grammar\n");
+        sb.append("  - \"What does the particle 「で」 indicate?\" → Grammar\n");
         sb.append("  - \"What does the sentence ending 「ませんか」 usually express?\" → Grammar\n");
-        sb.append("  - \"Cấu trúc 「A は B です」 dùng như thế nào?\" → Grammar\n");
-        sb.append("  - \"Read the passage and answer the question: ...\" → Reading\n");
-        sb.append("  - \"According to the passage, why did Tanaka go to school?\" → Reading\n");
-        sb.append("  - \"Đọc đoạn văn sau và chọn đáp án đúng.\" → Reading\n");
-        sb.append("  - \"Theo bài đọc, ai đã đi thư viện?\" → Reading\n");
+        sb.append("  - Read the passage and answer: ... → Reading\n");
+        sb.append("  - According to the passage, who went to the library? → Reading\n");
+        sb.append("  - Translate this sentence to Japanese. → Writing\n");
+        sb.append("  - Write a sentence using ～たい. → Writing\n");
+        sb.append("  - Find and fix the error: 私は 学校でいく. → Writing\n");
 
         return sb.toString();
     }
@@ -373,9 +417,98 @@ public final class AiPromptBuilder {
                 : String.join(", ", selectedSkills);
 
         StringBuilder prompt = new StringBuilder();
+        prompt.append("Generate EXACTLY ").append(distributionTotal).append(" ").append(safeType).append(" quiz questions from the material below.\n\n");
+        prompt.append("MATERIAL TITLE: ").append(safeTitle).append("\n\n");
+        if (!safeContent.isBlank()) {
+            prompt.append("MATERIAL CONTENT:\n").append(safeContent).append("\n\n");
+        }
+        prompt.append("SELECTED SKILLS: ").append(skillsLine).append("\n");
+        prompt.append("DIFFICULTY DISTRIBUTION: ").append(safeDist).append("\n\n");
+
+        prompt.append("RULES:\n");
+        prompt.append("1. Output ONLY raw JSON. Start with '{' and end with '}'. No code fences, prose, or extra text.\n");
+        prompt.append("2. The \"questions\" array must have exactly ").append(distributionTotal).append(" objects. Each must contain: id, type, question, options, correctAnswer, explanation, category, difficulty.\n");
+        prompt.append("3. type must be \"").append(safeType).append("\" for all. difficulty must be one of \"Easy\", \"Medium\", \"Hard\" matching the counts in the distribution. category must be one of the selected skills (capitalized).\n");
+
+        switch (safeType) {
+            case "MULTIPLE_CHOICE":
+                prompt.append("4. options must contain exactly 4 distinct strings (no duplicates). correctAnswer must equal exactly one of the options.\n");
+                break;
+            case "TRUE_FALSE":
+                prompt.append("4. options must be [\"True\", \"False\"]. correctAnswer must be \"True\" or \"False\".\n");
+                prompt.append("5. The question field must present a statement that can be judged as true or false, NOT an interrogative question (no question mark, no words like どれですか, 何ですか, ですか). explanation must match the truth value.\n");
+                prompt.append("5a. EXPLANATION RULE: Each explanation must be extremely concise and strictly exactly one sentence.\n");
+                break;
+            case "FILL_BLANK":
+                prompt.append("4. The question text must contain a visible blank marker \"___\". options must be a single-element array containing only the correct answer. correctAnswer must equal that single option.\n");
+                prompt.append("4a. BLANK BOUNDARY RULE: if a counter (時/分/人/本/枚/回/年/月/日) or particle remains outside the blank, the correctAnswer must NOT repeat it. e.g. 電車で___分 → answer よんじゅう (NOT よんじゅっぷん); 午後___時 → answer ろく (NOT ろくじ).\n");
+                break;
+            case "SHORT_ANSWER":
+                prompt.append("4. options must be a single-element array containing the reference answer. correctAnswer must equal that single option.\n");
+                break;
+            default:
+                prompt.append("4. options must contain exactly 4 distinct strings (no duplicates). correctAnswer must equal exactly one of the options.\n");
+                break;
+        }
+
+        prompt.append("\nLANGUAGE RULES:\n");
+        prompt.append("- Use kanji/hiragana/katakana for Japanese words. Do NOT use romaji (e.g. 'Toshokan', 'Tanaka', 'shukudai') or Latinize Japanese names in question, answer, or options.\n");
+        prompt.append("- Reading question options must use hiragana ONLY, not romaji.\n");
+        prompt.append("- No Vietnamese in question, options, or correctAnswer. explanation may be in Vietnamese or English.\n");
+        boolean hasReading = selectedSkills != null && selectedSkills.stream().anyMatch(s -> "READING".equalsIgnoreCase(s));
+        if (hasReading) {
+            prompt.append("- For Reading questions: Question text must use Japanese kanji/kana, not Romaji.\n");
+            prompt.append("- For Reading questions: Japanese answers and options must use kanji/kana, not Romaji.\n");
+            prompt.append("- For Reading questions: Do not include romanized pronunciation in Japanese response fields.\n");
+            prompt.append("- For Reading questions: Explanations may use the currently allowed explanation language (Vietnamese or English).\n");
+            prompt.append("- For Reading questions: English or Vietnamese glosses must remain in the explanation field only.\n");
+            prompt.append("- For Reading questions: Preserve source-passage fidelity.\n");
+        }
+
+        prompt.append("\nEXACT JSON SHAPE:\n");
+        prompt.append("{\"questions\":[{\"id\":\"q_0\",\"type\":\"").append(safeType).append("\",\"question\":\"学校はどこですか。\",\"options\":[\"Tokyo\",\"Osaka\",\"Kyoto\",\"Nagoya\"],\"correctAnswer\":\"Tokyo\",\"explanation\":\"「学校」= school.\",\"category\":\"Vocabulary\",\"difficulty\":\"Easy\"}]}\n");
+
+        return prompt.toString();
+    }
+
+    // ============================================================
+    // MULTI-FORMAT QUIZ GENERATION PROMPT
+    // ============================================================
+
+    /**
+     * Build prompt for generating questions in MULTIPLE formats simultaneously.
+     * This is the primary prompt for the "Generate from Learning Content" flow.
+     *
+     * @param materialTitle Human-readable title of the learning material
+     * @param materialContent The source content string
+     * @param distributionTotal Total number of questions to generate
+     * @param distributionLine Pre-formatted difficulty distribution (e.g., "EASY=3, MEDIUM=5, HARD=2")
+     * @param selectedSkills List of selected skills
+     * @param selectedFormats List of selected question formats
+     * @return The complete prompt string for the AI
+     */
+    public static String buildMultiFormatQuizGenerationPrompt(
+            String materialTitle,
+            String materialContent,
+            int distributionTotal,
+            String distributionLine,
+            List<String> selectedSkills,
+            List<String> selectedFormats) {
+
+        String safeTitle = materialTitle == null ? "" : materialTitle;
+        String safeContent = materialContent == null ? "" : materialContent;
+        String safeDist = distributionLine == null ? "" : distributionLine;
+        String skillsLine = (selectedSkills == null || selectedSkills.isEmpty())
+                ? "(no skill filter — any of Vocabulary / Grammar / Reading / Writing is acceptable)"
+                : String.join(", ", selectedSkills);
+        String formatsLine = (selectedFormats == null || selectedFormats.isEmpty())
+                ? "MULTIPLE_CHOICE"
+                : String.join(", ", selectedFormats);
+
+        StringBuilder prompt = new StringBuilder();
         prompt.append("You are AI Sensei of MIDORI, a Japanese tutor for Vietnamese learners.\n\n");
         prompt.append("Generate EXACTLY ").append(distributionTotal)
-                .append(" ").append(safeType).append(" quiz questions from the learning material below.\n\n");
+                .append(" quiz questions from the learning material below.\n\n");
         prompt.append("MATERIAL TITLE: ").append(safeTitle).append("\n\n");
 
         if (!safeContent.isBlank()) {
@@ -384,6 +517,9 @@ public final class AiPromptBuilder {
 
         prompt.append("USER-SELECTED SKILLS (every question MUST belong to exactly ONE of these): ")
                 .append(skillsLine).append("\n\n");
+
+        prompt.append("USER-SELECTED FORMATS (use these formats only): ")
+                .append(formatsLine).append("\n\n");
 
         prompt.append("DIFFICULTY DISTRIBUTION (MANDATORY — produce EXACTLY these counts):\n");
         prompt.append("  ").append(safeDist).append("\n");
@@ -394,64 +530,129 @@ public final class AiPromptBuilder {
         prompt.append("1a. The response MUST start with '{' and end with '}'. Do NOT write anything before or after the JSON.\n");
         prompt.append("2. The \"questions\" array MUST contain EXACTLY ").append(distributionTotal).append(" objects.\n");
         prompt.append("3. Every question object MUST have: id, type, question, options, correctAnswer, explanation, category, difficulty.\n");
-        prompt.append("4. type MUST be \"").append(safeType).append("\" for EVERY question — no exceptions, no MIXED.\n");
+        prompt.append("4. type MUST be exactly one of: ").append(formatsLine).append(".\n");
         prompt.append("5. difficulty MUST be exactly one of \"Easy\", \"Medium\", \"Hard\".\n");
-        prompt.append("6. The COUNT of questions with each difficulty MUST match the DIFFICULTY DISTRIBUTION line above. No bucket may be empty when its required count is > 0.\n");
-        prompt.append("7. category MUST be exactly one of the SELECTED SKILLS. Use the canonical capitalized form (Vocabulary / Grammar / Reading).\n");
+        prompt.append("6. The COUNT of questions with each difficulty MUST match the DIFFICULTY DISTRIBUTION line above.\n");
+        prompt.append("7. category MUST be exactly one of the SELECTED SKILLS. Use the canonical capitalized form.\n");
 
-        switch (safeType) {
-            case "MULTIPLE_CHOICE":
-                prompt.append("8. options MUST be exactly 4 strings. ALL 4 options MUST be DISTINCT — no duplicates, no whitespace-only differences, no case-only differences.\n");
-                prompt.append("9. correctAnswer MUST equal EXACTLY one of the 4 options (string equality, not substring).\n");
-                break;
-            case "TRUE_FALSE":
-                prompt.append("8. options MUST be exactly [\"True\", \"False\"].\n");
-                prompt.append("9. correctAnswer MUST be \"True\" or \"False\".\n");
-                break;
-            case "FILL_BLANK":
-                prompt.append("8. The question text MUST contain a visible blank marker — use \"___\" (three or more underscores) or the literal text \"(blank)\".\n");
-                prompt.append("9. options MUST be a single-element array whose content is the correct text answer (no multiple-choice options).\n");
-                prompt.append("10. correctAnswer MUST equal that single option.\n");
-                break;
-            case "SHORT_ANSWER":
-                prompt.append("8. options MUST be a single-element array whose content is the reference answer text used for grading.\n");
-                prompt.append("9. correctAnswer MUST equal that single option.\n");
-                prompt.append("10. Do NOT include any multiple-choice options.\n");
-                break;
-            default:
-                prompt.append("8. options MUST be exactly 4 strings. ALL 4 options MUST be DISTINCT — no duplicates, no whitespace-only differences, no case-only differences.\n");
-                prompt.append("9. correctAnswer MUST equal EXACTLY one of the 4 options (string equality, not substring).\n");
-                break;
-        }
+        // Format-specific rules
+        prompt.append("\nFORMAT-SPECIFIC RULES:\n");
+        prompt.append(buildFormatSpecificRules(selectedFormats));
 
-        prompt.append("\nLANGUAGE RULES — Japanese content must use real kana/kanji, NOT romaji or Latin renderings:\n");
-        prompt.append("- For Japanese words, write the kanji/hiragana/katakana form (e.g. 図書館, 田中さん, がくせい).\n");
-        prompt.append("- Do NOT use romaji like 'Toshokan', 'Tanaka', 'Tanaka-san', 'shukudai', 'gakusei' anywhere.\n");
-        prompt.append("- Do NOT Latinize Japanese names. Use 田中さん, never 'Tanaka' or 'Tanaka-san'.\n");
-        prompt.append("- When a reading (cách đọc) is asked, the options MUST be hiragana, NOT romaji.\n");
+        prompt.append("\nLANGUAGE RULES — Japanese content must use real kana/kanji, NOT romaji:\n");
+        prompt.append("- Write Japanese words using kanji/hiragana/katakana (e.g. 図書館, 田中さん).\n");
+        prompt.append("- Do NOT use romaji like 'Toshokan', 'Tanaka', 'gakusei' anywhere.\n");
+        prompt.append("- When a reading is asked, options MUST be hiragana, NOT romaji.\n");
 
-        prompt.append("\nCATEGORY RULES:\n");
+        prompt.append("\nSKILL RULES:\n");
         prompt.append("- Vocabulary: asks about meaning, reading, or word choice.\n");
-        prompt.append("- Grammar: asks about particles, sentence patterns, sentence endings, conjugation, or grammar structure.\n");
-        prompt.append("- Reading: every Reading question MUST reference a passage included in MATERIAL CONTENT.\n");
+        prompt.append("- Grammar: asks about particles, sentence patterns, endings, conjugation.\n");
+        prompt.append("- Reading: questions based on the provided passage content.\n");
+        prompt.append("- Writing: translation, sentence construction, or error correction.\n");
+
+        prompt.append("\nANTI-LEAK RULES:\n");
+        prompt.append("- Do NOT put both word and its romaji reading in the same option.\n");
+        prompt.append("- Do NOT put both word and its meaning in the same option.\n");
+        prompt.append("- Do NOT make the correct answer obviously longer/shorter than distractors.\n");
 
         prompt.append("\nEXACT JSON SHAPE:\n");
         prompt.append("{\n");
         prompt.append("  \"questions\": [\n");
         prompt.append("    {\n");
         prompt.append("      \"id\": \"q_0\",\n");
-        prompt.append("      \"type\": \"").append(safeType).append("\",\n");
-        prompt.append("      \"question\": \"Câu hỏi\",\n");
-        prompt.append("      \"options\": [\"Đáp án A\", \"Đáp án B\", \"Đáp án C\", \"Đáp án D\"],\n");
-        prompt.append("      \"correctAnswer\": \"Đáp án B\",\n");
-        prompt.append("      \"explanation\": \"Giải thích\",\n");
+        prompt.append("      \"type\": \"MULTIPLE_CHOICE\",\n");
+        prompt.append("      \"question\": \"学校はどこですか。\",\n");
+        prompt.append("      \"options\": [\"Tokyo\", \"Osaka\", \"Kyoto\", \"Nagoya\"],\n");
+        prompt.append("      \"correctAnswer\": \"Tokyo\",\n");
+        prompt.append("      \"explanation\": \"「学校」= school.\",\n");
         prompt.append("      \"category\": \"Vocabulary\",\n");
-        prompt.append("      \"difficulty\": \"Medium\"\n");
+        prompt.append("      \"difficulty\": \"Easy\"\n");
         prompt.append("    }\n");
         prompt.append("  ]\n");
         prompt.append("}\n");
 
         return prompt.toString();
+    }
+
+    /**
+     * Build format-specific rules for the AI prompt based on selected formats.
+     */
+    private static String buildFormatSpecificRules(List<String> formats) {
+        StringBuilder rules = new StringBuilder();
+
+        for (String format : formats) {
+            switch (format.toUpperCase()) {
+                case "MULTIPLE_CHOICE":
+                    rules.append("- MULTIPLE_CHOICE: options MUST be exactly 4 strings. ALL 4 MUST be DISTINCT.\n");
+                    rules.append("  correctAnswer MUST equal EXACTLY one of the 4 options (string equality).\n");
+                    break;
+                case "TRUE_FALSE":
+                    rules.append("- TRUE_FALSE: options MUST be exactly [\"True\", \"False\"].\n");
+                    rules.append("  correctAnswer MUST be \"True\" or \"False\".\n");
+                    rules.append("  The question field MUST present a statement that can be judged as true or false, NOT an interrogative question.\n");
+                    rules.append("  - The statement must be a declarative statement ending in \"です。\" (Japanese) or \"is ...\" / \"means ...\" (English). Do NOT end with a question mark (?), and do NOT use interrogative words (e.g., \"どれですか\", \"何ですか\", \"ですか\").\n");
+                    rules.append("  - The explanation MUST match the truth value of the statement (explaining why it is true or false based on the correctAnswer).\n");
+                    rules.append("  - Examples of valid TRUE_FALSE questions:\n");
+                    rules.append("    + Statement: 「学校」の読み方は「がっこう」です。 (Correct Answer: True)\n");
+                    rules.append("    + Statement: 「学校」の読み方は「びょういん」です。 (Correct Answer: False)\n");
+                    rules.append("    + Statement: 「図書館」は \"library\" の意味です。 (Correct Answer: True)\n");
+                    rules.append("    + Statement: 「図書館」は \"hospital\" の意味です。 (Correct Answer: False)\n");
+                    break;
+                case "FILL_BLANK":
+                    rules.append("- FILL_BLANK: question text MUST contain \"___\" blank marker.\n");
+                    rules.append("  options MUST be a single-element array with the correct text answer.\n");
+                    rules.append("  correctAnswer MUST equal that single option.\n");
+                    rules.append("  BLANK BOUNDARY RULE: The blank marker \"___\" represents ONLY the missing span.\n");
+                    rules.append("  If a suffix, counter, or particle remains outside the blank in the sentence,\n");
+                    rules.append("  the correctAnswer must NOT repeat that suffix/counter/particle.\n");
+                    rules.append("  Examples:\n");
+                    rules.append("    WRONG: 電車で___分かかります  → answer=\"よんじゅっぷん\" (ぷん duplicates 分)\n");
+                    rules.append("    RIGHT:  電車で___分かかります  → answer=\"よんじゅう\"\n");
+                    rules.append("    WRONG: 午後___時に起きます    → answer=\"ろくじ\" (じ duplicates 時)\n");
+                    rules.append("    RIGHT:  午後___時に起きます    → answer=\"ろく\"\n");
+                    rules.append("    RIGHT:  ___時に起きます        → answer=\"ろくじ\" (blank consumes the whole word)\n");
+                    break;
+                case "SHORT_ANSWER":
+                    rules.append("- SHORT_ANSWER: options MUST be a single-element array with reference answer.\n");
+                    rules.append("  correctAnswer MUST equal that single option.\n");
+                    rules.append("  Do NOT include multiple-choice options.\n");
+                    break;
+                case "TRANSLATION":
+                    rules.append("- TRANSLATION: include translationMetadata with:\n");
+                    rules.append("    - direction: \"JA_TO_VI\" (Japanese to Vietnamese) or \"VI_TO_JA\" (Vietnamese to Japanese)\n");
+                    rules.append("    - sourceText: the text to translate\n");
+                    rules.append("    - referenceAnswer: the correct translation\n");
+                    rules.append("    - acceptedAnswers: array of alternative correct translations (optional)\n");
+                    rules.append("  options can be empty or contain example translations.\n");
+                    break;
+                case "SENTENCE_WRITING":
+                    rules.append("- SENTENCE_WRITING: include sentenceWritingMetadata with:\n");
+                    rules.append("    - requiredVocabulary: array of vocabulary words the sentence must use\n");
+                    rules.append("    - requiredGrammar: array of grammar patterns the sentence must demonstrate\n");
+                    rules.append("    - referenceAnswer: an example correct sentence (in Japanese)\n");
+                    rules.append("    - prompt: specific writing instruction in Japanese or English\n");
+                    rules.append("  The sentence in expectedAnswer/referenceAnswer must be in Japanese.\n");
+                    rules.append("  options can be empty. Use for WRITING skill only.\n");
+                    break;
+                case "ERROR_CORRECTION":
+                    rules.append("- ERROR_CORRECTION: include errorCorrectionMetadata with:\n");
+                    rules.append("    - incorrectText: the sentence containing an error\n");
+                    rules.append("    - correctedText: the corrected sentence\n");
+                    rules.append("    - explanation: brief explanation of the error\n");
+                    rules.append("    - errorType: type of error (optional, e.g. \"particle\", \"conjugation\")\n");
+                    rules.append("  options can be empty.\n");
+                    break;
+                case "MATCHING":
+                    rules.append("- MATCHING: include matchingMetadata with:\n");
+                    rules.append("    - leftItems: array of items for left side (e.g., Japanese words)\n");
+                    rules.append("    - rightItems: array of items for right side (e.g., Vietnamese meanings)\n");
+                    rules.append("    - correctPairs: array of {leftIndex, rightIndex} objects mapping correct pairs\n");
+                    rules.append("  options can be empty. Left and right lists should be shuffled for the student.\n");
+                    break;
+            }
+        }
+
+        return rules.toString();
     }
 
     /**
@@ -477,72 +678,61 @@ public final class AiPromptBuilder {
             List<String> selectedSkills) {
 
         String skillsLine = String.join(", ", selectedSkills);
-        boolean hasReading = selectedSkills.stream()
-                .anyMatch(s -> "READING".equalsIgnoreCase(s));
-        boolean hasVocabulary = selectedSkills.stream()
-                .anyMatch(s -> "VOCABULARY".equalsIgnoreCase(s));
+        boolean hasReading = selectedSkills.stream().anyMatch(s -> "READING".equalsIgnoreCase(s));
+        boolean hasVocabulary = selectedSkills.stream().anyMatch(s -> "VOCABULARY".equalsIgnoreCase(s));
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are AI Sensei of MIDORI, a Japanese tutor for Vietnamese learners.\n\n");
-        prompt.append("Generate EXACTLY ").append(questionCount).append(" multiple-choice quiz questions from the learning material below.\n\n");
+        prompt.append("Generate EXACTLY ").append(questionCount).append(" ").append(questionType).append(" quiz questions from the material below.\n\n");
         prompt.append("MATERIAL TITLE: ").append(materialTitle == null ? "" : materialTitle).append("\n\n");
-
         if (materialContent != null && !materialContent.isBlank()) {
             prompt.append("MATERIAL CONTENT:\n").append(materialContent).append("\n\n");
         }
+        prompt.append("SELECTED SKILLS: ").append(skillsLine).append("\n\n");
 
-        prompt.append("USER-SELECTED SKILLS (every question MUST belong to exactly ONE of these): ")
-                .append(skillsLine).append("\n\n");
+        prompt.append("RULES:\n");
+        prompt.append("1. Output ONLY raw JSON. Start with '{' and end with '}'. No code fences, prose, or extra text.\n");
+        prompt.append("2. Each question must contain: id, type, question, options, correctAnswer, explanation, category, difficulty.\n");
+        prompt.append("3. type must be \"").append(questionType).append("\" for all. difficulty must be \"").append(difficulty).append("\". category must be exactly one of: ").append(skillsLine).append(" (capitalized).\n");
 
-        prompt.append("STRICT RULES — every one of these is mandatory:\n");
-        prompt.append("1. Output ONLY a single raw JSON object. NO ```json fences. NO markdown. NO prose.\n");
-        prompt.append("1a. The response MUST start with '{' and end with '}'. Do NOT write anything before or after the JSON.\n");
-        prompt.append("2. Each question object MUST have: id, type, question, options, correctAnswer, explanation, category, difficulty.\n");
-        prompt.append("3. category MUST be exactly one of: ").append(skillsLine)
-                .append(". Use the canonical capitalized form (Vocabulary / Grammar / Reading).\n");
-        prompt.append("4. options MUST be exactly 4 strings. ALL 4 options MUST be DISTINCT — no duplicates, no whitespace-only differences, no case-only differences.\n");
-        prompt.append("5. correctAnswer MUST equal EXACTLY one of the 4 options (string equality, not substring).\n");
-        prompt.append("6. explanation MUST mention why the correct answer is right.\n");
-        prompt.append("7. type MUST be \"").append(questionType).append("\" for every question.\n");
-        prompt.append("8. difficulty MUST be one of \"Easy\" / \"Medium\" / \"Hard\".\n");
-
-        prompt.append("\nLANGUAGE RULES — Japanese content must use real kana/kanji, NOT romaji or Latin renderings:\n");
-        prompt.append("- For Japanese words, write the kanji/hiragana/katakana form (e.g. 図書館, 田中さん, がくせい).\n");
-        prompt.append("- Do NOT use romaji like 'Toshokan', 'Tanaka', 'Tanaka-san', 'shukudai', 'gakusei' anywhere — question, options, explanation, or correctAnswer. The Japanese script is mandatory for Japanese names and vocabulary.\n");
-        prompt.append("- Do NOT Latinize Japanese names. Use 田中さん, never 'Tanaka' or 'Tanaka-san'.\n");
-        prompt.append("- When a reading (cách đọc) is asked, the options MUST be hiragana, NOT romaji.\n");
-        if (hasVocabulary) {
-            prompt.append("- For Vocabulary: ask about MEANING or READING (cách đọc). Reading options = hiragana only.\n");
+        if ("TRUE_FALSE".equalsIgnoreCase(questionType)) {
+            prompt.append("4. options must be [\"True\", \"False\"]. correctAnswer must be \"True\" or \"False\".\n");
+            prompt.append("5. The question field must present a statement that can be judged as true or false, NOT an interrogative question (no question mark, no words like どれですか, 何ですか, ですか). explanation must match the truth value.\n");
+            prompt.append("5a. EXPLANATION RULE: Each explanation must be extremely concise and strictly exactly one sentence.\n");
+        } else if ("FILL_BLANK".equalsIgnoreCase(questionType)) {
+            prompt.append("4. The question text must contain a visible blank marker \"___\". options must be a single-element array containing only the correct answer. correctAnswer must equal that single option.\n");
+            prompt.append("4a. BLANK BOUNDARY RULE: if a counter (時/分/人/本/枚/回/年/月/日) or particle remains outside the blank, the correctAnswer must NOT repeat it. e.g. 電車で___分 → answer よんじゅう (NOT よんじゅっぷん); 午後___時 → answer ろく (NOT ろくじ).\n");
+        } else {
+            prompt.append("4. options must contain exactly 4 distinct strings (no duplicates). correctAnswer must equal exactly one of the options.\n");
         }
 
-        prompt.append("\nCATEGORY RULES — match the question type to the category:\n");
-        prompt.append("- Vocabulary: asks about meaning (nghĩa), reading (cách đọc / hiragana), or word choice.\n");
+        prompt.append("\nLANGUAGE RULES:\n");
+        prompt.append("- Use kanji/hiragana/katakana for Japanese words. Do NOT use romaji (e.g. 'Toshokan', 'Tanaka', 'shukudai') or Latinize Japanese names in question, answer, or options.\n");
+        prompt.append("- Reading question options must use hiragana ONLY, not romaji.\n");
+        prompt.append("- No Vietnamese in question, options, or correctAnswer. explanation may be in Vietnamese or English.\n");
+        if (hasReading) {
+            prompt.append("- For Reading questions: Question text must use Japanese kanji/kana, not Romaji.\n");
+            prompt.append("- For Reading questions: Japanese answers and options must use kanji/kana, not Romaji.\n");
+            prompt.append("- For Reading questions: Do not include romanized pronunciation in Japanese response fields.\n");
+            prompt.append("- For Reading questions: Explanations may use the currently allowed explanation language (Vietnamese or English).\n");
+            prompt.append("- For Reading questions: English or Vietnamese glosses must remain in the explanation field only.\n");
+            prompt.append("- For Reading questions: Preserve source-passage fidelity.\n");
+        }
+        if (hasVocabulary) {
+            prompt.append("- Vocabulary questions: ask about MEANING or READING. Reading options must be hiragana only.\n");
+        }
+
+        prompt.append("\nCATEGORY RULES:\n");
+        prompt.append("- Vocabulary: asks about meaning, reading, or word choice.\n");
         prompt.append("- Grammar: asks about particles, sentence patterns, sentence endings, conjugation, or grammar structure.\n");
         if (hasReading) {
-            prompt.append("- Reading: every Reading question MUST reference the passage included in MATERIAL CONTENT. Use Vietnamese phrases like 'Theo bài đọc', 'Theo đoạn văn', 'Đọc hiểu đoạn văn'. NEVER use the bare English word 'passage' or 'theo passage' in the Vietnamese question text.\n");
-            prompt.append("- Reading question MUST be answerable from the passage alone. Options for Reading questions should be short Japanese nouns/phrases taken directly from the passage.\n");
+            prompt.append("- Reading: every Reading question must reference the passage in MATERIAL CONTENT. Question text must be Japanese (no Vietnamese). Options should be short Japanese nouns/phrases directly from the passage.\n");
         }
 
         prompt.append("\nANTI-LEAK RULES:\n");
-        prompt.append("- Do NOT put both the word and its romaji reading in the same option.\n");
-        prompt.append("- Do NOT put both the word and its meaning in the same option.\n");
-        prompt.append("- Do NOT make the correct answer obviously longer/shorter than the distractors.\n");
+        prompt.append("- Do not put both the word and its romaji/meaning in the same option. Do not make the correct answer obviously longer or shorter.\n");
 
         prompt.append("\nEXACT JSON SHAPE:\n");
-        prompt.append("{\n");
-        prompt.append("  \"questions\": [\n");
-        prompt.append("    {\n");
-        prompt.append("      \"id\": \"q_0\",\n");
-        prompt.append("      \"type\": \"").append(questionType).append("\",\n");
-        prompt.append("      \"question\": \"Câu hỏi\",\n");
-        prompt.append("      \"options\": [\"Đáp án A\", \"Đáp án B\", \"Đáp án C\", \"Đáp án D\"],\n");
-        prompt.append("      \"correctAnswer\": \"Đáp án B\",\n");
-        prompt.append("      \"explanation\": \"Giải thích\",\n");
-        prompt.append("      \"category\": \"Vocabulary\",\n");
-        prompt.append("      \"difficulty\": \"Medium\"\n");
-        prompt.append("    }\n");
-        prompt.append("  ]\n");
-        prompt.append("}\n");
+        prompt.append("{\"questions\":[{\"id\":\"q_0\",\"type\":\"").append(questionType).append("\",\"question\":\"学校はどこですか。\",\"options\":[\"Tokyo\",\"Osaka\",\"Kyoto\",\"Nagoya\"],\"correctAnswer\":\"Tokyo\",\"explanation\":\"「学校」= school.\",\"category\":\"Vocabulary\",\"difficulty\":\"Easy\"}]}\n");
 
         return prompt.toString();
     }
@@ -555,51 +745,36 @@ public final class AiPromptBuilder {
             String difficulty) {
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Bạn là AI Sensei của MIDORI, trợ lý học tiếng Nhật.\n\n");
-        prompt.append("Nhiệm vụ: Tạo ").append(questionCount).append(" câu hỏi quiz từ tài liệu học tập sau đây.\n\n");
-        prompt.append("TÀI LIỆU: ").append(materialTitle).append("\n\n");
-
+        prompt.append("Generate ").append(questionCount).append(" quiz questions from the material below.\n\n");
+        prompt.append("MATERIAL TITLE: ").append(materialTitle).append("\n\n");
         if (materialContent != null && !materialContent.isBlank()) {
-            prompt.append("NỘI DUNG:\n").append(materialContent).append("\n\n");
+            prompt.append("MATERIAL CONTENT:\n").append(materialContent).append("\n\n");
         }
 
-        prompt.append("QUY TẮC BẮT BUỘC:\n");
-        prompt.append("1. Chỉ trả JSON thuần, KHÔNG có ```json, KHÔNG có markdown, KHÔNG có giải thích ngoài JSON.\n");
-        prompt.append("2. Mỗi câu hỏi bắt buộc có: id, type, question, options, correctAnswer, explanation.\n");
-        prompt.append("3. Số lượng câu hỏi: ").append(questionCount).append("\n");
-        prompt.append("4. Tất cả câu hỏi phải cùng 1 loại: ").append(questionType).append(".\n");
-        prompt.append("5. KHÔNG được trả loại khác ").append(questionType).append(" trong mảng questions.\n\n");
+        prompt.append("STRICT RULES:\n");
+        prompt.append("1. Output ONLY raw JSON starting with '{' and ending with '}'. No markdown, no prose.\n");
+        prompt.append("2. Each question MUST contain: id, type, question, options, correctAnswer, explanation, category.\n");
+        prompt.append("3. All questions MUST be type: ").append(questionType).append(".\n\n");
 
-        prompt.append("CẤU TRÚC CHO PHÉP:\n");
-        prompt.append("- MULTIPLE_CHOICE: options có 4 đáp án, correctAnswer là 1 trong 4.\n");
-        prompt.append("- TRUE_FALSE: options là [\"Đúng\", \"Sai\"], correctAnswer là \"Đúng\" hoặc \"Sai\".\n");
-        prompt.append("- FILL_BLANK: options là [], correctAnswer là đáp án đúng dạng text.\n");
-        prompt.append("- MIXED: xen kẽ các loại trên.\n\n");
+        prompt.append("STRUCTURES:\n");
+        prompt.append("- MULTIPLE_CHOICE: options = 4 answers, correctAnswer = one of the 4.\n");
+        prompt.append("- TRUE_FALSE: options = [\"True\", \"False\"], correctAnswer = \"True\" or \"False\". The question field must present a statement that can be judged as true/false, not a question (no ? or interrogatives like どれですか, 何ですか, ですか).\n");
+        prompt.append("- FILL_BLANK: options = [], correctAnswer = the correct answer text.\n");
+        prompt.append("- MIXED: alternate between the types above.\n\n");
 
-        prompt.append("NGUYÊN TẮC CHỐNG LỘ ĐÁP ÁN:\n");
-        prompt.append("- Với từ vựng tiếng Nhật, chỉ dùng 1 trong các dạng an toàn:\n");
-        prompt.append("  + Hỏi nghĩa: '... có nghĩa là gì?', options là các nghĩa tiếng Việt.\n");
-        prompt.append("  + Hỏi chọn từ: 'Từ nào có nghĩa là ...?', options là các từ tiếng Nhật.\n");
-        prompt.append("  + Hỏi cách đọc: 'Cách đọc đúng của ... là gì?', options là các hiragana (KHÔNG romaji).\n");
-        prompt.append("- KHÔNG tạo câu vừa cho nghĩa vừa cho romaji trong options.\n");
-        prompt.append("- KHÔNG để options hiển thị cả từ + nghĩa/romaji làm lộ đáp án ngay.\n");
+        prompt.append("LANGUAGE CONTRACT:\n");
+        prompt.append("- Use Japanese kanji/hiragana/katakana. Do NOT use romaji (e.g. 'Toshokan', 'gakusei', 'Tanaka') in question, answer, or options.\n");
+        prompt.append("- Reading options must use hiragana ONLY, not romaji.\n");
+        prompt.append("- No Vietnamese in question, options, or correctAnswer. explanation may use English or Vietnamese.\n\n");
 
-        prompt.append("Định dạng JSON chính xác:\n");
-        prompt.append("{\n");
-        prompt.append("  \"questions\": [\n");
-        prompt.append("    {\n");
-        prompt.append("      \"id\": \"q_0\",\n");
-        prompt.append("      \"type\": \"").append(questionType).append("\",\n");
-        prompt.append("      \"question\": \"Câu hỏi bằng tiếng Việt, bám vào nội dung tài liệu\",\n");
-        prompt.append("      \"options\": [\"Đáp án A\", \"Đáp án B\", \"Đáp án C\", \"Đáp án D\"],\n");
-        prompt.append("      \"correctAnswer\": \"Đáp án đúng\",\n");
-        prompt.append("      \"explanation\": \"Giải thích ngắn gọn tại sao đáp án này đúng\"\n");
-        prompt.append("    }\n");
-        prompt.append("  ]\n");
-        prompt.append("}\n");
+        prompt.append("ANTI-LEAK:\n");
+        prompt.append("- For Japanese vocabulary, ask meaning, word choice, or reading. Do not put both word and its romaji/meaning in the same option.\n\n");
+
+        prompt.append("EXACT JSON FORMAT:\n");
+        prompt.append("{\"questions\":[{\"id\":\"q_0\",\"type\":\"").append(questionType).append("\",\"question\":\"学校はどこですか。\",\"options\":[\"Tokyo\",\"Osaka\",\"Kyoto\",\"Nagoya\"],\"correctAnswer\":\"Tokyo\",\"explanation\":\"「学校」 = school.\",\"category\":\"Vocabulary\"}]}\n");
 
         if ("MIXED".equalsIgnoreCase(questionType)) {
-            prompt.append("Với MIXED, kết hợp các loại: MULTIPLE_CHOICE, FILL_BLANK, TRUE_FALSE.\n");
+            prompt.append("\nFor MIXED, alternate between: MULTIPLE_CHOICE, FILL_BLANK, TRUE_FALSE.\n");
         }
 
         return prompt.toString();
@@ -1256,7 +1431,7 @@ public final class AiPromptBuilder {
             String customInstructions,
             String documentText,
             String lessonContext) {
-        
+
         int count = (itemCount != null && itemCount > 0) ? itemCount : 10;
         String safeTopic = (topic != null && !topic.isBlank()) ? topic : "General Vocabulary";
         String safeTitle = (lessonTitle != null && !lessonTitle.isBlank()) ? lessonTitle : "";
@@ -1267,7 +1442,7 @@ public final class AiPromptBuilder {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are AI Sensei of MIDORI, creating Japanese vocabulary learning content for JLPT ").append(level).append(" level.\n\n");
-        
+
         // Lesson Context Section
         if (!safeContext.isEmpty() || !safeTitle.isEmpty()) {
             prompt.append("## LESSON CONTEXT\n");
@@ -1282,23 +1457,23 @@ public final class AiPromptBuilder {
             }
             prompt.append("\n");
         }
-        
+
         prompt.append("## TASK\n");
         prompt.append("Generate EXACTLY ").append(count).append(" vocabulary items on the topic: \"").append(safeTopic).append("\"\n\n");
-        
+
         // Reference Document Section
         if (!docContext.isEmpty()) {
             prompt.append("## REFERENCE DOCUMENT\n");
             prompt.append("Use the following content from the teacher's reference document as context for generation:\n\n");
             prompt.append(docContext).append("\n\n");
         }
-        
+
         // Additional Instructions
         if (!safeInstructions.isEmpty()) {
             prompt.append("## ADDITIONAL INSTRUCTIONS FROM TEACHER\n");
             prompt.append(safeInstructions).append("\n\n");
         }
-        
+
         prompt.append("## STRICT RULES\n");
         prompt.append("1. Return ONLY one valid JSON object.\n");
         prompt.append("2. Do not use markdown.\n");
@@ -1315,7 +1490,7 @@ public final class AiPromptBuilder {
         prompt.append("13. Japanese words must use real Japanese kanji/kana. Furigana MUST be hiragana only.\n");
         prompt.append("14. Each item MUST have non-empty \"japanese\", \"furigana\", and \"meaning\".\n");
         prompt.append("15. Do NOT include \"status\" field.\n\n");
-        
+
         prompt.append("## OUTPUT FORMAT\n");
         prompt.append("Use this exact JSON structure:\n");
         prompt.append("""
@@ -1335,7 +1510,7 @@ public final class AiPromptBuilder {
                   ]
                 }
                 """);
-        
+
         return prompt.toString();
     }
 
@@ -1352,7 +1527,7 @@ public final class AiPromptBuilder {
             String customInstructions,
             String documentText,
             String lessonContext) {
-        
+
         int count = (itemCount != null && itemCount > 0) ? itemCount : 5;
         String safeTopic = (grammarTopic != null && !grammarTopic.isBlank()) ? grammarTopic : "General Grammar";
         String safeTitle = (lessonTitle != null && !lessonTitle.isBlank()) ? lessonTitle : "";
@@ -1362,7 +1537,7 @@ public final class AiPromptBuilder {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are AI Sensei of MIDORI, creating Japanese grammar learning content for JLPT ").append(level).append(" level.\n\n");
-        
+
         // Lesson Context Section
         if (!safeTitle.isEmpty() || lessonNumber != null) {
             prompt.append("## LESSON CONTEXT\n");
@@ -1377,29 +1552,29 @@ public final class AiPromptBuilder {
             }
             prompt.append("\n");
         }
-        
+
         prompt.append("## TASK\n");
         prompt.append("Generate EXACTLY ").append(count).append(" grammar points on the topic: \"").append(safeTopic).append("\"\n\n");
-        
+
         // Reference Document Section
         if (!docContext.isEmpty()) {
             prompt.append("## REFERENCE DOCUMENT\n");
             prompt.append("Use the following content from the teacher's reference document as context for generation:\n\n");
             prompt.append(docContext).append("\n\n");
         }
-        
+
         // Additional Instructions
         if (!safeInstructions.isEmpty()) {
             prompt.append("## ADDITIONAL INSTRUCTIONS FROM TEACHER\n");
             prompt.append(safeInstructions).append("\n\n");
         }
-        
+
         prompt.append("## STRICT RULES\n");
         prompt.append("1. Output ONLY a single raw JSON object. NO markdown fences (```json), NO commentary.\n");
         prompt.append("2. The response MUST start with '{' and end with '}'.\n");
         prompt.append("3. Each item MUST have non-empty \"grammarPoint\", \"meaningVietnamese\", \"explanation\", and \"exampleSentence\".\n");
         prompt.append("4. Do NOT include \"status\" field.\n\n");
-        
+
         prompt.append("## OUTPUT FORMAT\n");
         prompt.append("Use this exact JSON structure:\n");
         prompt.append("""
@@ -1418,7 +1593,7 @@ public final class AiPromptBuilder {
                   ]
                 }
                 """);
-        
+
         return prompt.toString();
     }
 
@@ -1451,7 +1626,7 @@ public final class AiPromptBuilder {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are AI Sensei of MIDORI, creating Japanese reading comprehension content for JLPT ").append(level).append(" level.\n\n");
-        
+
         // Lesson Context Section
         if (!safeTitle.isEmpty() || lessonNumber != null) {
             prompt.append("## LESSON CONTEXT\n");
@@ -1466,31 +1641,34 @@ public final class AiPromptBuilder {
             }
             prompt.append("\n");
         }
-        
+
         prompt.append("## TASK\n");
         prompt.append("Generate EXACTLY ").append(pCount).append(" reading passage(s), each with EXACTLY ").append(qCount).append(" question(s).\n");
         prompt.append("Topic: \"").append(safeTopic).append("\", Difficulty: ").append(safeDifficulty).append(", Length: ").append(safeLength).append("\n\n");
-        
+
         // Reference Document Section
         if (!docContext.isEmpty()) {
             prompt.append("## REFERENCE DOCUMENT\n");
             prompt.append("Use the following content from the teacher's reference document to create relevant reading passages and questions:\n\n");
             prompt.append(docContext).append("\n\n");
         }
-        
+
         // Additional Instructions
         if (!safeInstructions.isEmpty()) {
             prompt.append("## ADDITIONAL INSTRUCTIONS FROM TEACHER\n");
             prompt.append(safeInstructions).append("\n\n");
         }
-        
+
         prompt.append("## STRICT RULES\n");
         prompt.append("1. Output ONLY a single raw JSON object. NO markdown fences (```json), NO commentary.\n");
         prompt.append("2. The response MUST start with '{' and end with '}'.\n");
         prompt.append("3. Passage text (\"content\") MUST be written in natural, clear Japanese appropriate for JLPT ").append(level).append(".\n");
         prompt.append("4. Every question MUST have 4 options, with EXACTLY ONE option having isCorrect = true.\n");
-        prompt.append("5. Do NOT include \"status\" field.\n\n");
-        
+        prompt.append("5. Do NOT include \"status\" field.\n");
+        prompt.append("6. Passage content must be in Japanese.\n");
+        prompt.append("7. Question text must be in Japanese. Do NOT use Vietnamese question text.\n");
+        prompt.append("8. Do not add Vietnamese prose introductions.\n\n");
+
         prompt.append("## OUTPUT FORMAT\n");
         prompt.append("Use this exact JSON structure:\n");
         prompt.append("""
@@ -1500,18 +1678,18 @@ public final class AiPromptBuilder {
                   "passages": [
                     {
                       "title": "Passage 1",
-                      "content": "Nội dung bài đọc bằng tiếng Nhật...",
+                      "content": "図書館で本を借りました。...",
                       "passageOrder": 1,
                       "questions": [
                         {
-                          "questionText": "Câu hỏi về đoạn văn bằng tiếng Việt",
+                          "questionText": "この文章について、正しい説明はどれですか。",
                           "questionType": "MULTIPLE_CHOICE",
-                          "explanation": "Giải thích vì sao đáp án đúng",
+                          "explanation": "文章には...と書かれています。",
                           "options": [
-                            { "optionText": "Đáp án A", "isCorrect": false },
-                            { "optionText": "Đáp án B", "isCorrect": true },
-                            { "optionText": "Đáp án C", "isCorrect": false },
-                            { "optionText": "Đáp án D", "isCorrect": false }
+                            { "optionText": "答え1", "isCorrect": false },
+                            { "optionText": "答え2", "isCorrect": true },
+                            { "optionText": "答え3", "isCorrect": false },
+                            { "optionText": "答え4", "isCorrect": false }
                           ]
                         }
                       ]
@@ -1519,7 +1697,7 @@ public final class AiPromptBuilder {
                   ]
                 }
                 """);
-        
+
         return prompt.toString();
     }
 
@@ -1527,5 +1705,230 @@ public final class AiPromptBuilder {
     // LEGACY PROMPTS (For backward compatibility - deprecated)
     // ============================================================
 
+    /**
+     * @deprecated Use buildAdminVocabularyGenerationPrompt with lesson context
+     */
+    @Deprecated
+    public static String buildAdminVocabularyGenerationPrompt(String level, String topic, Integer itemCount, String customInstructions) {
+        return buildAdminVocabularyGenerationPrompt(level, null, null, null, topic, itemCount, customInstructions, null, null);
+    }
+
+    /**
+     * @deprecated Use buildAdminGrammarGenerationPrompt with lesson context
+     */
+    @Deprecated
+    public static String buildAdminGrammarGenerationPrompt(String level, String topic, Integer itemCount, String customInstructions) {
+        return buildAdminGrammarGenerationPrompt(level, null, null, null, topic, itemCount, customInstructions, null, null);
+    }
+
+    /**
+     * @deprecated Use buildAdminReadingGenerationPrompt with lesson context
+     */
+    @Deprecated
+    public static String buildAdminReadingGenerationPrompt(
+            String level, String topic, Integer passageCount, Integer questionsPerPassage,
+            String difficulty, String passageLength, String customInstructions) {
+        return buildAdminReadingGenerationPrompt(level, null, null, null, topic, passageCount, questionsPerPassage, difficulty, passageLength, customInstructions, null, null);
+    }
+
+    public static String buildSemanticValidationPrompt(String questionsJson) {
+        return """
+                You are a strict Japanese language question validator.
+                Analyze the following JSON array of Japanese language questions.
+                For each question, check:
+                1. Is the question text grammatically correct and semantically natural in Japanese?
+                2. Does the correct answer accurately and logically complete the blank or answer the question?
+                3. Does the explanation correctly explain why the correct answer is right without contradicting it?
+                4. For Reading questions, does the question accurately reference the reading passage?
+
+                You must return a single JSON object containing an "evaluations" array matching the order of input questions.
+                Each evaluation must contain:
+                  - "isValid": boolean (true/false)
+                  - "reason": string (reason for rejection if isValid is false, otherwise empty string)
+
+                Input Questions JSON:
+                """ + questionsJson + """
+
+                Output JSON format:
+                {
+                  "evaluations": [
+                    { "isValid": true, "reason": "" },
+                    { "isValid": false, "reason": "Explanation describes 'A' but correct answer is marked as 'B'" }
+                  ]
+                }
+                """;
+    }
+
+    public static String buildQuizGenerationPromptWithSourceRecords(
+            String materialTitle,
+            int questionCount,
+            String questionType,
+            String difficulty,
+            List<String> selectedSkills,
+            String sourceRecordsText) {
+
+        String skillsLine = selectedSkills == null ? "Vocabulary" : String.join(", ", selectedSkills);
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are AI Sensei of MIDORI, a Japanese tutor for Vietnamese learners.\n\n");
+        prompt.append("Generate EXACTLY ").append(questionCount).append(" ").append(questionType).append(" quiz questions targeting specific records from the list below.\n\n");
+        prompt.append("MATERIAL TITLE: ").append(materialTitle == null ? "" : materialTitle).append("\n\n");
+
+        prompt.append(sourceRecordsText).append("\n\n");
+
+        prompt.append("STRICT RULES — every one of these is mandatory:\n");
+        prompt.append("1. Output ONLY a single raw JSON object. NO ```json fences. NO markdown. NO prose.\n");
+        prompt.append("1a. The response MUST start with '{' and end with '}'. Do NOT write anything before or after the JSON.\n");
+        prompt.append("2. Each question object MUST have: id, type, question, options, correctAnswer, explanation, category, difficulty, sourceRecordId.\n");
+        prompt.append("2a. sourceRecordId MUST match the exact 'id' (e.g. 'rec_1') of the originating record from the STRUCTURED SOURCE RECORDS list.\n");
+        prompt.append("3. category MUST be exactly one of: ").append(skillsLine).append(". Use the canonical capitalized form (Vocabulary / Grammar / Reading).\n");
+        prompt.append("4. difficulty MUST be \"").append(difficulty).append("\".\n");
+        prompt.append("4a. Avoid inventing unrelated example sentences. You MUST primarily generate questions from the uploaded source records content.\n");
+        prompt.append("4b. You MUST prefer using details from the structured source records (such as kanji reading, vocabulary meaning, source example sentence, and source collocations) over newly created/invented examples.\n");
+
+        switch (questionType.toUpperCase()) {
+            case "MULTIPLE_CHOICE":
+                prompt.append("5. options MUST be exactly 4 strings. ALL 4 options MUST be DISTINCT — no duplicates.\n");
+                prompt.append("6. correctAnswer MUST equal EXACTLY one of the 4 options.\n");
+                break;
+            case "TRUE_FALSE":
+                prompt.append("5. options MUST be exactly [\"True\", \"False\"].\n");
+                prompt.append("6. correctAnswer MUST be \"True\" or \"False\".\n");
+                prompt.append("7. The question field MUST present a statement that can be judged as true or false, NOT an interrogative question.\n");
+                prompt.append("  - The statement must be a declarative statement ending in \"です。\" (Japanese) or \"is ...\" / \"means ...\" (English). Do NOT end with a question mark (?), and do NOT use interrogative words (e.g., \"どれですか\", \"何ですか\", \"ですか\").\n");
+                prompt.append("  - The explanation MUST match the truth value of the statement (explaining why it is true or false based on the correctAnswer).\n");
+                prompt.append("  - Examples of valid TRUE_FALSE questions:\n");
+                prompt.append("    + Statement: 「学校」の読み方は「がっこう」です。 (Correct Answer: True)\n");
+                prompt.append("    + Statement: 「学校」の読み方は「びょういん」です。 (Correct Answer: False)\n");
+                prompt.append("    + Statement: 「図書館」は \"library\" の意味です。 (Correct Answer: True)\n");
+                prompt.append("    + Statement: 「図書館」は \"hospital\" の意味です。 (Correct Answer: False)\n");
+                break;
+            case "FILL_BLANK":
+                prompt.append("5. The question text MUST contain a visible blank marker \"___\".\n");
+                prompt.append("6. options MUST be a single-element array whose content is the correct text answer (no multiple-choice options).\n");
+                prompt.append("7. correctAnswer MUST equal that single option.\n");
+                break;
+            case "SHORT_ANSWER":
+                prompt.append("5. options MUST be a single-element array whose content is the reference answer text.\n");
+                prompt.append("6. correctAnswer MUST equal that single option.\n");
+                break;
+        }
+
+        prompt.append("\nLANGUAGE RULES:\n");
+        prompt.append("- For Japanese words, write the kanji/hiragana/katakana form (e.g. 図書館, 田中さん, がくせい).\n");
+        prompt.append("- Do NOT use romaji anywhere.\n");
+        prompt.append("- Vietnamese is PROHIBITED in questionText, options, and correctAnswer. ONLY the explanation field may use Vietnamese or English.\n");
+
+        prompt.append("\nEXACT JSON SHAPE:\n");
+        prompt.append("{\n");
+        prompt.append("  \"questions\": [\n");
+        prompt.append("    {\n");
+        prompt.append("      \"id\": \"q_0\",\n");
+        prompt.append("      \"type\": \"").append(questionType).append("\",\n");
+        prompt.append("      \"question\": \"Question text here\",\n");
+        prompt.append("      \"options\": [],\n");
+        prompt.append("      \"correctAnswer\": \"Correct answer here\",\n");
+        prompt.append("      \"explanation\": \"Explanation in Vietnamese or English\",\n");
+        prompt.append("      \"category\": \"Vocabulary\",\n");
+        prompt.append("      \"difficulty\": \"").append(difficulty).append("\",\n");
+        prompt.append("      \"sourceRecordId\": \"rec_1\"\n");
+        prompt.append("    }\n");
+        prompt.append("  ]\n");
+        prompt.append("}\n");
+
+        return prompt.toString();
+    }
+
+    public static String buildQuizGenerationPromptWithDistributionAndSourceRecords(
+            String materialTitle,
+            int distributionTotal,
+            String questionType,
+            String distributionLine,
+            List<String> selectedSkills,
+            String sourceRecordsText) {
+
+        String skillsLine = selectedSkills == null ? "Vocabulary" : String.join(", ", selectedSkills);
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are AI Sensei of MIDORI, a Japanese tutor for Vietnamese learners.\n\n");
+        prompt.append("Generate EXACTLY ").append(distributionTotal).append(" ").append(questionType).append(" quiz questions targeting specific records from the list below.\n\n");
+        prompt.append("MATERIAL TITLE: ").append(materialTitle == null ? "" : materialTitle).append("\n\n");
+
+        prompt.append(sourceRecordsText).append("\n\n");
+
+        prompt.append("USER-SELECTED SKILLS (every question MUST belong to exactly ONE of these): ").append(skillsLine).append("\n\n");
+        prompt.append("DIFFICULTY DISTRIBUTION:\n  ").append(distributionLine).append("\n\n");
+
+        prompt.append("STRICT RULES — every one of these is mandatory:\n");
+        prompt.append("1. Output ONLY a single raw JSON object. NO ```json fences. NO markdown. NO prose.\n");
+        prompt.append("1a. The response MUST start with '{' and end with '}'. Do NOT write anything before or after the JSON.\n");
+        prompt.append("2. Each question object MUST have: id, type, question, options, correctAnswer, explanation, category, difficulty, sourceRecordId.\n");
+        prompt.append("2a. sourceRecordId MUST match the exact 'id' (e.g. 'rec_1') of the originating record from the STRUCTURED SOURCE RECORDS list.\n");
+        prompt.append("3. category MUST be exactly one of: ").append(skillsLine).append(". Use the canonical capitalized form (Vocabulary / Grammar / Reading).\n");
+        prompt.append("4. difficulty MUST match the DIFFICULTY DISTRIBUTION counts.\n");
+        prompt.append("4a. Avoid inventing unrelated example sentences. You MUST primarily generate questions from the uploaded source records content.\n");
+        prompt.append("4b. You MUST prefer using details from the structured source records (such as kanji reading, vocabulary meaning, source example sentence, and source collocations) over newly created/invented examples.\n");
+
+        switch (questionType.toUpperCase()) {
+            case "MULTIPLE_CHOICE":
+                prompt.append("5. options MUST be exactly 4 strings. ALL 4 options MUST be DISTINCT — no duplicates.\n");
+                prompt.append("6. correctAnswer MUST equal EXACTLY one of the 4 options.\n");
+                break;
+            case "TRUE_FALSE":
+                prompt.append("5. options MUST be exactly [\"True\", \"False\"].\n");
+                prompt.append("6. correctAnswer MUST be \"True\" or \"False\".\n");
+                prompt.append("7. The question field MUST present a statement that can be judged as true or false, NOT an interrogative question.\n");
+                prompt.append("  - The statement must be a declarative statement ending in \"です。\" (Japanese) or \"is ...\" / \"means ...\" (English). Do NOT end with a question mark (?), and do NOT use interrogative words (e.g., \"どれですか\", \"何ですか\", \"ですか\").\n");
+                prompt.append("  - The explanation MUST match the truth value of the statement (explaining why it is true or false based on the correctAnswer).\n");
+                prompt.append("  - Examples of valid TRUE_FALSE questions:\n");
+                prompt.append("    + Statement: 「学校」の読み方は「がっこう」です。 (Correct Answer: True)\n");
+                prompt.append("    + Statement: 「学校」の読み方は「びょういん」です。 (Correct Answer: False)\n");
+                prompt.append("    + Statement: 「図書館」は \"library\" の意味です。 (Correct Answer: True)\n");
+                prompt.append("    + Statement: 「図書館」は \"hospital\" の意味です。 (Correct Answer: False)\n");
+                break;
+            case "FILL_BLANK":
+                prompt.append("5. The question text MUST contain a visible blank marker \"___\".\n");
+                prompt.append("6. options MUST be a single-element array whose content is the correct text answer (no multiple-choice options).\n");
+                prompt.append("7. correctAnswer MUST equal that single option.\n");
+                break;
+            case "SHORT_ANSWER":
+                prompt.append("5. options MUST be a single-element array whose content is the reference answer text.\n");
+                prompt.append("6. correctAnswer MUST equal that single option.\n");
+                break;
+        }
+
+        prompt.append("\nLANGUAGE RULES:\n");
+        prompt.append("- For Japanese words, write the kanji/hiragana/katakana form (e.g. 図書館, 田中さん, がくせい).\n");
+        prompt.append("- Do NOT use romaji anywhere.\n");
+        prompt.append("- Vietnamese is PROHIBITED in questionText, options, and correctAnswer. ONLY the explanation field may use Vietnamese or English.\n");
+        boolean hasReading2 = selectedSkills != null && selectedSkills.stream().anyMatch(s -> "READING".equalsIgnoreCase(s));
+        if (hasReading2) {
+            prompt.append("- For Reading questions: Question text must use Japanese kanji/kana, not Romaji.\n");
+            prompt.append("- For Reading questions: Japanese answers and options must use kanji/kana, not Romaji.\n");
+            prompt.append("- For Reading questions: Do not include romanized pronunciation in Japanese response fields.\n");
+            prompt.append("- For Reading questions: Explanations may use the currently allowed explanation language (Vietnamese or English).\n");
+            prompt.append("- For Reading questions: English or Vietnamese glosses must remain in the explanation field only.\n");
+            prompt.append("- For Reading questions: Preserve source-passage fidelity.\n");
+        }
+
+        prompt.append("\nEXACT JSON SHAPE:\n");
+        prompt.append("{\n");
+        prompt.append("  \"questions\": [\n");
+        prompt.append("    {\n");
+        prompt.append("      \"id\": \"q_0\",\n");
+        prompt.append("      \"type\": \"").append(questionType).append("\",\n");
+        prompt.append("      \"question\": \"Question text here\",\n");
+        prompt.append("      \"options\": [],\n");
+        prompt.append("      \"correctAnswer\": \"Correct answer here\",\n");
+        prompt.append("      \"explanation\": \"Explanation in Vietnamese or English\",\n");
+        prompt.append("      \"category\": \"Vocabulary\",\n");
+        prompt.append("      \"difficulty\": \"Medium\",\n");
+        prompt.append("      \"sourceRecordId\": \"rec_1\"\n");
+        prompt.append("    }\n");
+        prompt.append("  ]\n");
+        prompt.append("}\n");
+
+        return prompt.toString();
+    }
 }
 

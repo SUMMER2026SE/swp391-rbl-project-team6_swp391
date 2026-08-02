@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
+import { getStoredUser } from "../lib/auth";
 import type {
   JLPTLevel,
   QuestionType,
@@ -10,6 +11,7 @@ import type {
   StandardQuestion,
 } from "./questionBank.types";
 import { teacherQuestionsApi, TeacherQuestionResponse } from "../lib/api/teacherQuestions";
+import { adminApi } from "../lib/api/admin";
 
 export type {
   JLPTLevel,
@@ -20,6 +22,25 @@ export type {
   ListeningQuestion,
   StandardQuestion,
 };
+
+export interface CreateQuestionInput {
+  type: string;
+  skill?: string;
+  difficulty: string;
+  questionText: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+  audio?: {
+    audioUrl?: string;
+    audioFileName?: string;
+    audioDuration?: number;
+  };
+  translationMetadata?: any;
+  sentenceWritingMetadata?: any;
+  errorCorrectionMetadata?: any;
+  matchingMetadata?: any;
+}
 
 // Helper mapper for Difficulty
 function mapDifficultyToFrontend(difficulty: string): Difficulty {
@@ -81,6 +102,298 @@ export const questionBankService = {
   },
 };
 
+// ─── Admin Question Bank Persistence & Prefetching ──────────────────────────
+const ADMIN_QB_PERSISTANCE_PREFIX = "midori_admin_qb_cache_v1_";
+const ADMIN_QB_REMEMBERED_LEVEL_KEY = "midori_admin_qb_last_level";
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export function rememberAdminQBLevel(level: string) {
+  if (typeof window !== "undefined" && level) {
+    try {
+      const upper = level.toUpperCase();
+      if (localStorage.getItem(ADMIN_QB_REMEMBERED_LEVEL_KEY) !== upper) {
+        localStorage.setItem(ADMIN_QB_REMEMBERED_LEVEL_KEY, upper);
+      }
+    } catch {}
+  }
+}
+
+export function getRememberedAdminQBLevel(): JLPTLevel {
+  if (typeof window !== "undefined") {
+    try {
+      const val = localStorage.getItem(ADMIN_QB_REMEMBERED_LEVEL_KEY);
+      if (val && ["N5", "N4", "N3", "N2", "N1"].includes(val.toUpperCase())) {
+        return val.toUpperCase() as JLPTLevel;
+      }
+    } catch {}
+  }
+  return "N5";
+}
+
+function getCacheKeyForUser(level: string, user?: { id: string; role: string } | null): string | null {
+  const targetUser = user ?? getStoredUser();
+  if (!targetUser || targetUser.role !== "admin" || !targetUser.id) return null;
+  return `${ADMIN_QB_PERSISTANCE_PREFIX}${targetUser.id}_${targetUser.role}_${level.toUpperCase()}`;
+}
+
+export function getPersistedAdminQBLessons(level: string): any[] | undefined {
+  if (typeof window === "undefined") return undefined;
+  const key = getCacheKeyForUser(level);
+  if (!key) return undefined;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.timestamp || Date.now() - parsed.timestamp > CACHE_TTL_MS) {
+      localStorage.removeItem(key);
+      return undefined;
+    }
+    return Array.isArray(parsed.data) ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function setPersistedAdminQBLessons(level: string, data: any[], user?: { id: string; role: string } | null) {
+  if (typeof window === "undefined" || !data) return;
+  const key = getCacheKeyForUser(level, user);
+  if (!key) return;
+  try {
+    const payload = {
+      timestamp: Date.now(),
+      data,
+    };
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch {}
+}
+
+export function clearPersistedAdminQuestionBankCache() {
+  if (typeof window === "undefined") return;
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("midori_admin_qb_cache_")) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Background prefetcher for Admin Question Bank lesson summaries.
+ * Never blocks login or navigation, and shares exact queryKey for TanStack Query deduplication.
+ */
+export async function prefetchAdminQuestionBankLessons(
+  queryClient: QueryClient,
+  user?: { id: string; role: string } | null,
+  targetLevel?: string
+) {
+  const activeUser = user ?? getStoredUser();
+  if (!activeUser || activeUser.role !== "admin") return;
+
+  const levelToFetch = (targetLevel || getRememberedAdminQBLevel()).toUpperCase() as JLPTLevel;
+
+  await queryClient.prefetchQuery({
+    queryKey: ["adminQuestionBankLessons", levelToFetch],
+    queryFn: async () => {
+      const response = await adminApi.getQuestionBankLessons(levelToFetch);
+      setPersistedAdminQBLessons(levelToFetch, response, activeUser);
+      return response;
+    },
+    staleTime: CACHE_TTL_MS,
+  });
+}
+
+/**
+ * Admin-optimized hook for managing lesson summaries without loading question/option entity graphs.
+ * Used exclusively by Admin Question Bank lesson list and import pages to avoid fetching all DB questions.
+ */
+export function useAdminQuestionBankLessons(level: JLPTLevel) {
+  const queryClient = useQueryClient();
+  rememberAdminQBLevel(level);
+
+  const {
+    data: rawLessons = [],
+    refetch,
+    isLoading,
+    isFetching,
+    isPlaceholderData,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["adminQuestionBankLessons", level],
+    queryFn: async () => {
+      const response = await adminApi.getQuestionBankLessons(level);
+      setPersistedAdminQBLessons(level, response);
+      return response;
+    },
+    initialData: () => getPersistedAdminQBLessons(level),
+    initialDataUpdatedAt: () => 0,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+
+  const lessons: Lesson[] = rawLessons.map((l) => ({
+    id: l.id,
+    lessonNumber: l.lessonNumber,
+    lessonName: l.lessonName,
+    status: l.status && l.status.toUpperCase() === "ACTIVE" ? "Active" : "Draft",
+    questionCount: l.questionCount ?? 0,
+    createdAt: l.createdAt,
+  }));
+
+  const prefetchLessons = useCallback(
+    (targetLevel: JLPTLevel) => {
+      prefetchAdminQuestionBankLessons(queryClient, undefined, targetLevel).catch(() => {});
+    },
+    [queryClient]
+  );
+
+  const createLessonMutation = useMutation({
+    mutationFn: async (vars: { lessonName: string; lessonNumber?: number; status?: string }) => {
+      const existingNumbers = rawLessons.map((l) => l.lessonNumber);
+      const nextNum =
+        vars.lessonNumber || (existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1);
+      const response = await adminApi.createQuestionBankLesson({
+        level,
+        lessonNumber: nextNum,
+        lessonName: vars.lessonName,
+        status: (vars.status || "DRAFT").toUpperCase(),
+      });
+      return response;
+    },
+    onSuccess: (newLesson) => {
+      queryClient.setQueryData<any[]>(["adminQuestionBankLessons", level], (old) => {
+        if (!old) return [newLesson];
+        if (old.some((l) => l.id === newLesson.id)) return old;
+        const updated = [...old, { ...newLesson, questionCount: newLesson.questionCount ?? 0 }];
+        return updated.sort((a, b) => (a.lessonNumber ?? 0) - (b.lessonNumber ?? 0));
+      });
+      const updatedCache = queryClient.getQueryData<any[]>(["adminQuestionBankLessons", level]);
+      if (updatedCache) setPersistedAdminQBLessons(level, updatedCache);
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons"], refetchType: "none" });
+    },
+  });
+
+  const updateLessonMutation = useMutation({
+    mutationFn: async (vars: {
+      lessonId: number;
+      lessonName: string;
+      lessonNumber?: number;
+      status?: string;
+    }) => {
+      const response = await adminApi.updateQuestionBankLesson(
+        vars.lessonId,
+        {
+          lessonName: vars.lessonName,
+          lessonNumber: vars.lessonNumber,
+          status: vars.status,
+        },
+      );
+      return response;
+    },
+    onSuccess: (updatedLesson, variables) => {
+      queryClient.setQueryData<any[]>(["adminQuestionBankLessons", level], (old) => {
+        if (!old) return old;
+        return old
+          .map((lesson) => {
+            if (lesson.id === variables.lessonId) {
+              const preservedCount = updatedLesson.questionCount ?? lesson.questionCount ?? 0;
+              return {
+                ...lesson,
+                ...updatedLesson,
+                questionCount: preservedCount,
+              };
+            }
+            return lesson;
+          })
+          .sort((a, b) => (a.lessonNumber ?? 0) - (b.lessonNumber ?? 0));
+      });
+      const updatedCache = queryClient.getQueryData<any[]>(["adminQuestionBankLessons", level]);
+      if (updatedCache) setPersistedAdminQBLessons(level, updatedCache);
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons"], refetchType: "none" });
+      queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"], refetchType: "none" });
+    },
+  });
+
+  const deleteLessonMutation = useMutation({
+    mutationFn: async (lessonId: number) => {
+      await adminApi.deleteQuestionBankLesson(lessonId);
+      return lessonId;
+    },
+    onSuccess: (deletedId) => {
+      queryClient.setQueryData<any[]>(["adminQuestionBankLessons", level], (old) => {
+        if (!old) return old;
+        return old.filter((lesson) => lesson.id !== deletedId);
+      });
+      const updatedCache = queryClient.getQueryData<any[]>(["adminQuestionBankLessons", level]);
+      if (updatedCache) setPersistedAdminQBLessons(level, updatedCache);
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons"], refetchType: "none" });
+      queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"], refetchType: "none" });
+    },
+  });
+
+  const createQuestionsBatchMutation = useMutation({
+    mutationFn: async (vars: { lessonId: number; questionsData: CreateQuestionInput[] }) => {
+      const req = {
+        questions: vars.questionsData.map((q) => ({
+          topicId: `lesson_${vars.lessonId}`,
+          level,
+          lessonId: vars.lessonId,
+          skill: q.skill ?? (q.type || "VOCABULARY").toUpperCase(),
+          prompt: q.questionText,
+          questionType: q.type,
+          difficulty: q.difficulty.toUpperCase(),
+          correctAnswerIndex: q.correctIndex,
+          explanation: q.explanation || "",
+          options: q.options || [],
+          audioUrl: q.audio?.audioUrl,
+          audioFileName: q.audio?.audioFileName,
+          audioDuration: q.audio?.audioDuration,
+          translationMetadata: q.translationMetadata,
+          sentenceWritingMetadata: q.sentenceWritingMetadata,
+          errorCorrectionMetadata: q.errorCorrectionMetadata,
+          matchingMetadata: q.matchingMetadata,
+        })),
+      };
+      const response = await teacherQuestionsApi.createQuestionsBatch(req);
+
+      if (response.requestedCount !== response.savedCount) {
+        throw new Error(`Batch save mismatch: requested ${response.requestedCount} but saved ${response.savedCount}`);
+      }
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminQuestionBankLessons"] });
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons"] });
+      queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"] });
+    },
+  });
+
+  return {
+    lessons,
+    isLoading,
+    isFetching,
+    isPlaceholderData,
+    isError,
+    error,
+    refresh: refetch,
+    prefetchLessons,
+    createLesson: (name: string, num?: number) =>
+      createLessonMutation.mutateAsync({ lessonName: name, lessonNumber: num }),
+    updateLesson: (id: number, name: string, num?: number, status?: string) =>
+      updateLessonMutation.mutateAsync({
+        lessonId: id,
+        lessonName: name,
+        lessonNumber: num,
+        status,
+      }),
+    deleteLesson: (id: number) => deleteLessonMutation.mutateAsync(id),
+    createQuestionsBatch: (lessonId: number, data: CreateQuestionInput[]) =>
+      createQuestionsBatchMutation.mutateAsync({ lessonId, questionsData: data }),
+  };
+}
+
 export function useQuestionBank(level: JLPTLevel) {
   const queryClient = useQueryClient();
 
@@ -94,10 +407,10 @@ export function useQuestionBank(level: JLPTLevel) {
   } = useQuery({
     queryKey: ["questionBankLessons", "ALL"],
     queryFn: async () => {
-      const response = await teacherQuestionsApi.getLessons();
+      const response = await adminApi.getQuestionBankLessons(level);
       return response;
     },
-    staleTime: 1000 * 60 * 60,
+    staleTime: 5 * 60 * 1000,
   });
 
   const rawLessons = useMemo(() => {
@@ -117,6 +430,7 @@ export function useQuestionBank(level: JLPTLevel) {
       const response = await teacherQuestionsApi.getQuestions(level);
       return response;
     },
+    staleTime: 2 * 60 * 1000,
   });
 
   const questions = rawQuestions
@@ -137,7 +451,7 @@ export function useQuestionBank(level: JLPTLevel) {
     lessonNumber: l.lessonNumber,
     lessonName: l.lessonName,
     status: l.status && l.status.toUpperCase() === "ACTIVE" ? "Active" : "Draft",
-    questionCount: questions.filter((q) => q.lesson === l.id).length,
+    questionCount: (l as any).questionCount ?? questions.filter((q) => q.lesson === l.id).length,
     createdAt: l.createdAt,
   }));
 
@@ -225,6 +539,54 @@ export function useQuestionBank(level: JLPTLevel) {
     },
   });
 
+  const createQuestionsBatchMutation = useMutation({
+    mutationFn: async (vars: { lessonId: number; questionsData: any[] }) => {
+      const req = {
+        questions: vars.questionsData.map(q => ({
+          topicId: `lesson_${vars.lessonId}`,
+          level,
+          lessonId: vars.lessonId,
+          prompt: q.questionText,
+          questionType: q.type,
+          difficulty: q.difficulty.toUpperCase(),
+          correctAnswerIndex: q.correctIndex,
+          explanation: q.explanation || "",
+          options: q.options || [],
+          audioUrl: q.audio?.audioUrl,
+          audioFileName: q.audio?.audioFileName,
+          audioDuration: q.audio?.audioDuration,
+        }))
+      };
+      const response = await teacherQuestionsApi.createQuestionsBatch(req);
+
+      if (response.requestedCount !== response.savedCount) {
+        throw new Error(`Batch save mismatch: requested ${response.requestedCount} but saved ${response.savedCount}`);
+      }
+
+      return {
+        requestedCount: response.requestedCount,
+        savedCount: response.savedCount,
+        savedQuestions: response.savedQuestions.map(mapBackendQuestionToFrontend),
+        rawSavedQuestions: response.savedQuestions,
+      };
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<TeacherQuestionResponse[] | undefined>(
+        ["questionBankQuestions"],
+        (old) => {
+          if (!old) return data.rawSavedQuestions;
+          const existingIds = new Set(old.map((q) => q.id));
+          const newQs = data.rawSavedQuestions.filter((q) => !existingIds.has(q.id));
+          return [...old, ...newQs];
+        },
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["questionBankQuestions"],
+        refetchType: "none",
+      });
+    },
+  });
+
   const updateQuestionMutation = useMutation({
     mutationFn: async (vars: { questionId: string; updates: any }) => {
       const current = rawQuestions.find((q) => q.id === vars.questionId);
@@ -303,6 +665,8 @@ export function useQuestionBank(level: JLPTLevel) {
     deleteLesson: (id: number) => deleteLessonMutation.mutateAsync(id),
     createQuestion: (lessonId: number, data: any) =>
       createQuestionMutation.mutateAsync({ lessonId, questionData: data }),
+    createQuestionsBatch: (lessonId: number, data: any[]) =>
+      createQuestionsBatchMutation.mutateAsync({ lessonId, questionsData: data }),
     updateQuestion: (id: string, updates: any) =>
       updateQuestionMutation.mutateAsync({ questionId: id, updates }),
     deleteQuestion: (id: string) => deleteQuestionMutation.mutateAsync(id),

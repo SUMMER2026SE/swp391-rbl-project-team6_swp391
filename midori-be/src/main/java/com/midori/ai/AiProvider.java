@@ -117,8 +117,51 @@ public interface AiProvider {
                                                      String distributionLine,
                                                      java.util.List<String> selectedSkills,
                                                      AiTaskType taskType) {
+        String dominantDifficulty = "Medium";
+        if (distributionLine != null && !distributionLine.isBlank()) {
+            try {
+                int maxVal = -1;
+                String[] parts = distributionLine.split(",");
+                for (String part : parts) {
+                    String[] kv = part.split("=");
+                    if (kv.length == 2) {
+                        String diff = kv[0].trim();
+                        int val = Integer.parseInt(kv[1].trim());
+                        if (val > maxVal) {
+                            maxVal = val;
+                            dominantDifficulty = diff.substring(0, 1).toUpperCase() + diff.substring(1).toLowerCase();
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                dominantDifficulty = "Medium";
+            }
+        }
         return generateQuestions(materialTitle, materialContent, distributionTotal,
-                questionType, "Medium", selectedSkills, taskType);
+                questionType, dominantDifficulty, selectedSkills, taskType);
+    }
+
+    /**
+     * Generate questions in multiple formats simultaneously.
+     *
+     * @param materialTitle the material title
+     * @param materialContent the material content
+     * @param distributionTotal total number of questions
+     * @param distributionLine pre-formatted difficulty distribution string
+     * @param selectedSkills list of selected skills
+     * @param selectedFormats list of selected question formats
+     * @return JSON string containing questions in multiple formats
+     */
+    default String generateMultiFormatQuestions(String materialTitle, String materialContent,
+                                              int distributionTotal, String distributionLine,
+                                              java.util.List<String> selectedSkills,
+                                              java.util.List<String> selectedFormats,
+                                              AiTaskType taskType) {
+        // Default: generate multi-format using chat endpoint
+        String prompt = com.midori.ai.prompt.AiPromptBuilder.buildMultiFormatQuizGenerationPrompt(
+                materialTitle, materialContent, distributionTotal, distributionLine,
+                selectedSkills, selectedFormats);
+        return chat("You are AI Sensei of MIDORI, a Japanese tutor for Vietnamese learners.", prompt, null, taskType);
     }
 
     // ============================================================
@@ -162,5 +205,15 @@ public interface AiProvider {
     default Integer getLastPromptTokens() { return null; }
     default Integer getLastCompletionTokens() { return null; }
     default Integer getLastTotalTokens() { return null; }
+    default int getLastKeyIndex() { return 0; }
+    default String getLastKeyId() { return null; }
     default void clearMetrics() {}
+
+    /**
+     * Checks if this provider has at least one model and key route that is configured,
+     * not cooling down globally, and has not failed in the current request scope.
+     */
+    default boolean hasAvailableRoute(AiTaskType taskType) {
+        return isConfigured();
+    }
 }

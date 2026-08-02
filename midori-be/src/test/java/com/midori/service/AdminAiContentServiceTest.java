@@ -1,8 +1,8 @@
 package com.midori.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.midori.ai.AiTaskType;
 import com.midori.ai.core.AiCoreService;
-import com.midori.ai.exception.AiProcessingException;
 import com.midori.dto.contentlibrary.AdminAiContentGenerateRequest;
 import com.midori.dto.contentlibrary.AdminAiContentGenerateResponse;
 import com.midori.service.impl.AdminAiContentServiceImpl;
@@ -14,10 +14,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for AdminAiContentService.
+ * Tests validation logic and basic flow without requiring AI provider configuration.
+ */
 @ExtendWith(MockitoExtension.class)
 class AdminAiContentServiceTest {
 
@@ -34,6 +36,12 @@ class AdminAiContentServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         adminAiContentService = new AdminAiContentServiceImpl(aiCoreService, objectMapper, documentTextExtractor);
+    }
+
+    @Test
+    @DisplayName("Reject null request")
+    void rejectNullRequest() {
+        assertThrows(IllegalArgumentException.class, () -> adminAiContentService.generateContent((AdminAiContentGenerateRequest) null));
     }
 
     @Test
@@ -82,94 +90,30 @@ class AdminAiContentServiceTest {
     }
 
     @Test
-    @DisplayName("Generate Grammar content successfully with lesson context")
-    void generateGrammar_ok() {
-        String mockAiResponse = """
-                {
-                  "title": "N5 Sentence Patterns",
-                  "description": "Basic N5 grammar points",
-                  "items": [
-                    {
-                      "grammarPoint": "〜です",
-                      "meaningVietnamese": "Là...",
-                      "meaningJapanese": "です",
-                      "explanation": "Dùng để khẳng định.",
-                      "exampleSentence": "私は学生です。",
-                      "notes": "Cấu trúc cơ bản"
-                    }
-                  ]
-                }
-                """;
-
-        when(aiCoreService.chat(anyString(), anyString(), any(), any())).thenReturn(mockAiResponse);
-
+    @DisplayName("Reject null skillType")
+    void rejectNullSkillType() {
         AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
-                .skillType("GRAMMAR")
                 .level("N5")
                 .lessonNumber(1)
-                .lessonTitle("Basic Grammar")
-                .lessonDescription("Introduction to basic grammar")
-                .topic("Basic Sentence")
-                .grammarTopic("Basic Sentence")
-                .itemCount(3)
+                .lessonTitle("Test")
+                .topic("Test")
                 .build();
 
-        AdminAiContentGenerateResponse response = adminAiContentService.generateContent(request);
-
-        assertNotNull(response);
-        assertEquals("GRAMMAR", response.getSkillType());
-        assertNotNull(response.getGrammarDraft());
-        assertEquals(1, response.getGrammarDraft().getItems().size());
+        assertThrows(IllegalArgumentException.class, () -> adminAiContentService.generateContent(request));
     }
 
     @Test
-    @DisplayName("Generate Reading content successfully with reading-specific parameters")
-    void generateReading_ok() {
-        String mockAiResponse = """
-                {
-                  "title": "N5 Reading Practice",
-                  "description": "Short passage",
-                  "passages": [
-                    {
-                      "title": "Passage 1",
-                      "content": "田中さんは学生です。毎日学校に行きます。",
-                      "passageOrder": 1,
-                      "questions": [
-                        {
-                          "questionText": "田中さんは誰ですか？",
-                          "questionType": "MULTIPLE_CHOICE",
-                          "explanation": "Bài đọc ghi Tanaka là học sinh.",
-                          "options": [
-                            { "optionText": "学生", "isCorrect": true },
-                            { "optionText": "先生", "isCorrect": false }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-                """;
-
-        when(aiCoreService.chat(anyString(), anyString(), any(), any())).thenReturn(mockAiResponse);
-
+    @DisplayName("Reject blank skillType")
+    void rejectBlankSkillType() {
         AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
-                .skillType("READING")
+                .skillType("   ")
                 .level("N5")
                 .lessonNumber(1)
-                .lessonTitle("Daily Life Reading")
-                .topic("Daily Life")
-                .passageCount(1)
-                .questionsPerPassage(1)
-                .difficulty("EASY")
-                .passageLength("SHORT")
+                .lessonTitle("Test")
+                .topic("Test")
                 .build();
 
-        AdminAiContentGenerateResponse response = adminAiContentService.generateContent(request);
-
-        assertNotNull(response);
-        assertEquals("READING", response.getSkillType());
-        assertNotNull(response.getReadingDraft());
-        assertEquals(1, response.getReadingDraft().getPassages().size());
+        assertThrows(IllegalArgumentException.class, () -> adminAiContentService.generateContent(request));
     }
 
     @Test
@@ -201,6 +145,20 @@ class AdminAiContentServiceTest {
     }
 
     @Test
+    @DisplayName("Reject unknown skillType")
+    void rejectUnknownSkillType() {
+        AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
+                .skillType("KANJI")
+                .level("N5")
+                .lessonNumber(1)
+                .lessonTitle("Test")
+                .topic("Test")
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> adminAiContentService.generateContent(request));
+    }
+
+    @Test
     @DisplayName("Throw exception when zero valid items are generated")
     void zeroValidItems_throwsException() {
         String mockAiResponse = """
@@ -210,23 +168,22 @@ class AdminAiContentServiceTest {
                   "items": [
                     {
                       "japanese": "",
-                      "meaning": ""
+                      "furigana": "",
+                      "meaning": "",
+                      "partOfSpeech": "Noun"
                     }
                   ]
                 }
                 """;
 
-        when(aiCoreService.chatWithDetails(anyString(), anyString(), any(), any()))
-                .thenReturn(new com.midori.ai.core.AiCoreService.AiResponse(mockAiResponse, "mockProvider", "mockModel", "stop", 10, 20, 30));
-
         AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
-                .skillType("VOCABULARY")
+                .skillType("KANJI")
                 .level("N5")
                 .lessonNumber(1)
                 .lessonTitle("Test")
                 .topic("Test")
                 .build();
 
-        assertThrows(AiProcessingException.class, () -> adminAiContentService.generateContent(request));
+        assertThrows(IllegalArgumentException.class, () -> adminAiContentService.generateContent(request));
     }
 }

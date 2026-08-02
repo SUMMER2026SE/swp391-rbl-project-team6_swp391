@@ -3,6 +3,7 @@ package com.midori.controller;
 import com.midori.common.ApiResponse;
 import com.midori.entity.QuestionBankLesson;
 import com.midori.exception.ResourceNotFoundException;
+import com.midori.repository.AdminQuestionBankLessonRepository;
 import com.midori.service.QuestionBankLessonService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -28,20 +30,33 @@ import java.util.List;
 public class AdminQuestionBankController {
 
     private final QuestionBankLessonService questionBankLessonService;
+    private final AdminQuestionBankLessonRepository adminQuestionBankLessonRepository;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<QuestionBankLesson>>> getLessons(@RequestParam String level) {
-        return ResponseEntity.ok(ApiResponse.success(questionBankLessonService.findLessonsByLevel(level)));
+    public ResponseEntity<ApiResponse<List<AdminLessonSummaryResponse>>> getLessons(@RequestParam String level) {
+        List<AdminLessonSummaryResponse> summaries = adminQuestionBankLessonRepository.findLessonSummariesByLevel(level.toUpperCase())
+                .stream()
+                .map(p -> new AdminLessonSummaryResponse(
+                        p.getId(),
+                        p.getLevel(),
+                        p.getLessonNumber(),
+                        p.getLessonName(),
+                        p.getStatus(),
+                        p.getCreatedAt(),
+                        p.getQuestionCount() != null ? p.getQuestionCount() : 0L
+                ))
+                .toList();
+        return ResponseEntity.ok(ApiResponse.success(summaries));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<QuestionBankLesson>> getLesson(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<AdminLessonSummaryResponse>> getLesson(@PathVariable Integer id) {
         QuestionBankLesson lesson = questionBankLessonService.findLessonById(id);
-        return ResponseEntity.ok(ApiResponse.success(lesson));
+        return ResponseEntity.ok(ApiResponse.success(toSummaryResponse(lesson, 0L)));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<QuestionBankLesson>> createLesson(@Valid @RequestBody CreateLessonPayload payload) {
+    public ResponseEntity<ApiResponse<AdminLessonSummaryResponse>> createLesson(@Valid @RequestBody CreateLessonPayload payload) {
         QuestionBankLesson lesson = QuestionBankLesson.builder()
                 .level(payload.level() == null ? null : payload.level().toUpperCase())
                 .lessonNumber(payload.lessonNumber())
@@ -49,11 +64,11 @@ public class AdminQuestionBankController {
                 .status(payload.status() == null ? "ACTIVE" : payload.status().toUpperCase())
                 .build();
         QuestionBankLesson created = questionBankLessonService.createLesson(lesson);
-        return ResponseEntity.ok(ApiResponse.success("Lesson created successfully", created));
+        return ResponseEntity.ok(ApiResponse.success("Lesson created successfully", toSummaryResponse(created, 0L)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<QuestionBankLesson>> updateLesson(
+    public ResponseEntity<ApiResponse<AdminLessonSummaryResponse>> updateLesson(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateLessonPayload payload) {
         QuestionBankLesson updated = questionBankLessonService.updateLesson(
@@ -62,7 +77,7 @@ public class AdminQuestionBankController {
                 payload.lessonNumber(),
                 payload.status()
         );
-        return ResponseEntity.ok(ApiResponse.success("Lesson updated successfully", updated));
+        return ResponseEntity.ok(ApiResponse.success("Lesson updated successfully", toSummaryResponse(updated, 0L)));
     }
 
     @DeleteMapping("/{id}")
@@ -73,6 +88,28 @@ public class AdminQuestionBankController {
         questionBankLessonService.deleteLesson(id);
         return ResponseEntity.ok(ApiResponse.success("Lesson deleted successfully", null));
     }
+
+    private AdminLessonSummaryResponse toSummaryResponse(QuestionBankLesson lesson, Long questionCount) {
+        return new AdminLessonSummaryResponse(
+                lesson.getId(),
+                lesson.getLevel(),
+                lesson.getLessonNumber(),
+                lesson.getLessonName(),
+                lesson.getStatus(),
+                lesson.getCreatedAt(),
+                questionCount
+        );
+    }
+
+    public record AdminLessonSummaryResponse(
+            Integer id,
+            String level,
+            Integer lessonNumber,
+            String lessonName,
+            String status,
+            Instant createdAt,
+            Long questionCount
+    ) {}
 
     public record CreateLessonPayload(
             String level,

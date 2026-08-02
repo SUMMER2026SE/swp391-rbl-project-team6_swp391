@@ -34,13 +34,13 @@ import java.util.Map;
 
 /**
  * Unified OpenRouter Provider implementing AiProvider interface.
- * 
+ *
  * Supports:
  * - Chat/Conversation
  * - Question Generation
  * - Exam Parsing (PDF)
  * - Multiple models with automatic fallback
- * 
+ *
  * Migrated from OpenRouterAiProvider with improved error handling.
  */
 @Slf4j
@@ -57,7 +57,7 @@ public class OpenRouterProvider implements AiProvider {
     private static final int DEFAULT_QUIZ_MAX_TOKENS = 4096;
 
     private static final double DEFAULT_STUDY_TEMPERATURE = 0.25;
-    private static final double DEFAULT_QUIZ_TEMPERATURE = 0.25;
+    private static final double DEFAULT_QUIZ_TEMPERATURE = 0.1;
 
     /**
      * Models that have been observed to be consistently broken.
@@ -80,6 +80,7 @@ public class OpenRouterProvider implements AiProvider {
 
     private final List<String> chatModels;
     private final List<String> quizModels;
+    private final String[] allConfiguredKeys;
 
     private final int chatTimeoutMs;
     private final int quizTimeoutMs;
@@ -93,6 +94,17 @@ public class OpenRouterProvider implements AiProvider {
     private final ThreadLocal<Integer> lastTotalTokens = new ThreadLocal<>();
     private final ThreadLocal<Boolean> benchmarkObservationEnabled = new ThreadLocal<>();
     private final ThreadLocal<ChatObservation> lastChatObservation = new ThreadLocal<>();
+    private final java.net.http.HttpClient jdkHttpClient = java.net.http.HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(10)).build();
+
+    @Override
+    public int getLastKeyIndex() {
+        return keyManager.getCurrentKeyIndex();
+    }
+
+    @Override
+    public String getLastKeyId() {
+        return OpenRouterKeyManager.mask(keyManager.getCurrentKey());
+    }
 
     /**
      * Internal chat-call observation used by the benchmark test bridge. This is
@@ -209,6 +221,7 @@ public class OpenRouterProvider implements AiProvider {
         AiConfigProperties.OpenRouterConfig cfg = config.getOpenrouter();
 
         this.keyManager = new OpenRouterKeyManager(cfg.getApiKeysArray());
+        this.allConfiguredKeys = cfg.getApiKeysArray();
         this.referer = cfg.getReferer() != null ? cfg.getReferer() : "http://localhost:8081";
         this.appTitle = cfg.getAppTitle() != null ? cfg.getAppTitle() : "MIDORI AI Sensei";
 
@@ -246,6 +259,34 @@ public class OpenRouterProvider implements AiProvider {
         int remaining = keyManager.getRemainingKeyCount();
         String model = chatModels.isEmpty() ? "unknown" : chatModels.get(0);
         return String.format("OpenRouter %s [%d/%d keys active]", model, remaining, total);
+    }
+
+    @Override
+    public boolean hasAvailableRoute(AiTaskType taskType) {
+        if (!isConfigured()) return false;
+        List<String> models = com.midori.ai.core.AiTimeoutPolicy.isQuestionGenerationTask(taskType) ? quizModels : chatModels;
+        if (models == null || models.isEmpty()) return false;
+        if (allConfiguredKeys == null || allConfiguredKeys.length == 0) return false;
+
+        for (String model : models) {
+            if (com.midori.ai.core.AiProviderStateManager.isModelInCooldown("OPENROUTER", model)) {
+                continue;
+            }
+            for (int ki = 0; ki < allConfiguredKeys.length; ki++) {
+                String key = allConfiguredKeys[ki];
+                String masked = OpenRouterKeyManager.mask(key);
+                if (com.midori.ai.core.AiProviderStateManager.isKeyInCooldown("OPENROUTER", masked)) {
+                    continue;
+                }
+                com.midori.ai.core.AiCoreService.RouteMetadata route =
+                        new com.midori.ai.core.AiCoreService.RouteMetadata("OPENROUTER", model, ki, masked);
+                if (com.midori.ai.core.AiCoreService.isRouteFailedInRequest(route)) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -315,23 +356,45 @@ public class OpenRouterProvider implements AiProvider {
 
         for (int modelIdx = 0; modelIdx < chatModels.size(); modelIdx++) {
             String model = chatModels.get(modelIdx);
+            if (com.midori.ai.core.AiProviderStateManager.isModelInCooldown("OPENROUTER", model)) {
+                continue;
+            }
             int modelAttempt = modelIdx + 1;
-
             int keyAttempt = 0;
             while (keyAttempt < keyManager.getRemainingKeyCount()) {
-                String apiKey = keyManager.getCurrentKey();
+                com.midori.ai.core.AiCoreService.checkTimeout();
+                String apiKey = getUnusedApiKey();
+                if (apiKey == null) {
+                    throw new com.midori.exception.AiException.InvalidApiKeyException("All OpenRouter keys are excluded.");
+                }
                 int currentKeyIdx = keyManager.getCurrentKeyIndex();
                 int activeKeys = keyManager.getRemainingKeyCount();
+                String keyId = "OPENROUTER:" + currentKeyIdx;
+                com.midori.ai.core.AiCoreService.markKeyAttempted(keyId);
                 String masked = OpenRouterKeyManager.mask(apiKey);
+                com.midori.ai.core.AiCoreService.RouteMetadata route =
+                        new com.midori.ai.core.AiCoreService.RouteMetadata("OPENROUTER", model, currentKeyIdx, masked);
+
+                if (com.midori.ai.core.AiCoreService.isRouteFailedInRequest(route)) {
+                    log.info("[OpenRouter] Skipping route OPENROUTER:{}:{} - already failed in this request", model, currentKeyIdx);
+                    String next = keyManager.getNextKey();
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                }
+
+                com.midori.ai.core.AiCoreService.setCurrentExecutingModel(model);
                 long start = System.currentTimeMillis();
 
                 try {
+                    long remainingMs = com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(chatTimeoutMs, taskType);
                     ParsedChatResponse response = callChatObservedWithTaskType(
-                            model, apiKey, systemPrompt, userMessage, conversationHistory,
-                            chatMaxTokens, DEFAULT_STUDY_TEMPERATURE, createFactory(chatTimeoutMs), taskType);
+                             model, apiKey, systemPrompt, userMessage, conversationHistory,
+                             chatMaxTokens, DEFAULT_STUDY_TEMPERATURE, createFactory((int) remainingMs), taskType);
                     long duration = System.currentTimeMillis() - start;
                     log.info("[OpenRouter] model={} key={}/{} durationMs={} status=OK",
                             model, currentKeyIdx + 1, activeKeys, duration);
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "200", "success", duration);
                     lastModelUsed = model;
                     observe(new ChatObservation(
                             "OPENROUTER", requestedModel, response.actualResolvedModel(),
@@ -349,6 +412,7 @@ public class OpenRouterProvider implements AiProvider {
                     log.warn("[OpenRouter] model={} key={} status=AUTH — excluding key",
                             model, masked);
                     keyManager.excludeKey(apiKey);
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "AUTH", "exclude key", duration);
                     lastError = e;
                     if (keyManager.getRemainingKeyCount() == 0) break;
                     keyAttempt++;
@@ -358,6 +422,7 @@ public class OpenRouterProvider implements AiProvider {
                     long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} durationMs={} status=RETRY — rotating key: {}",
                             model, masked, duration, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
                     String next = keyManager.getNextKey();
                     lastError = e;
                     if (next == null) break;
@@ -368,6 +433,7 @@ public class OpenRouterProvider implements AiProvider {
                     long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} status=NON_RETRYABLE — trying next model: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "404", "model fallback", duration);
                     lastError = e;
                     break; // break key loop, try next model
 
@@ -377,16 +443,54 @@ public class OpenRouterProvider implements AiProvider {
                     lastRawHttpResponseBase64 = e.rawHttpResponseBase64;
                     log.warn("[OpenRouter] model={} key={} durationMs={} status=RETRY: {}",
                             model, masked, duration, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
+                    if (e.getCause() instanceof com.fasterxml.jackson.core.JsonProcessingException || e.getCause() instanceof java.nio.charset.CharacterCodingException) {
+                        com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.MALFORMED_RESPONSE);
+                    }
                     String next = keyManager.getNextKey();
                     lastError = e;
                     if (next == null) break;
                     keyAttempt++;
                     continue;
 
+                } catch (com.midori.exception.AiException.QuotaExhaustedException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] Quota/rate-limit error: {}. Rotating key.", e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "429", "rotate key", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.QUOTA);
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+
+                } catch (com.midori.exception.AiException.RateLimitedException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] Rate-limit error: {}. Rotating key.", e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "429", "rotate key", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.RATE_LIMIT);
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+
+                } catch (com.midori.exception.AiException.ProviderTimeoutException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "TIMEOUT", "provider timeout", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.TIMEOUT);
+                    throw e;
+
+                } catch (com.midori.exception.AiException.ProviderUnavailableException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "NETWORK", "provider fallback", duration);
+                    throw e;
+
                 } catch (RuntimeException e) {
                     long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} durationMs={} status=RETRY: {}",
                             model, masked, duration, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
                     String next = keyManager.getNextKey();
                     lastError = e;
                     if (next == null) break;
@@ -467,57 +571,123 @@ public class OpenRouterProvider implements AiProvider {
         Throwable lastError = null;
         for (int modelIdx = 0; modelIdx < quizModels.size(); modelIdx++) {
             String model = quizModels.get(modelIdx);
+            if (com.midori.ai.core.AiProviderStateManager.isModelInCooldown("OPENROUTER", model)) {
+                continue;
+            }
             int keyAttempt = 0;
             while (keyAttempt < keyManager.getRemainingKeyCount()) {
-                String apiKey = keyManager.getCurrentKey();
-                String masked = OpenRouterKeyManager.mask(apiKey);
+                com.midori.ai.core.AiCoreService.checkTimeout();
+                String apiKey = getUnusedApiKey();
+                if (apiKey == null) {
+                    throw new com.midori.exception.AiException.InvalidApiKeyException("All OpenRouter keys are excluded.");
+                }
                 int currentKeyIdx = keyManager.getCurrentKeyIndex();
                 int activeKeys = keyManager.getRemainingKeyCount();
+                String keyId = "OPENROUTER:" + currentKeyIdx;
+                com.midori.ai.core.AiCoreService.markKeyAttempted(keyId);
+                String masked = OpenRouterKeyManager.mask(apiKey);
+                com.midori.ai.core.AiCoreService.RouteMetadata route =
+                        new com.midori.ai.core.AiCoreService.RouteMetadata("OPENROUTER", model, currentKeyIdx, masked);
+
+                if (com.midori.ai.core.AiCoreService.isRouteFailedInRequest(route)) {
+                    log.info("[OpenRouter] Skipping route OPENROUTER:{}:{} - already failed in this request", model, currentKeyIdx);
+                    String next = keyManager.getNextKey();
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                }
+
+                com.midori.ai.core.AiCoreService.setCurrentExecutingModel(model);
                 long start = System.currentTimeMillis();
                 try {
-                    String response = callGenerateQuestions(model, apiKey, prompt, quizMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
-                            createFactory(quizTimeoutMs));
+                    long remainingMs = com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(quizTimeoutMs, taskType);
+                    int maxTokens = "TRUE_FALSE".equalsIgnoreCase(questionType) ? 1500 : quizMaxTokens;
+                    String response = callGenerateQuestions(model, apiKey, prompt, maxTokens, DEFAULT_QUIZ_TEMPERATURE,
+                            createFactory((int) remainingMs), taskType);
                     String cleaned = cleanJsonResponse(response);
                     lastModelUsed = model;
                     log.info("[OpenRouter] model={} key={}/{} kind=quiz status=OK", model, currentKeyIdx + 1, activeKeys);
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "200", "success", System.currentTimeMillis() - start);
                     return cleaned;
                 } catch (AuthException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz status=AUTH — excluding key: {}",
                             model, masked, e.getMessage());
                     keyManager.excludeKey(apiKey);
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "AUTH", "exclude key", duration);
                     lastError = e;
                     if (keyManager.getRemainingKeyCount() == 0) break;
                     keyAttempt++;
                     continue;
                 } catch (RetryableException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz status=RETRY — rotating key: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
                     String next = keyManager.getNextKey();
                     lastError = e;
                     if (next == null) break;
                     keyAttempt++;
                     continue;
                 } catch (InvalidJsonException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz status=INVALID_JSON — trying next model: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "INVALID_JSON", "model fallback", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.MALFORMED_RESPONSE);
                     lastError = e;
                     break;
                 } catch (NonRetryableException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz status=NON_RETRYABLE — trying next model: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "404", "model fallback", duration);
                     lastError = e;
                     break;
+                } catch (com.midori.exception.AiException.QuotaExhaustedException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] Quota error: {}. Rotating key.", e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "429", "rotate key", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.QUOTA);
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (com.midori.exception.AiException.RateLimitedException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] Rate-limit error: {}. Rotating key.", e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "429", "rotate key", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.RATE_LIMIT);
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (com.midori.exception.AiException.ProviderTimeoutException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "TIMEOUT", "provider timeout", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.TIMEOUT);
+                    throw e;
+                } catch (com.midori.exception.AiException.ProviderUnavailableException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "NETWORK", "provider fallback", duration);
+                    throw e;
                 } catch (RuntimeException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz status=RETRY — rotating key: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
                     String next = keyManager.getNextKey();
                     lastError = e;
                     if (next == null) break;
                     keyAttempt++;
                     continue;
                 } catch (Exception e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz status=UNEXPECTED — trying next model: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "ERROR", "model fallback", duration);
                     lastError = e;
                     break;
                 }
@@ -525,8 +695,8 @@ public class OpenRouterProvider implements AiProvider {
         }
 
         log.error("[OpenRouter] All quiz models and keys exhausted. lastError={}", lastError != null ? lastError.getMessage() : "null");
-        String msg = lastError != null ? lastError.getMessage() : "Không rõ";
-        if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout")) {
+        String msg = lastError != null ? lastError.getMessage() : "rate limit / cooldown";
+        if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout") || msg.toLowerCase().contains("cooldown")) {
             throw new TemporaryFailureException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
         }
         if (msg.toLowerCase().contains("invalid") || msg.toLowerCase().contains("json")) {
@@ -551,57 +721,123 @@ public class OpenRouterProvider implements AiProvider {
         Throwable lastError = null;
         for (int modelIdx = 0; modelIdx < quizModels.size(); modelIdx++) {
             String model = quizModels.get(modelIdx);
+            if (com.midori.ai.core.AiProviderStateManager.isModelInCooldown("OPENROUTER", model)) {
+                continue;
+            }
             int keyAttempt = 0;
             while (keyAttempt < keyManager.getRemainingKeyCount()) {
-                String apiKey = keyManager.getCurrentKey();
-                String masked = OpenRouterKeyManager.mask(apiKey);
+                com.midori.ai.core.AiCoreService.checkTimeout();
+                String apiKey = getUnusedApiKey();
+                if (apiKey == null) {
+                    throw new com.midori.exception.AiException.InvalidApiKeyException("All OpenRouter keys are excluded.");
+                }
                 int currentKeyIdx = keyManager.getCurrentKeyIndex();
                 int activeKeys = keyManager.getRemainingKeyCount();
+                String keyId = "OPENROUTER:" + currentKeyIdx;
+                com.midori.ai.core.AiCoreService.markKeyAttempted(keyId);
+                String masked = OpenRouterKeyManager.mask(apiKey);
+                com.midori.ai.core.AiCoreService.RouteMetadata route =
+                        new com.midori.ai.core.AiCoreService.RouteMetadata("OPENROUTER", model, currentKeyIdx, masked);
+
+                if (com.midori.ai.core.AiCoreService.isRouteFailedInRequest(route)) {
+                    log.info("[OpenRouter] Skipping route OPENROUTER:{}:{} - already failed in this request", model, currentKeyIdx);
+                    String next = keyManager.getNextKey();
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                }
+
+                com.midori.ai.core.AiCoreService.setCurrentExecutingModel(model);
                 long start = System.currentTimeMillis();
                 try {
-                    String response = callGenerateQuestions(model, apiKey, prompt, quizMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
-                            createFactory(quizTimeoutMs));
+                    long remainingMs = com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(quizTimeoutMs, taskType);
+                    int maxTokens = "TRUE_FALSE".equalsIgnoreCase(questionType) ? 1500 : quizMaxTokens;
+                    String response = callGenerateQuestions(model, apiKey, prompt, maxTokens, DEFAULT_QUIZ_TEMPERATURE,
+                            createFactory((int) remainingMs), taskType);
                     String cleaned = cleanJsonResponse(response);
                     lastModelUsed = model;
                     log.info("[OpenRouter] model={} key={}/{} kind=quiz-dist status=OK", model, currentKeyIdx + 1, activeKeys);
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "200", "success", System.currentTimeMillis() - start);
                     return cleaned;
                 } catch (AuthException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=AUTH — excluding key: {}",
                             model, masked, e.getMessage());
                     keyManager.excludeKey(apiKey);
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "AUTH", "exclude key", duration);
                     lastError = e;
                     if (keyManager.getRemainingKeyCount() == 0) break;
                     keyAttempt++;
                     continue;
                 } catch (RetryableException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=RETRY — rotating key: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
                     String next = keyManager.getNextKey();
                     lastError = e;
                     if (next == null) break;
                     keyAttempt++;
                     continue;
                 } catch (InvalidJsonException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=INVALID_JSON — trying next model: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "INVALID_JSON", "model fallback", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.MALFORMED_RESPONSE);
                     lastError = e;
                     break;
                 } catch (NonRetryableException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=NON_RETRYABLE — trying next model: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "404", "model fallback", duration);
                     lastError = e;
                     break;
+                } catch (com.midori.exception.AiException.QuotaExhaustedException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] Quota error: {}. Rotating key.", e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "429", "rotate key", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.QUOTA);
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (com.midori.exception.AiException.RateLimitedException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] Rate-limit error: {}. Rotating key.", e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "429", "rotate key", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.RATE_LIMIT);
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (com.midori.exception.AiException.ProviderTimeoutException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "TIMEOUT", "provider timeout", duration);
+                    com.midori.ai.core.AiCoreService.recordRequestFailure(route, com.midori.ai.core.AiFailureKind.TIMEOUT);
+                    throw e;
+                } catch (com.midori.exception.AiException.ProviderUnavailableException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "NETWORK", "provider fallback", duration);
+                    throw e;
                 } catch (RuntimeException e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=RETRY — rotating key: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
                     String next = keyManager.getNextKey();
                     lastError = e;
                     if (next == null) break;
                     keyAttempt++;
                     continue;
                 } catch (Exception e) {
+                    long duration = System.currentTimeMillis() - start;
                     log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=UNEXPECTED — trying next model: {}",
                             model, masked, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "ERROR", "model fallback", duration);
                     lastError = e;
                     break;
                 }
@@ -609,8 +845,8 @@ public class OpenRouterProvider implements AiProvider {
         }
 
         log.error("[OpenRouter] All quiz-dist models and keys exhausted. lastError={}", lastError != null ? lastError.getMessage() : "null");
-        String msg = lastError != null ? lastError.getMessage() : "Không rõ";
-        if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout")) {
+        String msg = lastError != null ? lastError.getMessage() : "rate limit / cooldown";
+        if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout") || msg.toLowerCase().contains("cooldown")) {
             throw new TemporaryFailureException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
         }
         if (msg.toLowerCase().contains("invalid") || msg.toLowerCase().contains("json")) {
@@ -634,40 +870,76 @@ public class OpenRouterProvider implements AiProvider {
         // Use chat models for exam parsing with key rotation
         for (int modelIdx = 0; modelIdx < chatModels.size(); modelIdx++) {
             String model = chatModels.get(modelIdx);
+            if (com.midori.ai.core.AiProviderStateManager.isModelInCooldown("OPENROUTER", model)) {
+                continue;
+            }
             int keyAttempt = 0;
             while (keyAttempt < keyManager.getRemainingKeyCount()) {
-                String apiKey = keyManager.getCurrentKey();
+                com.midori.ai.core.AiCoreService.checkTimeout();
+                String apiKey = getUnusedApiKey();
+                if (apiKey == null) {
+                    throw new com.midori.exception.AiException.InvalidApiKeyException("All OpenRouter keys are excluded.");
+                }
                 int currentKeyIdx = keyManager.getCurrentKeyIndex();
                 int activeKeys = keyManager.getRemainingKeyCount();
+                String keyId = "OPENROUTER:" + currentKeyIdx;
+                com.midori.ai.core.AiCoreService.markKeyAttempted(keyId);
+                String masked = OpenRouterKeyManager.mask(apiKey);
                 long startMs = System.currentTimeMillis();
                 try {
+                    long remainingMs = com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(quizTimeoutMs, com.midori.ai.AiTaskType.LONG_DOCUMENT_ANALYSIS);
                     String response = callChat(model, apiKey, null, prompt, null, chatMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
-                            createFactory(quizTimeoutMs));
+                            createFactory((int) remainingMs));
                     long latencyMs = System.currentTimeMillis() - startMs;
                     log.info("[OpenRouter] model={} key={}/{} kind=exam status=OK ({}ms)", model, currentKeyIdx + 1, activeKeys, latencyMs);
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "200", "success", latencyMs);
                     lastModelUsed = model;
                     String cleaned = cleanJsonResponse(response);
                     return parseExamJson(cleaned);
                 } catch (AuthException e) {
+                    long duration = System.currentTimeMillis() - startMs;
                     log.warn("[OpenRouter] model={} kind=exam status=AUTH — excluding key: {}", model, e.getMessage());
                     keyManager.excludeKey(apiKey);
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "AUTH", "exclude key", duration);
                     if (keyManager.getRemainingKeyCount() == 0) break;
                     keyAttempt++;
                     continue;
                 } catch (RetryableException | ObservedChatException e) {
+                    long duration = System.currentTimeMillis() - startMs;
                     log.warn("[OpenRouter] model={} kind=exam status=RETRY — rotating key: {}", model, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
                     String next = keyManager.getNextKey();
                     if (next == null) break;
                     keyAttempt++;
                     continue;
+                } catch (com.midori.exception.AiException.QuotaExhaustedException | com.midori.exception.AiException.RateLimitedException e) {
+                    long duration = System.currentTimeMillis() - startMs;
+                    log.warn("[OpenRouter] Quota/rate-limit error: {}. Rotating key.", e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "429", "rotate key", duration);
+                    String next = keyManager.getNextKey();
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (com.midori.exception.AiException.ProviderTimeoutException e) {
+                    long duration = System.currentTimeMillis() - startMs;
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "TIMEOUT", "provider timeout", duration);
+                    throw e;
+                } catch (com.midori.exception.AiException.ProviderUnavailableException e) {
+                    long duration = System.currentTimeMillis() - startMs;
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "NETWORK", "provider fallback", duration);
+                    throw e;
                 } catch (RuntimeException e) {
+                    long duration = System.currentTimeMillis() - startMs;
                     log.warn("[OpenRouter] model={} kind=exam status=RETRY — rotating key: {}", model, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "RETRY", "rotate key", duration);
                     String next = keyManager.getNextKey();
                     if (next == null) break;
                     keyAttempt++;
                     continue;
                 } catch (Exception e) {
+                    long duration = System.currentTimeMillis() - startMs;
                     log.warn("[OpenRouter] model={} kind=exam status=UNEXPECTED — trying next model: {}", model, e.getMessage());
+                    com.midori.ai.core.AiCoreService.recordAttemptTrace("OPENROUTER", model, masked, "ERROR", "model fallback", duration);
                     break;
                 }
             }
@@ -680,11 +952,26 @@ public class OpenRouterProvider implements AiProvider {
     // Helper Methods
     // ============================================================
 
-    private SimpleClientHttpRequestFactory createFactory(int readTimeoutMs) {
+    protected SimpleClientHttpRequestFactory createFactory(int readTimeoutMs) {
         SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
         f.setConnectTimeout(Duration.ofMillis(DEFAULT_CONNECT_TIMEOUT_MS));
         f.setReadTimeout(Duration.ofMillis(readTimeoutMs));
         return f;
+    }
+
+    private String getUnusedApiKey() {
+        int totalKeys = keyManager.getTotalKeyCount();
+        for (int i = 0; i < totalKeys; i++) {
+            String key = keyManager.getCurrentKey();
+            if (key == null) break;
+            int idx = keyManager.getCurrentKeyIndex();
+            String keyId = "OPENROUTER:" + idx;
+            if (!com.midori.ai.core.AiCoreService.isKeyAttempted(keyId)) {
+                return key;
+            }
+            keyManager.getNextKey();
+        }
+        return keyManager.getCurrentKey();
     }
 
     private List<String> sanitizeModels(List<String> input) {
@@ -789,7 +1076,7 @@ public class OpenRouterProvider implements AiProvider {
         requestBody.put("top_p", 0.8);
         requestBody.put("frequency_penalty", 0.3);
 
-        if (taskType == AiTaskType.ADMIN_CONTENT_LIBRARY_GENERATION) {
+        if (taskType == AiTaskType.ADMIN_CONTENT_LIBRARY_GENERATION || taskType == AiTaskType.COMPLEX_REASONING) {
             requestBody.put("response_format", Map.of("type", "json_object"));
         }
 
@@ -801,15 +1088,24 @@ public class OpenRouterProvider implements AiProvider {
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
-        RestTemplate rt = new RestTemplate(factory);
         try {
-            ResponseEntity<byte[]> response = rt.postForEntity(OPENROUTER_API_URL, request, byte[].class);
+            ResponseEntity<byte[]> response;
+            if (factory != null && factory.getClass() != SimpleClientHttpRequestFactory.class) {
+                RestTemplate rt = new RestTemplate(factory);
+                response = rt.postForEntity(OPENROUTER_API_URL, request, byte[].class);
+            } else {
+                int timeout = (int) com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(chatTimeoutMs, taskType);
+                response = executeWithAbsoluteTimeout(OPENROUTER_API_URL, request, timeout > 0 ? timeout : chatTimeoutMs, model);
+            }
             byte[] rawBytes = response.getBody();
             String rawBase64 = rawBytes == null ? null : Base64.getEncoder().encodeToString(rawBytes);
             String rawText;
             try {
                 rawText = decodeUtf8Strict(rawBytes);
             } catch (CharacterCodingException e) {
+                if (chatTimeoutMs > 60000) {
+                    com.midori.ai.core.AiProviderStateManager.recordModelCooldown("OPENROUTER", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, "Malformed UTF-8 response after long latency");
+                }
                 throw new ObservedChatException(
                         "Malformed UTF-8 in OpenRouter HTTP response for model " + model,
                         null,
@@ -819,13 +1115,81 @@ public class OpenRouterProvider implements AiProvider {
             try {
                 return extractChatResponse(rawText, rawBase64, model);
             } catch (RetryableException e) {
+                if (chatTimeoutMs > 60000) {
+                    com.midori.ai.core.AiProviderStateManager.recordModelCooldown("OPENROUTER", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, "Invalid JSON after long latency");
+                }
                 throw new ObservedChatException(e.getMessage(), rawText, rawBase64, e);
             }
         } catch (HttpClientErrorException e) {
             handleHttpError(e, model);
             throw new RetryableException("HTTP error: " + e.getStatusCode());
         } catch (ResourceAccessException e) {
-            throw new RetryableException("timeout");
+            String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (msg.contains("timeout")) {
+                com.midori.ai.core.AiProviderStateManager.recordModelCooldown("OPENROUTER", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, "Provider timeout");
+                throw new com.midori.exception.AiException.ProviderTimeoutException("OpenRouter request timed out: " + e.getMessage(), e);
+            }
+            throw new com.midori.exception.AiException.ProviderUnavailableException("OpenRouter network error: " + e.getMessage(), e);
+        }
+    }
+
+    private ResponseEntity<byte[]> executeWithAbsoluteTimeout(String url, HttpEntity<Map<String, Object>> requestEntity, int timeoutMs, String model) throws ResourceAccessException, HttpClientErrorException {
+        try {
+            String jsonBody = objectMapper.writeValueAsString(requestEntity.getBody());
+            java.net.http.HttpRequest.Builder builder = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .timeout(java.time.Duration.ofMillis(timeoutMs))
+                    .header("Content-Type", "application/json");
+
+            if (requestEntity.getHeaders() != null) {
+                requestEntity.getHeaders().forEach((headerName, headerValues) -> {
+                    if (!"Content-Type".equalsIgnoreCase(headerName) && !"Content-Length".equalsIgnoreCase(headerName)) {
+                        for (String val : headerValues) {
+                            builder.header(headerName, val);
+                        }
+                    }
+                });
+            }
+
+            java.net.http.HttpRequest httpRequest = builder.POST(java.net.http.HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8)).build();
+
+            java.util.concurrent.CompletableFuture<java.net.http.HttpResponse<byte[]>> future =
+                    jdkHttpClient.sendAsync(httpRequest, java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+
+            try {
+                java.net.http.HttpResponse<byte[]> httpResp = future.get(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+                int statusCode = httpResp.statusCode();
+                if (statusCode >= 400 && statusCode < 500) {
+                    throw HttpClientErrorException.create(
+                            org.springframework.http.HttpStatus.valueOf(statusCode),
+                            "HTTP " + statusCode,
+                            org.springframework.http.HttpHeaders.EMPTY,
+                            httpResp.body(),
+                            StandardCharsets.UTF_8
+                    );
+                } else if (statusCode >= 500) {
+                    throw new ResourceAccessException("OpenRouter 5xx error: HTTP " + statusCode);
+                }
+                return new ResponseEntity<>(httpResp.body(), org.springframework.http.HttpStatus.valueOf(statusCode));
+            } catch (java.util.concurrent.TimeoutException te) {
+                future.cancel(true);
+                com.midori.ai.core.AiProviderStateManager.recordModelCooldown("OPENROUTER", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, "Absolute provider timeout");
+                throw new com.midori.exception.AiException.ProviderTimeoutException("OpenRouter absolute request timeout expired after " + timeoutMs + "ms", te);
+            } catch (java.util.concurrent.ExecutionException ee) {
+                if (ee.getCause() instanceof java.net.http.HttpTimeoutException || ee.getCause() instanceof java.util.concurrent.TimeoutException) {
+                    future.cancel(true);
+                    com.midori.ai.core.AiProviderStateManager.recordModelCooldown("OPENROUTER", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, "Absolute provider timeout");
+                    throw new com.midori.exception.AiException.ProviderTimeoutException("OpenRouter HTTP timeout: " + ee.getCause().getMessage(), ee);
+                }
+                if (ee.getCause() instanceof HttpClientErrorException hce) {
+                    throw hce;
+                }
+                throw new ResourceAccessException("OpenRouter I/O error: " + ee.getMessage(), new java.io.IOException(ee));
+            }
+        } catch (HttpClientErrorException | ResourceAccessException | com.midori.exception.AiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResourceAccessException("OpenRouter request execution failure: " + e.getMessage(), new java.io.IOException(e));
         }
     }
 
@@ -840,7 +1204,7 @@ public class OpenRouterProvider implements AiProvider {
 
     private String callGenerateQuestions(String model, String apiKey, String prompt,
                                         int maxTokens, double temperature,
-                                        SimpleClientHttpRequestFactory factory) {
+                                        SimpleClientHttpRequestFactory factory, com.midori.ai.AiTaskType taskType) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
         requestBody.put("messages", List.of(Map.of("role", "user", "content", prompt)));
@@ -855,45 +1219,70 @@ public class OpenRouterProvider implements AiProvider {
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
-        RestTemplate rt = new RestTemplate(factory);
         try {
-            // Read the response as raw bytes so we can decode it as UTF-8 ourselves.
-            // OpenRouter's Content-Type is `application/json` with no `charset=utf-8`,
-            // so Spring's default StringHttpMessageConverter falls back to ISO-8859-1
-            // and silently mangles Japanese / Vietnamese into mojibake ("T? có ngh?a là gì?"
-            // instead of "Từ có nghĩa là gì?", "???" instead of "こんにちは").
-            // Using byte[] + StandardCharsets.UTF_8 makes the decoding explicit and
-            // matches the safe approach already used by callChat above.
-            ResponseEntity<byte[]> response = rt.postForEntity(OPENROUTER_API_URL, request, byte[].class);
+            ResponseEntity<byte[]> response;
+            if (factory != null && factory.getClass() != SimpleClientHttpRequestFactory.class) {
+                RestTemplate rt = new RestTemplate(factory);
+                response = rt.postForEntity(OPENROUTER_API_URL, request, byte[].class);
+            } else {
+                int timeout = (int) com.midori.ai.core.AiCoreService.getRemainingTimeoutMs(quizTimeoutMs, taskType);
+                response = executeWithAbsoluteTimeout(OPENROUTER_API_URL, request, timeout > 0 ? timeout : quizTimeoutMs, model);
+            }
             byte[] rawBytes = response.getBody();
             String rawText;
             try {
                 rawText = decodeUtf8Strict(rawBytes);
             } catch (CharacterCodingException e) {
+                if (quizTimeoutMs > 60000) {
+                    com.midori.ai.core.AiProviderStateManager.recordModelCooldown("OPENROUTER", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, "Malformed UTF-8 response after long latency");
+                }
                 throw new RetryableException("Malformed UTF-8 in OpenRouter HTTP response for model " + model);
             }
+            // Check the overall request deadline after receiving the HTTP body.
+            // A slow model may have consumed the remaining budget during the read.
+            com.midori.ai.core.AiCoreService.checkTimeout();
             return extractTextFromResponse(rawText, model);
+
         } catch (HttpClientErrorException e) {
             handleHttpError(e, model);
             throw new RetryableException("HTTP error: " + e.getStatusCode());
         } catch (ResourceAccessException e) {
-            throw new RetryableException("timeout");
+            String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (msg.contains("timeout")) {
+                com.midori.ai.core.AiProviderStateManager.recordModelCooldown("OPENROUTER", model, com.midori.ai.core.AiProviderStateManager.COOLDOWN_2_MINUTES_MS, "Provider timeout");
+                throw new com.midori.exception.AiException.ProviderTimeoutException("OpenRouter request timed out: " + e.getMessage(), e);
+            }
+            throw new com.midori.exception.AiException.ProviderUnavailableException("OpenRouter network error: " + e.getMessage(), e);
         }
     }
 
     private void handleHttpError(HttpClientErrorException e, String model) {
         int code = e.getStatusCode().value();
+        String body = e.getResponseBodyAsString();
+        String bodyLower = body != null ? body.toLowerCase() : "";
+        if (code == 429 || bodyLower.contains("quota") || bodyLower.contains("rate limit") || bodyLower.contains("exhausted")) {
+            long cooldownDuration = com.midori.ai.core.AiProviderStateManager.COOLDOWN_5_MINUTES_MS;
+            String retryAfter = e.getResponseHeaders() != null ? e.getResponseHeaders().getFirst("Retry-After") : null;
+            if (retryAfter != null) {
+                try { cooldownDuration = Long.parseLong(retryAfter) * 1000L; } catch (Exception ignored) {}
+            }
+            if (bodyLower.contains("upstream") || bodyLower.contains("provider rate limit") || bodyLower.contains("shared pool") || bodyLower.contains("model rate limit")) {
+                com.midori.ai.core.AiProviderStateManager.recordModelCooldown("OPENROUTER", model, cooldownDuration, "Model upstream shared-pool rate limit (429)");
+            } else {
+                com.midori.ai.core.AiProviderStateManager.recordKeyCooldown("OPENROUTER", model, keyManager.getCurrentKeyIndex(), OpenRouterKeyManager.mask(keyManager.getCurrentKey()), cooldownDuration, "HTTP 429 Rate Limit");
+            }
+            throw new com.midori.exception.AiException.QuotaExhaustedException("OpenRouter API quota/rate limit exhausted (HTTP " + code + "): " + body, e);
+        }
+        if (code == 503 || code == 502 || code == 504) {
+            throw new com.midori.exception.AiException.ProviderUnavailableException("OpenRouter service is unavailable (HTTP " + code + ")", e);
+        }
         if (code == 401 || code == 403) {
             throw new AuthException("API key không hợp lệ hoặc bị từ chối (HTTP " + code + ").");
         }
         if (code == 404) {
             throw new NonRetryableException("Model " + model + " không tồn tại (HTTP 404).");
         }
-        if (code == 429 || code == 502 || code == 503 || code == 504) {
-            throw new RetryableException("HTTP " + code);
-        }
         if (code == 400) {
-            String body = e.getResponseBodyAsString();
             if (body != null && body.contains("context_length")) {
                 throw new RetryableException("Context too long (HTTP 400)");
             }
@@ -951,7 +1340,7 @@ public class OpenRouterProvider implements AiProvider {
                 String text = message.path("content").asText();
                 if (text != null && !text.isEmpty()) {
                     JsonNode usage = root.path("usage");
-                    
+
                     lastFinishReason.set(textOrNull(choice.path("finish_reason")));
                     if (usage != null && !usage.isMissingNode() && !usage.isNull()) {
                         Long pt = longOrNull(usage.path("prompt_tokens"));
@@ -961,7 +1350,7 @@ public class OpenRouterProvider implements AiProvider {
                         lastCompletionTokens.set(ct != null ? ct.intValue() : null);
                         lastTotalTokens.set(tt != null ? tt.intValue() : null);
                     }
-                    
+
                     return new ParsedChatResponse(
                             text,
                             textOrNull(root.path("model")),

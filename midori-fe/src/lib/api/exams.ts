@@ -175,6 +175,11 @@ export interface AiExamGenerateRequest {
   skills: string[];
   difficulty: string;
   questionCount: number;
+  /** Writing mode (only used when WRITING is the only skill).
+   *  One of: MIXED_WRITING | JA_TO_VI_TRANSLATION | VI_TO_JA_TRANSLATION | SENTENCE_REORDER */
+  writingMode?: string;
+  /** Question type/format to generate. Null means MULTIPLE_CHOICE (backward-compatible). */
+  questionFormat?: string;
 }
 
 export interface AiQuestionDto {

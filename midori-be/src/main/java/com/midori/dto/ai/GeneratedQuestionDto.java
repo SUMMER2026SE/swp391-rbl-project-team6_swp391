@@ -19,4 +19,10 @@ public class GeneratedQuestionDto {
     private String correctAnswer; // Alternative to correctAnswerIndex for JSON compatibility
     private String explanation;
     private String difficulty;
+    private String skill;
+    // Format-specific metadata (serialized as JSON string for compatibility)
+    private TranslationMetadata translationMetadata;
+    private SentenceWritingMetadata sentenceWritingMetadata;
+    private ErrorCorrectionMetadata errorCorrectionMetadata;
+    private MatchingMetadata matchingMetadata;
 }

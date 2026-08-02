@@ -35,11 +35,9 @@ import {
 import { audioService } from "../services/questionBank.audioService";
 import type {
   JLPTLevel,
-  QuestionType,
   Difficulty,
-  ListeningQuestion,
 } from "../services/questionBank.types";
-import { formatDuration, isListeningQuestion } from "../services/questionBank.types";
+import { formatDuration } from "../services/questionBank.types";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
 import {
   parseReadingQuestionText,
@@ -505,9 +503,10 @@ function QuestionBuilderPage() {
           options: [...existing.options],
           correctIndex: existing.correctIndex,
           explanation: existing.explanation || "",
-          audioUrl: isListeningQuestion(existing) ? existing.audio.audioUrl : "",
-          audioFileName: isListeningQuestion(existing) ? existing.audio.audioFileName : "",
-          audioDuration: isListeningQuestion(existing) ? existing.audio.audioDuration : 0,
+          // Audio fields not supported in Question Bank
+          audioUrl: "",
+          audioFileName: "",
+          audioDuration: 0,
         };
         setQuestions([editable]);
         setSelectedQuestionId(existing.id);

@@ -12,7 +12,8 @@ import { AdminFooter } from "@/components/layout/AdminFooter";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { prefetchAdminQuestionBankLessons } from "@/services/questionBankService";
 import { classesApi } from "@/lib/api/classes";
 import {
   Dialog,
@@ -224,7 +225,21 @@ export function DashboardLayout({
   hideFooter?: boolean;
 }) {
   const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    if (role === "admin" && user) {
+      prefetchAdminQuestionBankLessons(queryClient).catch(() => {});
+    }
+  }, [role, user, queryClient]);
+
+  const handleNavPrefetch = useCallback((to: string) => {
+    if (to === "/admin/question-bank" && role === "admin") {
+      prefetchAdminQuestionBankLessons(queryClient).catch(() => {});
+    }
+  }, [role, queryClient]);
+
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const search = useRouterState({ select: (s) => s.location.search }) as any;
@@ -558,6 +573,9 @@ export function DashboardLayout({
         key={item.to}
         to={item.to.startsWith("landing-") ? "/student/dashboard" : item.to}
         preload="intent"
+        onMouseEnter={() => handleNavPrefetch(item.to)}
+        onFocus={() => handleNavPrefetch(item.to)}
+        onPointerDown={() => handleNavPrefetch(item.to)}
         title={isCollapsed ? item.label : undefined}
         onClick={(e) => {
           if (item.to.startsWith("landing-")) {
@@ -696,6 +714,9 @@ export function DashboardLayout({
                       <Link
                         to={item.disabled ? "/" : (item.to.startsWith("landing-") ? "/student/dashboard" : item.to)}
                         title={item.label}
+                        onMouseEnter={() => handleNavPrefetch(item.to)}
+                        onFocus={() => handleNavPrefetch(item.to)}
+                        onPointerDown={() => handleNavPrefetch(item.to)}
                         onClick={
                           item.disabled
                             ? (e: React.MouseEvent<HTMLAnchorElement>) => handleDisabledClick(e, item)
@@ -896,6 +917,9 @@ export function DashboardLayout({
                         key={item.to}
                         to={item.to}
                         preload="intent"
+                        onMouseEnter={() => handleNavPrefetch(item.to)}
+                        onFocus={() => handleNavPrefetch(item.to)}
+                        onPointerDown={() => handleNavPrefetch(item.to)}
                         onClick={() => setOpen(false)}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
                           isActive ? "nav-active" : "nav-item"

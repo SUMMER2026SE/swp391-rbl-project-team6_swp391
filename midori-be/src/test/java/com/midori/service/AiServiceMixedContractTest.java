@@ -212,7 +212,7 @@ class AiServiceMixedContractTest {
             List<GeneratedQuestionDto> parsed = parse(json);
             assertEquals(1, parsed.size());
             assertEquals("TRUE_FALSE", parsed.get(0).getType());
-            assertEquals(List.of("Đúng", "Sai"), parsed.get(0).getOptions());
+            assertEquals(List.of("True", "False"), parsed.get(0).getOptions());
         }
 
         @Test
