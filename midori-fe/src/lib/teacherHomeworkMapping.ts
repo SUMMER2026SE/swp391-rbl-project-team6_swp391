@@ -111,7 +111,14 @@ export function mapAiQuestionToBuilderQuestion(
       content: a.content || "",
       isCorrect: i === correctIdx,
     })),
-    needsReview: !q.answers || q.answers.length === 0,
+    needsReview: (() => {
+      const type = (q.type || "MULTIPLE_CHOICE").toUpperCase();
+      if (type === "TRANSLATION") return !q.translationMetadata?.referenceAnswer;
+      if (type === "SENTENCE_WRITING") return !q.sentenceWritingMetadata?.referenceAnswer;
+      if (type === "ERROR_CORRECTION") return !q.errorCorrectionMetadata?.correctedText;
+      if (type === "MATCHING") return !q.matchingMetadata?.correctPairs || q.matchingMetadata.correctPairs.length === 0;
+      return !q.answers || q.answers.length === 0;
+    })(),
     translationMetadata: q.translationMetadata?.direction
       ? {
           direction: (q.translationMetadata.direction as "JA_TO_VI" | "VI_TO_JA") ||

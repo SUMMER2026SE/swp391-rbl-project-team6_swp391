@@ -46,4 +46,5 @@ public class TeacherQuestionResponse {
     private SentenceWritingMetadata sentenceWritingMetadata;
     private ErrorCorrectionMetadata errorCorrectionMetadata;
     private MatchingMetadata matchingMetadata;
+    private Boolean isCorrect;
 }

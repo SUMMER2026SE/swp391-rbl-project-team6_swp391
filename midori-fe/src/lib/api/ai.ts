@@ -71,6 +71,10 @@ export interface AiPdfPreviewRequest {
 }
 
 export interface AiPdfPreviewResponse {
+  success?: boolean;
+  code?: string;
+  generatedCount?: number;
+  requestedCount?: number;
   mode: string;
   title?: string;
   description?: string;
@@ -86,6 +90,10 @@ export interface AiPdfPreviewResponse {
     explanation?: string;
     category?: string;
     answers?: { content?: string; isCorrect?: boolean }[];
+    translationMetadata?: any;
+    sentenceWritingMetadata?: any;
+    errorCorrectionMetadata?: any;
+    matchingMetadata?: any;
   }[];
 }
 

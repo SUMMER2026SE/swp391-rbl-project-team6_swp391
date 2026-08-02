@@ -165,7 +165,14 @@ const mapResponseToQuestions = (
         content: a.content || "",
         isCorrect: i === correctIdx,
       })),
-      needsReview: !q.answers || q.answers.length === 0,
+      needsReview: (() => {
+        const type = (q.type || "MULTIPLE_CHOICE").toUpperCase();
+        if (type === "TRANSLATION") return !q.translationMetadata?.referenceAnswer;
+        if (type === "SENTENCE_WRITING") return !q.sentenceWritingMetadata?.referenceAnswer;
+        if (type === "ERROR_CORRECTION") return !q.errorCorrectionMetadata?.correctedText;
+        if (type === "MATCHING") return !q.matchingMetadata?.correctPairs || q.matchingMetadata.correctPairs.length === 0;
+        return !q.answers || q.answers.length === 0;
+      })(),
       // Format-specific metadata with proper type casting
       translationMetadata: q.translationMetadata?.direction
         ? {

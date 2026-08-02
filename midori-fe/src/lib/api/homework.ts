@@ -86,6 +86,8 @@ export interface SubmitHomeworkRequest {
   submissionText?: string;
   attachmentUrl?: string;
   answers?: Record<string, number>;
+  textAnswers?: any[];
+  focusViolationCount?: number;
 }
 
 // AI Homework Generation

@@ -334,7 +334,7 @@ public class HomeworkController {
                 .attachmentUrl(request.getAttachmentUrl())
                 .status(HomeworkSubmission.SubmissionStatus.SUBMITTED)
                 .build();
-        HomeworkSubmission saved = homeworkService.submitHomework(submission, request.getAnswers(), request.getFocusViolationCount());
+        HomeworkSubmission saved = homeworkService.submitHomework(submission, request.getAnswers(), request.getTextAnswers(), request.getFocusViolationCount());
         return ResponseEntity.ok(ApiResponse.success("Homework submitted successfully", mapToSubmissionResponse(saved)));
     }
 
@@ -412,12 +412,21 @@ public class HomeworkController {
         List<TeacherQuestionResponse> questionResponses = null;
         if (includeQuestions && homework.getQuestions() != null) {
             final boolean finalShowAnswers = showAnswers;
+            final HomeworkSubmission finalSub = studentSubmissions != null && !studentSubmissions.isEmpty() ?
+                studentSubmissions.stream()
+                     .max(Comparator.comparing(HomeworkSubmission::getSubmittedAt, Comparator.nullsFirst(Comparator.naturalOrder())))
+                     .orElse(null) : null;
             questionResponses = homework.getQuestions().stream()
                     .map(q -> {
                         TeacherQuestionResponse res = mapQuestionToResponse(q);
-                        if (res != null && !finalShowAnswers) {
-                            res.setCorrectAnswerIndex(null);
-                            res.setExplanation(null);
+                        if (res != null) {
+                            if (finalSub != null) {
+                                res.setIsCorrect(getQuestionIsCorrectFromSubmission(q, finalSub));
+                            }
+                            if (!finalShowAnswers) {
+                                res.setCorrectAnswerIndex(null);
+                                res.setExplanation(null);
+                            }
                         }
                         return res;
                     })
@@ -490,13 +499,14 @@ public class HomeworkController {
         java.time.Instant gradedAt = null;
         java.time.Instant submittedAt = null;
 
+        HomeworkSubmission sub = null;
         if (isStudent && studentId != null) {
             long count = homeworkSubmissionRepository.countByHomeworkIdAndStudentId(homework.getId(), studentId);
             remainingAttempts = Math.max(0, homework.getAttempts() - (int) count);
             
             java.util.Optional<HomeworkSubmission> submissionOpt = homeworkSubmissionRepository.findFirstByHomeworkIdAndStudentIdOrderBySubmittedAtDesc(homework.getId(), studentId);
             if (submissionOpt.isPresent()) {
-                HomeworkSubmission sub = submissionOpt.get();
+                sub = submissionOpt.get();
                 submissionStatus = sub.getStatus().name();
                 score = sub.getScore();
                 feedback = sub.getFeedback();
@@ -511,12 +521,18 @@ public class HomeworkController {
         List<TeacherQuestionResponse> questionResponses = null;
         if (homework.getQuestions() != null) {
             final boolean finalShowAnswers = showAnswers;
+            final HomeworkSubmission finalSub = sub;
             questionResponses = homework.getQuestions().stream()
                     .map(q -> {
                         TeacherQuestionResponse res = mapQuestionToResponse(q);
-                        if (res != null && !finalShowAnswers) {
-                            res.setCorrectAnswerIndex(null);
-                            res.setExplanation(null);
+                        if (res != null) {
+                            if (finalSub != null) {
+                                res.setIsCorrect(getQuestionIsCorrectFromSubmission(q, finalSub));
+                            }
+                            if (!finalShowAnswers) {
+                                res.setCorrectAnswerIndex(null);
+                                res.setExplanation(null);
+                            }
                         }
                         return res;
                     })
@@ -563,8 +579,37 @@ public class HomeworkController {
                 .build();
     }
 
+    private <T> T deserializeMetadata(String json, Class<T> clazz) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readValue(json, clazz);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private TeacherQuestionResponse mapQuestionToResponse(TeacherQuestion question) {
         if (question == null) return null;
+
+        String questionType = question.getQuestionType();
+        com.midori.dto.ai.TranslationMetadata translationMetadata = null;
+        com.midori.dto.ai.SentenceWritingMetadata sentenceWritingMetadata = null;
+        com.midori.dto.ai.ErrorCorrectionMetadata errorCorrectionMetadata = null;
+        com.midori.dto.ai.MatchingMetadata matchingMetadata = null;
+
+        String formatMetadata = question.getFormatMetadata();
+        if (formatMetadata != null && !formatMetadata.isEmpty()) {
+            if ("TRANSLATION".equalsIgnoreCase(questionType)) {
+                translationMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.TranslationMetadata.class);
+            } else if ("SENTENCE_WRITING".equalsIgnoreCase(questionType)) {
+                sentenceWritingMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.SentenceWritingMetadata.class);
+            } else if ("ERROR_CORRECTION".equalsIgnoreCase(questionType)) {
+                errorCorrectionMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.ErrorCorrectionMetadata.class);
+            } else if ("MATCHING".equalsIgnoreCase(questionType)) {
+                matchingMetadata = deserializeMetadata(formatMetadata, com.midori.dto.ai.MatchingMetadata.class);
+            }
+        }
+
         return TeacherQuestionResponse.builder()
                 .id(question.getId())
                 .teacherId(question.getTeacher().getId())
@@ -581,7 +626,55 @@ public class HomeworkController {
                 .options(question.getOptions())
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
+                .translationMetadata(translationMetadata)
+                .sentenceWritingMetadata(sentenceWritingMetadata)
+                .errorCorrectionMetadata(errorCorrectionMetadata)
+                .matchingMetadata(matchingMetadata)
                 .build();
+    }
+
+    private Boolean getQuestionIsCorrectFromSubmission(com.midori.entity.TeacherQuestion question, HomeworkSubmission submission) {
+        if (submission == null || submission.getSubmissionText() == null) {
+            return null;
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(submission.getSubmissionText());
+            String key = "isCorrect_" + question.getId().toString();
+            if (root.has(key)) {
+                return root.get(key).asBoolean();
+            }
+            
+            // Legacy fallback: recompute on the fly
+            String qid = question.getId().toString();
+            if (root.has(qid)) {
+                com.fasterxml.jackson.databind.JsonNode node = root.get(qid);
+                Object rawVal = null;
+                if (node.isInt()) {
+                    rawVal = node.asInt();
+                } else if (node.isTextual()) {
+                    rawVal = node.asText();
+                } else if (node.isArray()) {
+                    java.util.List<String> list = new java.util.ArrayList<>();
+                    for (com.fasterxml.jackson.databind.JsonNode item : node) {
+                        list.add(item.asText());
+                    }
+                    rawVal = list;
+                } else if (node.isObject()) {
+                    java.util.Map<String, String> map = new java.util.HashMap<>();
+                    java.util.Iterator<java.util.Map.Entry<String, com.fasterxml.jackson.databind.JsonNode>> fields = node.fields();
+                    while (fields.hasNext()) {
+                        java.util.Map.Entry<String, com.fasterxml.jackson.databind.JsonNode> entry = fields.next();
+                        map.put(entry.getKey(), entry.getValue().asText());
+                    }
+                    rawVal = map;
+                }
+                return homeworkService.isLegacyAnswerCorrect(question, rawVal);
+            }
+        } catch (Exception e) {
+            // Safe fallback
+        }
+        return false;
     }
 
     private HomeworkSubmissionResponse mapToSubmissionResponse(HomeworkSubmission submission) {
@@ -607,24 +700,18 @@ public class HomeworkController {
                 && !submission.getSubmissionText().isBlank()) {
             totalQuestions = questions.size();
             try {
-                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Integer> answers = mapper.readValue(
-                        submission.getSubmissionText(),
-                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Integer>>() {});
                 int c = 0;
                 for (TeacherQuestion q : questions) {
-                    if (q == null || q.getId() == null || q.getCorrectAnswerIndex() == null) continue;
-                    Integer selectedIdx = answers.get(q.getId().toString());
-                    if (selectedIdx != null && selectedIdx.equals(q.getCorrectAnswerIndex())) {
+                    if (q == null || q.getId() == null) continue;
+                    Boolean correct = getQuestionIsCorrectFromSubmission(q, submission);
+                    if (Boolean.TRUE.equals(correct)) {
                         c++;
                     }
                 }
                 correctCount = c;
                 correctPercentage = (int) Math.round((c * 100.0) / totalQuestions);
             } catch (Exception ignored) {
-                // Stored text isn't a JSON map (e.g. legacy / manual homework answer). Leave
-                // the percentage fields unset so the UI can fall back to "—" rather than guess.
+                // Stored text isn't a JSON map. Leave the percentage fields unset.
             }
         }
 

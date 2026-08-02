@@ -228,6 +228,20 @@ public class AiExamImportService {
                 difficulty = Difficulty.MEDIUM;
             }
 
+            String formatMetadataStr = null;
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                if (qdto.getTranslationMetadata() != null) {
+                    formatMetadataStr = mapper.writeValueAsString(qdto.getTranslationMetadata());
+                } else if (qdto.getSentenceWritingMetadata() != null) {
+                    formatMetadataStr = mapper.writeValueAsString(qdto.getSentenceWritingMetadata());
+                } else if (qdto.getErrorCorrectionMetadata() != null) {
+                    formatMetadataStr = mapper.writeValueAsString(qdto.getErrorCorrectionMetadata());
+                } else if (qdto.getMatchingMetadata() != null) {
+                    formatMetadataStr = mapper.writeValueAsString(qdto.getMatchingMetadata());
+                }
+            } catch (Exception ignored) {}
+
             ExamQuestion eq = ExamQuestion.builder()
                     .exam(exam)
                     .questionText(qdto.getContent() != null ? qdto.getContent() : "")
@@ -238,6 +252,8 @@ public class AiExamImportService {
                     .displayOrder(order++)
                     .points(1)
                     .category(determineCategory(qdto.getType()))
+                    .questionType(qdto.getType() != null ? qdto.getType() : "MULTIPLE_CHOICE")
+                    .formatMetadata(formatMetadataStr)
                     .build();
             questions.add(eq);
 

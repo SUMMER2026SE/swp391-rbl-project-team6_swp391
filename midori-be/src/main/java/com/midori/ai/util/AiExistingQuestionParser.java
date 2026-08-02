@@ -1005,7 +1005,14 @@ public final class AiExistingQuestionParser {
     public static boolean isMcqLikeType(String type) {
         if (type == null) return true; // default to MCQ behaviour
         String upper = type.toUpperCase().trim();
-        return !upper.equals("FILL_BLANK") && !upper.equals("SHORT_ANSWER") && !upper.equals("FILL_IN_BLANK");
+        return !upper.equals("FILL_BLANK")
+                && !upper.equals("SHORT_ANSWER")
+                && !upper.equals("FILL_IN_BLANK")
+                && !upper.equals("TRANSLATION")
+                && !upper.equals("SENTENCE_WRITING")
+                && !upper.equals("ERROR_CORRECTION")
+                && !upper.equals("SENTENCE_REORDER")
+                && !upper.equals("MATCHING");
     }
 
     public static AiExamParseResponse sanitize(AiExamParseResponse parsed, String targetSkill) {
@@ -2615,22 +2622,29 @@ public final class AiExistingQuestionParser {
             }
 
             // 3. Validate options
-            if (q.getAnswers() == null || q.getAnswers().size() < 2) {
-                log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=too_few_options",
-                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
-                dropped.merge("too_few_options", 1, Integer::sum);
-                continue;
-            }
-            List<String> optionTexts = new ArrayList<>();
-            for (var a : q.getAnswers()) {
-                optionTexts.add(a == null ? "" : a.getContent() == null ? "" : a.getContent());
-            }
-            List<Integer> dups = findDuplicateOptionIndices(optionTexts);
-            if (!dups.isEmpty()) {
-                log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=duplicate_options",
-                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
-                dropped.merge("duplicate_options", 1, Integer::sum);
-                continue;
+            boolean isMcqLike = isMcqLikeType(q.getType());
+            if (isMcqLike) {
+                if (q.getAnswers() == null || q.getAnswers().size() < 2) {
+                    log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=too_few_options",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("too_few_options", 1, Integer::sum);
+                    continue;
+                }
+                List<String> optionTexts = new ArrayList<>();
+                for (var a : q.getAnswers()) {
+                    optionTexts.add(a == null ? "" : a.getContent() == null ? "" : a.getContent());
+                }
+                List<Integer> dups = findDuplicateOptionIndices(optionTexts);
+                if (!dups.isEmpty()) {
+                    log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=duplicate_options",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("duplicate_options", 1, Integer::sum);
+                    continue;
+                }
+            } else {
+                if (q.getAnswers() == null) {
+                    q.setAnswers(new ArrayList<>());
+                }
             }
 
             // 4a. FILL_BLANK boundary-duplication guard
@@ -2655,14 +2669,27 @@ public final class AiExistingQuestionParser {
             }
 
             // 5. Exactly one correct answer
-            long correctCount = q.getAnswers().stream()
-                    .filter(a -> a != null && Boolean.TRUE.equals(a.getIsCorrect()))
-                    .count();
-            if (correctCount != 1) {
-                log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=no_correct_answer",
-                         q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
-                dropped.merge("no_correct_answer", 1, Integer::sum);
-                continue;
+            if (isMcqLike) {
+                long correctCount = q.getAnswers().stream()
+                        .filter(a -> a != null && Boolean.TRUE.equals(a.getIsCorrect()))
+                        .count();
+                if (correctCount != 1) {
+                    log.info("[AiCategoryInference] Question dropped: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=no_correct_answer",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("no_correct_answer", 1, Integer::sum);
+                    continue;
+                }
+            } else {
+                boolean hasAnswer = !q.getAnswers().isEmpty()
+                        || (q.getTranslationMetadata() != null && q.getTranslationMetadata().getReferenceAnswer() != null && !q.getTranslationMetadata().getReferenceAnswer().isBlank())
+                        || (q.getSentenceWritingMetadata() != null && q.getSentenceWritingMetadata().getReferenceAnswer() != null && !q.getSentenceWritingMetadata().getReferenceAnswer().isBlank())
+                        || (q.getErrorCorrectionMetadata() != null && q.getErrorCorrectionMetadata().getCorrectedText() != null && !q.getErrorCorrectionMetadata().getCorrectedText().isBlank());
+                if (!hasAnswer) {
+                    log.info("[AiCategoryInference] Question dropped (non-MCQ no answer): content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=DROPPED, dropReason=no_correct_answer",
+                             q.getContent(), allowedSkills, rawCategory, normalizedCategory, inferredCategory, finalCategory);
+                    dropped.merge("no_correct_answer", 1, Integer::sum);
+                    continue;
+                }
             }
 
             log.info("[AiCategoryInference] Question accepted: content='{}', requested={}, rawCategory='{}', normalizedCategory='{}', inferredCategory='{}', finalCategory='{}', status=ACCEPTED",
@@ -2860,12 +2887,13 @@ public final class AiExistingQuestionParser {
                 || expectedType == QuestionType.SHORT_ANSWER
                 || expectedType == QuestionType.TRANSLATION
                 || expectedType == QuestionType.SENTENCE_WRITING
-                || expectedType == QuestionType.ERROR_CORRECTION;
+                || expectedType == QuestionType.ERROR_CORRECTION
+                || expectedType == QuestionType.MATCHING;
 
         for (AiExamParseResponse.AiQuestionDto q : rawQuestions) {
             if (q == null) continue;
             QuestionType declared = QuestionTypeValidator.normalize(q.getType());
-            boolean questionIsRelaxed = (declared == null) ? relaxedTypes : (declared == QuestionType.FILL_BLANK || declared == QuestionType.SHORT_ANSWER || declared == QuestionType.TRANSLATION || declared == QuestionType.SENTENCE_WRITING || declared == QuestionType.ERROR_CORRECTION);
+            boolean questionIsRelaxed = (declared == null) ? relaxedTypes : (declared == QuestionType.FILL_BLANK || declared == QuestionType.SHORT_ANSWER || declared == QuestionType.TRANSLATION || declared == QuestionType.SENTENCE_WRITING || declared == QuestionType.ERROR_CORRECTION || declared == QuestionType.MATCHING);
 
             if (q.getContent() == null || q.getContent().isBlank()) {
                 log.info("[AiCategoryInference] Question dropped: content=null/blank, status=DROPPED, dropReason=blank_content");

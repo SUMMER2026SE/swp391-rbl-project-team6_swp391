@@ -30,7 +30,7 @@ public interface ExamGenerationService {
 
     List<StudentExamResponse> getStudentExams(UUID studentId);
 
-    StudentExamResponse submitStudentExam(UUID studentExamId, List<Integer> answers);
+    StudentExamResponse submitStudentExam(UUID studentExamId, List<Integer> answers, List<com.midori.dto.request.StudentAnswerRequest> textAnswers);
 
     ExamResponse assignExamToClass(UUID examId, UUID classId);
 

@@ -568,6 +568,12 @@ public class AiServiceImpl implements AiService {
         if (!"MULTIPLE_CHOICE".equalsIgnoreCase(questionType)
                 && !"TRUE_FALSE".equalsIgnoreCase(questionType)
                 && !"FILL_BLANK".equalsIgnoreCase(questionType)
+                && !"SHORT_ANSWER".equalsIgnoreCase(questionType)
+                && !"TRANSLATION".equalsIgnoreCase(questionType)
+                && !"SENTENCE_WRITING".equalsIgnoreCase(questionType)
+                && !"ERROR_CORRECTION".equalsIgnoreCase(questionType)
+                && !"SENTENCE_REORDER".equalsIgnoreCase(questionType)
+                && !"MATCHING".equalsIgnoreCase(questionType)
                 && !"MIXED".equalsIgnoreCase(questionType)) {
             questionType = "MULTIPLE_CHOICE";
         }
@@ -1337,7 +1343,13 @@ public class AiServiceImpl implements AiService {
                     List<String> finalOptions = cleanOptions;
                     if ("TRUE_FALSE".equals(resolvedType)) {
                         finalOptions = List.of("True", "False");
-                    } else if ("FILL_BLANK".equals(resolvedType)) {
+                    } else if ("FILL_BLANK".equals(resolvedType)
+                            || "SHORT_ANSWER".equals(resolvedType)
+                            || "TRANSLATION".equals(resolvedType)
+                            || "SENTENCE_WRITING".equals(resolvedType)
+                            || "ERROR_CORRECTION".equals(resolvedType)
+                            || "SENTENCE_REORDER".equals(resolvedType)
+                            || "MATCHING".equals(resolvedType)) {
                         finalOptions = List.of();
                     }
 
@@ -1789,6 +1801,22 @@ public class AiServiceImpl implements AiService {
                 // FILL_BLANK never needs options. Keep the label even when
                 // the provider supplied some (defensive — ignore them).
                 return "FILL_BLANK";
+
+            case "SHORT_ANSWER":
+            case "TRANSLATION":
+            case "SENTENCE_WRITING":
+            case "ERROR_CORRECTION":
+            case "SENTENCE_REORDER":
+                if (correctAnswer != null && !correctAnswer.isBlank()) {
+                    return upperType;
+                }
+                return null;
+
+            case "MATCHING":
+                if (hasOptions || (correctAnswer != null && !correctAnswer.isBlank())) {
+                    return "MATCHING";
+                }
+                return null;
 
             case "":
                 // Type missing entirely. Infer from content.

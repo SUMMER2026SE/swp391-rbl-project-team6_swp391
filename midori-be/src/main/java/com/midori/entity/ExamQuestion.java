@@ -73,4 +73,14 @@ public class ExamQuestion {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "question_type", length = 50)
+    private String questionType;
+
+    @Column(name = "format_metadata", columnDefinition = "TEXT")
+    private String formatMetadata;
+
+    public String getQuestionType() {
+        return this.questionType == null ? "MULTIPLE_CHOICE" : this.questionType;
+    }
 }

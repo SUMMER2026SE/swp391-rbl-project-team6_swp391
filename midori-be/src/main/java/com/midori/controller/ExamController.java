@@ -96,7 +96,7 @@ public class ExamController {
     public ResponseEntity<ApiResponse<StudentExamResponse>> submitExam(
             @PathVariable UUID studentExamId,
             @Valid @RequestBody SubmitExamRequest request) {
-        StudentExamResponse result = examGenerationService.submitStudentExam(studentExamId, request.getAnswers());
+        StudentExamResponse result = examGenerationService.submitStudentExam(studentExamId, request.getAnswers(), request.getTextAnswers());
         return ResponseEntity.ok(ApiResponse.success("Exam submitted successfully", result));
     }
 
