@@ -3,43 +3,43 @@ import { cn } from "@/lib/utils";
 
 const benefits = [
   {
-    title: "Học tập có hệ thống",
-    description: "Nội dung được sắp xếp theo trình độ và từng kỹ năng tiếng Nhật.",
+    title: "Systematic Learning",
+    description: "Content organized by level and individual Japanese language skills.",
     icon: Layers,
     color: "text-blue-500",
     bgClass: "bg-blue-50 dark:bg-blue-500/10"
   },
   {
-    title: "Luyện tập toàn diện",
-    description: "Hỗ trợ từ vựng, ngữ pháp, đọc hiểu, nghe hiểu và kiểm tra.",
+    title: "Comprehensive Practice",
+    description: "Support for vocabulary, grammar, reading, listening, and quizzes.",
     icon: Target,
     color: "text-emerald-500",
     bgClass: "bg-emerald-50 dark:bg-emerald-500/10"
   },
   {
-    title: "Hỗ trợ bằng AI",
-    description: "AI Sensei giúp giải thích bài học và hỗ trợ luyện tập.",
+    title: "AI Assistance",
+    description: "AI Sensei helps explain lessons and supports practicing.",
     icon: Bot,
     color: "text-pink-500",
     bgClass: "bg-pink-50 dark:bg-pink-500/10"
   },
   {
-    title: "Theo dõi tiến độ rõ ràng",
-    description: "Kết quả và quá trình học tập được tổng hợp trên dashboard.",
+    title: "Clear Progress Tracking",
+    description: "Results and learning progress are summarized on the dashboard.",
     icon: Activity,
     color: "text-amber-500",
     bgClass: "bg-amber-50 dark:bg-amber-500/10"
   },
   {
-    title: "Học mọi lúc, mọi nơi",
-    description: "Giao diện phù hợp với máy tính, máy tính bảng và điện thoại.",
+    title: "Learn Anytime, Anywhere",
+    description: "Interface optimized for computers, tablets, and phones.",
     icon: Smartphone,
     color: "text-purple-500",
     bgClass: "bg-purple-50 dark:bg-purple-500/10"
   },
   {
-    title: "Kết nối giáo viên và học viên",
-    description: "Giáo viên có thể giao bài, quản lý lớp và theo dõi kết quả học tập.",
+    title: "Teacher-Student Connection",
+    description: "Teachers can assign tasks, manage classes, and track learning results.",
     icon: Users,
     color: "text-indigo-500",
     bgClass: "bg-indigo-50 dark:bg-indigo-500/10"
@@ -52,10 +52,10 @@ export function BenefitsSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
           <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">
-            Lợi Ích
+            Benefits
           </span>
           <h2 className="text-3xl md:text-4xl font-display font-extrabold text-slate-800 dark:text-white mt-4">
-            Tại sao nên chọn MIDORI?
+            Why choose MIDORI?
           </h2>
         </div>
 

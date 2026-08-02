@@ -79,13 +79,13 @@ function LoginPage() {
 
   return (
     <AuthShell
-      title="Chào mừng quay trở lại 🌸"
-      subtitle="Đăng nhập để tiếp tục hành trình học tiếng Nhật của bạn."
+      title="Welcome back 🌸"
+      subtitle="Sign in to continue your Japanese learning journey."
       footer={
         <>
-          Chưa có tài khoản?{" "}
+          Don't have an account?{" "}
           <Link to="/register" search={{ redirect }} className="text-primary font-semibold">
-            Đăng ký ngay
+            Sign Up
           </Link>
         </>
       }
@@ -162,7 +162,7 @@ function LoginPage() {
               Signing in…
             </span>
           ) : (
-            "Sign in"
+            "Sign In"
           )}
         </PrimaryBtn>
         <div className="flex items-center gap-3">

@@ -27,33 +27,33 @@ export function LandingFooter() {
               </div>
             </Link>
             <p className="max-w-sm text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-              Nền tảng học tiếng Nhật toàn diện giúp bạn nâng cao từ vựng, ngữ pháp, đọc hiểu, nghe hiểu và luyện tập cùng AI Sensei.
+              Comprehensive Japanese learning platform helping you improve vocabulary, grammar, reading comprehension, listening comprehension, and practice with AI Sensei.
             </p>
           </div>
 
-          {/* Sản phẩm */}
+          {/* Product */}
           <div>
             <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-800 dark:text-white mb-4">
-              Sản phẩm
+              Product
             </h3>
             <ul className="space-y-3 text-sm">
-              <li><button onClick={() => handleScrollTo("features")} className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Tính năng</button></li>
-              <li><button onClick={() => handleScrollTo("guide")} className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Hướng dẫn</button></li>
-              <li><Link to="/login?redirect=/student" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Dành cho học viên</Link></li>
-              <li><Link to="/login?redirect=/teacher" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Dành cho giáo viên</Link></li>
+              <li><button onClick={() => handleScrollTo("features")} className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Features</button></li>
+              <li><button onClick={() => handleScrollTo("guide")} className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Guide</button></li>
+              <li><Link to="/login?redirect=/student" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">For Students</Link></li>
+              <li><Link to="/login?redirect=/teacher" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">For Teachers</Link></li>
             </ul>
           </div>
 
-          {/* Hỗ trợ */}
+          {/* Support */}
           <div>
             <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-800 dark:text-white mb-4">
-              Hỗ trợ
+              Support
             </h3>
             <ul className="space-y-3 text-sm">
-              <li><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Câu hỏi thường gặp</a></li>
-              <li><button onClick={() => handleScrollTo("consultation")} className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Liên hệ</button></li>
-              <li><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Chính sách bảo mật</a></li>
-              <li><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Điều khoản sử dụng</a></li>
+              <li><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">FAQs</a></li>
+              <li><button onClick={() => handleScrollTo("consultation")} className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Contact</button></li>
+              <li><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">Terms of Use</a></li>
             </ul>
           </div>
         </div>

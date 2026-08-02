@@ -57,13 +57,13 @@ export function TeacherTeam() {
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
-            Đội Ngũ Giảng Viên MIDORI
+            MIDORI Teaching Staff
           </div>
           <h2 className="text-3xl md:text-5xl font-black text-slate-800 dark:text-white tracking-tight">
-            Học cùng những giáo viên <span className="text-primary bg-clip-text">tâm huyết nhất</span>
+            Learn with our <span className="text-primary bg-clip-text">most passionate teachers</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg leading-relaxed">
-            Đội ngũ thầy cô giàu kinh nghiệm, đạt trình độ JLPT N1-N2 với phương pháp truyền đạt dễ hiểu, sẵn sàng hỗ trợ bạn 24/7.
+            Our experienced team of teachers, certified JLPT N1-N2, provides easy-to-understand learning methods and is ready to support you 24/7.
           </p>
         </div>
 
@@ -96,10 +96,10 @@ export function TeacherTeam() {
               <UserRound className="w-10 h-10" />
             </div>
             <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-              Đang cập nhật danh sách giáo viên
+              Updating teacher directory
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Hiện tại chưa có tài khoản giáo viên nào được tạo trong Database Supabase.
+              Currently, no teacher accounts have been created in the Supabase Database.
             </p>
           </div>
         ) : (
@@ -107,8 +107,8 @@ export function TeacherTeam() {
             <div className="overflow-hidden rounded-3xl p-1" ref={emblaRef}>
               <div className="flex -ml-5">
                 {teachers.map((teacher, idx) => {
-                  const displayName = teacher.fullName || "Giáo viên MIDORI";
-                  const displayTitle = teacher.professionalTitle || "Giáo viên Tiếng Nhật";
+                  const displayName = teacher.fullName || "MIDORI Teacher";
+                  const displayTitle = teacher.professionalTitle || "Japanese Teacher";
                   const avatarInitials = displayName.substring(0, 2).toUpperCase();
 
                   return (
@@ -154,7 +154,7 @@ export function TeacherTeam() {
                             {teacher.yearsOfExperience ? (
                               <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1 font-medium">
                                 <Briefcase className="w-3 h-3 text-slate-400" />
-                                <span>{teacher.yearsOfExperience} năm kinh nghiệm</span>
+                                <span>{teacher.yearsOfExperience} years of experience</span>
                               </div>
                             ) : null}
                           </div>
@@ -167,7 +167,7 @@ export function TeacherTeam() {
                               <GraduationCap className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
                               <p className="line-clamp-2">
                                 <span className="font-semibold text-slate-700 dark:text-slate-200">
-                                  Chuyên môn:
+                                  Specialization:
                                 </span>{" "}
                                 {teacher.specializations}
                               </p>
@@ -178,7 +178,7 @@ export function TeacherTeam() {
                               <Award className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                               <p className="line-clamp-1">
                                 <span className="font-semibold text-slate-700 dark:text-slate-200">
-                                  Chứng chỉ:
+                                  Certificates:
                                 </span>{" "}
                                 {teacher.certificates[0].title}
                               </p>
@@ -198,7 +198,7 @@ export function TeacherTeam() {
                           onClick={() => setSelectedTeacher(teacher)}
                         >
                           <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                          Xem Hồ Sơ Chi Tiết
+                          View Detailed Profile
                         </Button>
                       </div>
                     </div>
@@ -269,13 +269,13 @@ export function TeacherTeam() {
                   </div>
                   <div className="text-center md:text-left flex-1">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-2">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Giảng viên MIDORI
+                      <CheckCircle2 className="w-3.5 h-3.5" /> MIDORI Instructor
                     </div>
                     <h3 className="text-2xl font-black text-white mb-1">
-                      {selectedTeacher.fullName || "Giáo viên MIDORI"}
+                      {selectedTeacher.fullName || "MIDORI Instructor"}
                     </h3>
                     <p className="text-primary font-bold text-base mb-3">
-                      {selectedTeacher.professionalTitle || "Giáo viên tiếng Nhật"}
+                      {selectedTeacher.professionalTitle || "Japanese Teacher"}
                     </p>
 
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
@@ -285,7 +285,7 @@ export function TeacherTeam() {
                             key={lvl}
                             className="px-3 py-1 rounded-full bg-slate-800 text-xs font-bold text-slate-300"
                           >
-                            Cấp độ: {lvl.trim()}
+                            Level: {lvl.trim()}
                           </span>
                         ))}
                     </div>
@@ -296,7 +296,7 @@ export function TeacherTeam() {
                   {selectedTeacher.shortBiography && (
                     <div className="bg-slate-900/60 p-5 rounded-2xl border border-white/5">
                       <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
-                        Giới thiệu bản thân
+                        About Me
                       </h4>
                       <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
                         {selectedTeacher.shortBiography}
@@ -312,10 +312,10 @@ export function TeacherTeam() {
                         </div>
                         <div>
                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                            Kinh nghiệm giảng dạy
+                            Teaching Experience
                           </h4>
                           <p className="text-sm font-bold text-slate-200">
-                            {selectedTeacher.yearsOfExperience} năm
+                            {selectedTeacher.yearsOfExperience} years
                           </p>
                         </div>
                       </div>
@@ -328,7 +328,7 @@ export function TeacherTeam() {
                         </div>
                         <div>
                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                            Chuyên môn phụ trách
+                            Specialization
                           </h4>
                           <p className="text-sm font-bold text-slate-200">
                             {selectedTeacher.specializations}
@@ -341,7 +341,7 @@ export function TeacherTeam() {
                   {selectedTeacher.certificates && selectedTeacher.certificates.length > 0 && (
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wider mb-3 text-slate-400">
-                        Chứng chỉ & Bằng cấp
+                        Certificates & Degrees
                       </h4>
                       <div className="space-y-3">
                         {selectedTeacher.certificates.map((cert) => (
