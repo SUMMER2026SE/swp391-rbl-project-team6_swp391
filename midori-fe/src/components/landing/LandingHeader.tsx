@@ -78,7 +78,7 @@ export function LandingHeader() {
                   to={getDashboardPath(user)}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all whitespace-nowrap"
                 >
-                  Enter System
+                  Go to Dashboard
                 </Link>
               )}
             </div>
