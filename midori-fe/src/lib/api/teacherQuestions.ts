@@ -68,6 +68,18 @@ export interface TeacherQuestionResponse {
   matchingMetadata?: MatchingMetadata;
 }
 
+export interface TeacherQuestionPreviewResponse {
+  id: string;
+  skill: string;
+  difficulty: string;
+  points: number;
+  prompt: string;
+  jpPrompt?: string;
+  options: string[];
+  correctAnswerIndex: number;
+}
+
+
 export interface CreateTeacherQuestionRequest {
   topicId?: string;
   level?: string;
@@ -182,6 +194,12 @@ export const teacherQuestionsApi = {
     difficulty: { easy: number; medium: number; hard: number };
     questionCount: number;
   }) => api.post<TeacherQuestionResponse[]>("/question-bank/randomize", req),
+  generatePreview: (req: {
+    level: string;
+    skills: string[];
+    lessonIds: number[];
+    difficulty: { easy: number; medium: number; hard: number };
+  }) => api.post<TeacherQuestionPreviewResponse[]>("/question-bank/generate-preview", req),
   // Lesson-specific questions and statistics
   getLessonQuestions: (lessonId: number, params?: { page?: number; size?: number; search?: string; type?: string; difficulty?: string }) => {
     let query = `?page=${params?.page || 0}&size=${params?.size || 20}`;

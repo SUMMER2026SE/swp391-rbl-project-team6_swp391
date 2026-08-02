@@ -3,6 +3,7 @@ package com.midori.controller;
 import com.midori.common.ApiResponse;
 import com.midori.dto.questiondto.QuestionBankTopicResponse;
 import com.midori.dto.questiondto.RandomizeQuestionsRequest;
+import com.midori.dto.questiondto.GeneratePreviewRequest;
 import com.midori.dto.questiondto.TeacherQuestionResponse;
 import com.midori.service.QuestionBankService;
 import jakarta.validation.Valid;
@@ -55,5 +56,12 @@ public class QuestionBankController {
             @Valid @RequestBody RandomizeQuestionsRequest request) {
         List<com.midori.dto.questiondto.TeacherQuestionPreviewDto> randomized = questionBankService.randomizeQuestions(request);
         return ResponseEntity.ok(ApiResponse.success("Questions randomized successfully", randomized));
+    }
+
+    @PostMapping("/generate-preview")
+    public ResponseEntity<ApiResponse<List<com.midori.dto.questiondto.TeacherQuestionPreviewDto>>> generatePreview(
+            @Valid @RequestBody GeneratePreviewRequest request) {
+        List<com.midori.dto.questiondto.TeacherQuestionPreviewDto> preview = questionBankService.generatePreview(request);
+        return ResponseEntity.ok(ApiResponse.success("Preview generated successfully", preview));
     }
 }

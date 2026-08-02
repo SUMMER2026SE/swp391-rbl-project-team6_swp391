@@ -7,7 +7,8 @@
 # ============================================================
 
 $ErrorActionPreference = "Stop"
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$BackendDir = Split-Path -Parent $PSScriptRoot
+$ProjectRoot = Split-Path -Parent $BackendDir
 
 Write-Host "Starting MIDORI Frontend..." -ForegroundColor Green
 Write-Host ""
