@@ -18,33 +18,42 @@ Before setting up the project, ensure you have the following software installed:
 
 The backend is a Spring Boot application running on port `8080`.
 
-### Step 2.1: Local Configuration
-Create a local configuration file by copying the template:
+### Step 2.1: Environment Variables
+
+Copy the environment variable template and fill in the real values:
+
 ```powershell
 cd midori-be
-Copy-Item src/main/resources/application-local.example.yml src/main/resources/application-local.yml
+copy-item .env.example .env
 ```
-Open [application-local.yml](../src/main/resources/application-local.yml) and configure your database connection and secrets:
-*   `spring.datasource.url`: The JDBC URL to your PostgreSQL database (e.g. `jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require`).
-*   `spring.datasource.username`: Your database user (e.g. `postgres.<project-id>`).
-*   `spring.datasource.password`: Your database password.
-*   `spring.mail.username` / `spring.mail.password`: Your Gmail SMTP sender and 16-character Gmail App Password (required for email verification).
-*   `app.admin.password`: Custom local admin password (optional, e.g. `password: ${ADMIN_PASSWORD:ChangeMe123!}`).
+
+Open `midori-be/.env` and set the following values:
+
+*   `DATABASE_URL`: The JDBC URL to your PostgreSQL database (e.g. `jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require`).
+*   `DATABASE_USERNAME`: Your database user (e.g. `postgres.<project-id>`).
+*   `DATABASE_PASSWORD`: Your database password.
+*   `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD`: Your Gmail SMTP sender and 16-character Gmail App Password (required for email verification).
+*   `ADMIN_BOOTSTRAP_PASSWORD`: Custom local admin password.
+*   `JWT_SECRET`: A secret key for signing JWT tokens (minimum 32 characters).
 
 > [!WARNING]
-> Do not commit `application-local.yml` to Git. It contains database and SMTP passwords.
+> Do not commit `midori-be/.env` to Git. It contains database and SMTP passwords.
 
 ### Step 2.2: Run the Backend
-Start the application under the `local` profile:
+
+Start the application. The backend reads all configuration from environment variables via `application.yml`:
+
 ```powershell
 cd midori-be
-$env:SPRING_PROFILES_ACTIVE = "local"
-mvn spring-boot:run "-Dspring-boot.run.profiles=local"
+mvn spring-boot:run
 ```
-Or run the root automation script:
+
+Or run the automation script:
+
 ```powershell
 .\scripts\run-backend-local.ps1
 ```
+
 The backend server runs at: **http://localhost:8080**
 
 ---
@@ -54,43 +63,51 @@ The backend server runs at: **http://localhost:8080**
 The frontend is a React application built with Vite and TanStack Router.
 
 ### Step 3.1: Environment File
+
 Create a local environment file:
+
 ```powershell
 cd midori-fe
-Copy-Item .env.example .env.local
+copy-item .env.example .env.local
 ```
-Open [.env.local](../../midori-fe/.env.local) and populate the values:
 
-*   `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth Client ID (`YOUR_GOOGLE_CLIENT_ID`).
+Open `.env.local` and populate the values:
+
+*   `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth Client ID.
 *   `VITE_SUPABASE_URL`: Your Supabase project URL (`https://YOUR_SUPABASE_PROJECT_REF.supabase.co`).
 *   `VITE_SUPABASE_PUBLISHABLE_KEY`: Your Supabase anon key (for upload services).
 
 ### Step 3.2: Install Dependencies & Run
+
 Install packages and start the frontend development server:
+
 ```powershell
 cd midori-fe
 npm install
 npm run dev -- --port 8081
 ```
-Or run the root automation script:
+
+Or run the automation script:
+
 ```powershell
 .\scripts\run-frontend.ps1
 ```
+
 The frontend is hosted at: **http://localhost:8081**
 
 ---
 
 ## 4. Default Admin Account
 
-When the backend starts in the `local` profile, if no active administrator exists in the database, the system automatically bootstraps a default account using parameters in [AdminBootstrapProperties.java](../src/main/java/com/midori/config/AdminBootstrapProperties.java) and [AdminBootstrapConfig.java](../src/main/java/com/midori/config/AdminBootstrapConfig.java):
+When the backend starts, if no active administrator exists in the database, the system automatically bootstraps a default account using parameters in [AdminBootstrapProperties.java](../src/main/java/com/midori/config/AdminBootstrapProperties.java) and [AdminBootstrapConfig.java](../src/main/java/com/midori/config/AdminBootstrapConfig.java):
 
-*   **Email**: `admin@midori.local`
+*   **Email**: `admin@midori.local` (controlled by `ADMIN_BOOTSTRAP_EMAIL`)
 *   **Password**: *Set through the `ADMIN_BOOTSTRAP_PASSWORD` environment variable*
 *   **Role**: `ADMIN`
 *   **Status**: `ACTIVE`
 
 > [!IMPORTANT]
-> *   If `ADMIN_PASSWORD` is set, the admin password will use that environment variable.
+> *   If `ADMIN_BOOTSTRAP_PASSWORD` is set, the admin account is created with that password.
 > *   For shared Supabase/dev database credentials, ask the team leader. Do not commit real passwords.
 
 ---

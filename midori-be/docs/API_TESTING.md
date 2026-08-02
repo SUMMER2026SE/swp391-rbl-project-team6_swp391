@@ -5,7 +5,7 @@
 ## Prerequisites
 
 1. **Database**: Ensure Supabase PostgreSQL is running and `schema.sql` has been executed.
-2. **Environment**: Copy `application-local.example.yml` to `application-local.yml` and fill in real values.
+2. **Environment**: Copy `midori-be/.env.example` to `midori-be/.env` and fill in real values.
 3. **Start backend**: `mvn spring-boot:run` or run from IDE
 4. **Base URL**: `http://localhost:8080/api`
 

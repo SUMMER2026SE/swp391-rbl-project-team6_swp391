@@ -11,9 +11,15 @@ midori:
       batch-size: 500
       skip-existing: true
 
+# NOTE: spring.profiles.active should NOT be set to "local" here.
+# The "local" profile requires application-local.yml (gitignored secrets).
+# For local development, load environment variables from midori-be/.env
+# using the run-backend-local.ps1 script, or set env vars in your IDE.
+# For deployment, provide all required environment variables directly.
+#
+# If you need a local profile, copy application-local.example.yml to
+# application-local.yml and set SPRING_PROFILES_ACTIVE=local in your shell.
 spring:
-  profiles:
-    active: local
   data:
     redis:
       host: ${SPRING_REDIS_HOST:localhost}
@@ -24,8 +30,8 @@ spring:
       max-request-size: 550MB
 
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require}
-    username: ${DATABASE_USERNAME:postgres.clyuyvdaoprxrpmrcyhd}
+    url: ${DATABASE_URL:}
+    username: ${DATABASE_USERNAME:}
     password: ${DATABASE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
@@ -51,7 +57,7 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${SPRING_MAIL_USERNAME:dathatinh2005aa@gmail.com}
+    username: ${SPRING_MAIL_USERNAME:}
     password: ${SPRING_MAIL_PASSWORD:}
     properties:
       mail:
@@ -72,21 +78,21 @@ app:
     email: ${ADMIN_BOOTSTRAP_EMAIL:admin@midori.local}
     password: ${ADMIN_BOOTSTRAP_PASSWORD:}
   jwt:
-    secret: local-dev-jwt-secret-key-for-midori-backend-at-least-32-chars
+    secret: ${JWT_SECRET:}
     access-token-expiration: 86400000
   token:
     email-verification-expiration: 60
     password-reset-expiration: 3600
   google:
-    client-id: 65823123353-je7nstqt77f1l4d0576vijjaklrnfum9.apps.googleusercontent.com
+    client-id: ${GOOGLE_CLIENT_ID:}
   mail:
     enabled: true
-    from: dathatinh2005aa@gmail.com
+    from: ${APP_MAIL_FROM:}
   frontend:
     base-url: http://localhost:8081
 
 supabase:
-  url: https://clyuyvdaoprxrpmrcyhd.supabase.co
+  url: ${SUPABASE_URL:}
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}

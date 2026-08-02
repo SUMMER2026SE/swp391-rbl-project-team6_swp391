@@ -9,7 +9,7 @@
 $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$FrontendDir  = Join-Path $ProjectRoot "midori-be"
+$FrontendDir  = Join-Path $ProjectRoot "midori-fe"
 $FrontendScript = Join-Path $FrontendDir "scripts\run-frontend.ps1"
 
 if (-not (Test-Path $FrontendScript)) {

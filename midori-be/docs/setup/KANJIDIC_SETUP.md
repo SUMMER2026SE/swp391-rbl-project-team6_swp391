@@ -41,15 +41,17 @@ This file is essential for:
 After downloading, place the file at:
 
 ```
-midori-be/src/main/resources/dictionary/sudachi/KANJIDIC2.xml
+midori-be/src/main/resources/dictionary/KANJIDIC2.xml
 ```
 
-Expected full path:
+Or use a custom path by setting the `KANJIDIC2_PATH` environment variable:
+
 ```
-D:\swp1\swp391-rbl-project-team6_swp391\midori-be\src\main\resources\dictionary\sudachi\KANJIDIC2.xml
+KANJIDIC2_PATH=/path/to/KANJIDIC2.xml  # Linux/macOS
+$env:KANJIDIC2_PATH = "C:\path\to\KANJIDIC2.xml"  # Windows PowerShell
 ```
 
-> **Note**: The `sudachi` folder contains Japanese linguistic resources used by the dictionary system.
+> **Note**: The dictionary files are used for optional Kanji dictionary features. The application will continue to run with reduced functionality if they are missing.
 
 ---
 
@@ -63,14 +65,19 @@ The file is maintained by the **Electronic Dictionary Research and Development G
 
 ### Direct Download Link
 
-You can download the file directly from:
+You can download the file directly from Jim Breen's KANJIDIC2 mirror:
 ```
-https://www.edrdg.org/kanjidict/kanjiapi/2024/kanjidic2.xml
+https://www.csse.monash.edu.au/~jwb/kanjidic2/kanjidic2.xml
 ```
 
 Or the compressed version:
 ```
-https://www.edrdg.org/kanjidict/kanjiapi/2024/kanjidic2.xml.gz
+https://www.csse.monash.edu.au/~jwb/kanjidic2/kanjidic2.xml.gz
+```
+
+Alternatively, visit the official EDRDG page:
+```
+https://www.edrdg.org/wiki/index.php/KANJIDIC2
 ```
 
 ### File Format
@@ -85,65 +92,90 @@ https://www.edrdg.org/kanjidict/kanjiapi/2024/kanjidic2.xml.gz
 
 Follow these steps when you first clone the repository:
 
-### Step 1: Ensure the dictionary directory exists
+### Option A: Automated Download (Recommended)
+
+Use the provided PowerShell script:
+
+```powershell
+cd midori-be
+.\scripts\download-kanjidic.ps1
+```
+
+This script will:
+- Download KANJIDIC2.xml from the official EDRDG source
+- Create the required directory structure
+- Verify the downloaded file is valid XML
+
+### Option B: Manual Download
+
+**Step 1: Ensure the dictionary directory exists**
 
 ```powershell
 # Navigate to the backend resources directory
 cd midori-be/src/main/resources
 
-# Create the sudachi directory if it doesn't exist
-New-Item -ItemType Directory -Path "dictionary/sudachi" -Force
+# Create the dictionary directory if it doesn't exist
+New-Item -ItemType Directory -Path "dictionary" -Force
 ```
 
-### Step 2: Download the file
+**Step 2: Download the file**
 
-**Option A: Direct download with PowerShell**
+**Option 1: Direct download with PowerShell**
 
 ```powershell
-# Download the XML file
-Invoke-WebRequest -Uri "https://www.edrdg.org/kanjidict/kanjiapi/2024/kanjidic2.xml" `
-    -OutFile "midori-be/src/main/resources/dictionary/sudachi/KANJIDIC2.xml"
+# Download the XML file (Jim Breen's mirror)
+Invoke-WebRequest -Uri "https://www.csse.monash.edu.au/~jwb/kanjidic2/kanjidic2.xml" `
+    -OutFile "midori-be/src/main/resources/dictionary/KANJIDIC2.xml"
 ```
 
-**Option B: Download and extract the compressed version**
+**Option 2: Download and extract the compressed version**
 
 ```powershell
 # Download the compressed file
-Invoke-WebRequest -Uri "https://www.edrdg.org/kanjidict/kanjiapi/2024/kanjidic2.xml.gz" `
+Invoke-WebRequest -Uri "https://www.csse.monash.edu.au/~jwb/kanjidic2/kanjidic2.xml.gz" `
     -OutFile "$env:TEMP\kanjidic2.xml.gz"
 
 # Extract using .NET
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::ExtractToDirectory(
     "$env:TEMP\kanjidic2.xml.gz",
-    "midori-be/src/main/resources/dictionary/sudachi"
+    "midori-be/src/main/resources/dictionary"
 )
 
 # Rename if needed
-Rename-Item "midori-be/src/main/resources/dictionary/sudachi/kanjidic2.xml" "KANJIDIC2.xml" -ErrorAction SilentlyContinue
+Rename-Item "midori-be/src/main/resources/dictionary/kanjidic2.xml" "KANJIDIC2.xml" -ErrorAction SilentlyContinue
 
 # Cleanup
 Remove-Item "$env:TEMP\kanjidic2.xml.gz" -ErrorAction SilentlyContinue
 ```
 
-**Option C: Manual download**
+**Option 3: Manual browser download**
 
 1. Visit https://www.edrdg.org/wiki/index.php/KANJIDIC2
 2. Click the download link for the XML file
 3. Save as `KANJIDIC2.xml`
-4. Place in `midori-be/src/main/resources/dictionary/sudachi/`
+4. Place in `midori-be/src/main/resources/dictionary/`
 
-### Step 3: Verify the file
+### Option C: Use Custom Path
+
+If you prefer to store KANJIDIC2.xml in a different location, set the `KANJIDIC2_PATH` environment variable:
+
+```powershell
+# In your .env file or terminal
+$env:KANJIDIC2_PATH = "C:\path\to\KANJIDIC2.xml"
+```
+
+**Step 3: Verify the file**
 
 ```powershell
 # Check if file exists
-Test-Path "midori-be/src/main/resources/dictionary/sudachi/KANJIDIC2.xml"
+Test-Path "midori-be/src/main/resources/dictionary/KANJIDIC2.xml"
 
 # Check file size (should be several MB)
-Get-Item "midori-be/src/main/resources/dictionary/sudachi/KANJIDIC2.xml" | Select-Object Name, Length
+Get-Item "midori-be/src/main/resources/dictionary/KANJIDIC2.xml" | Select-Object Name, Length
 
 # Verify it's valid XML (first 10 lines)
-Get-Content "midori-be/src/main/resources/dictionary/sudachi/KANJIDIC2.xml" -TotalCount 10
+Get-Content "midori-be/src/main/resources/dictionary/KANJIDIC2.xml" -TotalCount 10
 ```
 
 Expected first line:
@@ -192,16 +224,23 @@ mvn spring-boot:run -Dspring-boot.run.arguments="--import-kanji"
 **Cause**: The file is missing from the expected location.
 
 **Solution**:
-1. Verify the file exists at `midori-be/src/main/resources/dictionary/sudachi/KANJIDIC2.xml`
-2. Download the file following Section 5 above
-3. Restart the application
+1. Download the file using the provided script:
+   ```powershell
+   .\midori-be\scripts\download-kanjidic.ps1
+   ```
+2. Or manually verify the file exists at `midori-be/src/main/resources/dictionary/KANJIDIC2.xml`
+3. Or set a custom path in your `.env` file:
+   ```
+   KANJIDIC2_PATH=C:\path\to\KANJIDIC2.xml
+   ```
+4. Restart the application
 
 ### Error: "File not found" or "Access denied"
 
 **Cause**: Incorrect file path or permission issues.
 
 **Solution**:
-1. Check that the `dictionary/sudachi/` folder exists
+1. Check that the `dictionary/` folder exists
 2. Verify the file name is exactly `KANJIDIC2.xml` (case-sensitive on some systems)
 3. Ensure the file is not empty or corrupted
 4. Try running PowerShell as Administrator if permission issues persist
@@ -244,12 +283,13 @@ For more information about the license and usage terms, visit:
 
 The dictionary system also uses these files in `src/main/resources/dictionary/`:
 
-| File | Purpose | Git Tracked |
-|------|---------|-------------|
-| `JMdict.xml` | Main Japanese-English dictionary | Yes (smaller file) |
-| `KANJIDIC2.xml` | Kanji character information | **No** (download separately) |
-| `grammar/*.json` | Grammar pattern data | Yes |
-| `kanjivg/*.svg` | Kanji stroke order SVGs | Yes |
+| File | Purpose | Git Tracked | Required |
+|------|---------|-------------|----------|
+| `JMdict.xml` | Main Japanese-English dictionary | Yes | Yes |
+| `KANJIDIC2.xml` | Kanji character information | **No** (download separately) | No |
+| `grammar/*.json` | Grammar pattern data | Yes | Yes |
+| `kanjivg/*.svg` | Kanji stroke order SVGs | **No** (download separately) | No |
+| `sudachi/` | Sudachi tokenizer resources | Yes | Yes |
 
 ---
 
@@ -264,4 +304,4 @@ If you encounter issues not covered here:
 
 ---
 
-*Last updated: July 2026*
+*Last updated: August 2026*

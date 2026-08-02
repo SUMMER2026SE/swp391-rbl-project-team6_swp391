@@ -2,40 +2,49 @@
 # MIDORI - Run Backend Locally
 # ============================================================
 # Usage: .\scripts\run-backend-local.ps1
-# Requires: application-local.yml with real secrets configured
+# This script loads environment variables from midori-be/.env
+# before running the backend.
+# NOTE: application-local.yml is NOT required. All configuration
+# comes from environment variables via application.yml.
 # ============================================================
 
 $ErrorActionPreference = "Stop"
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$BackendDir = Split-Path -Parent $PSScriptRoot
 
-Write-Host "Starting MIDORI Backend (local profile)..." -ForegroundColor Green
+Write-Host "Starting MIDORI Backend..." -ForegroundColor Green
 Write-Host ""
 
-$BackendDir = Join-Path $ProjectRoot "midori-be"
 if (-not (Test-Path $BackendDir)) {
     Write-Host "ERROR: midori-be directory not found at $BackendDir" -ForegroundColor Red
     exit 1
 }
 
-Push-Location $BackendDir
-
-try {
-    $env:SPRING_PROFILES_ACTIVE = "local"
-    Write-Host "Profile: local" -ForegroundColor Cyan
-    Write-Host "Config:  src/main/resources/application-local.yml" -ForegroundColor Cyan
-    Write-Host ""
-
-    # Check if application-local.yml exists
-    $localConfig = Join-Path $BackendDir "src\main\resources\application-local.yml"
-    if (-not (Test-Path $localConfig)) {
-        Write-Host "WARNING: application-local.yml not found!" -ForegroundColor Yellow
-        Write-Host "Please copy application-local.example.yml to application-local.yml and fill in your secrets." -ForegroundColor Yellow
-        Write-Host "Path: $localConfig" -ForegroundColor Yellow
-        Write-Host ""
+# Load environment variables from .env file
+$EnvFile = Join-Path $BackendDir ".env"
+if (Test-Path $EnvFile) {
+    Write-Host "Loading environment variables from: $EnvFile" -ForegroundColor Cyan
+    Get-Content $EnvFile | ForEach-Object {
+        if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+            $key = $matches[1].Trim()
+            $value = $matches[2].Trim()
+            [Environment]::SetEnvironmentVariable($key, $value, "Process")
+        }
     }
-
-    Write-Host "Running: mvn spring-boot:run" -ForegroundColor Gray
+    Write-Host "Environment variables loaded." -ForegroundColor Green
+} else {
+    Write-Host "WARNING: .env file not found at $EnvFile" -ForegroundColor Yellow
+    Write-Host "Please copy .env.example to .env and fill in your secrets:" -ForegroundColor Yellow
+    Write-Host "  copy-item '$BackendDir\.env.example' '$EnvFile'" -ForegroundColor Yellow
     Write-Host ""
+}
+
+Write-Host "Running: mvn spring-boot:run" -ForegroundColor Gray
+Write-Host ""
+Write-Host "Press Ctrl+C to stop the server." -ForegroundColor Gray
+Write-Host ""
+
+Push-Location $BackendDir
+try {
     mvn spring-boot:run
 } finally {
     Pop-Location

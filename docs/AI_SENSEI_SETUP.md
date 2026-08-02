@@ -12,7 +12,7 @@ OpenRouter provides access to various LLM models including free tiers, making it
 - **NEVER put real API keys in any source code or config file that is tracked by Git**
 - API keys should only exist in:
   - Environment variables (recommended)
-  - Local-only config files like `application-local.yml` (which is in .gitignore)
+  - `midori-be/.env` (gitignored, local-only)
 
 ## Supported Providers
 
@@ -65,17 +65,15 @@ setx OPENROUTER_API_KEY "your_openrouter_api_key_here"
 ```
 Then restart your terminal.
 
-### Option 2: Spring Config Property
+### Option 2: Via `.env` file (Recommended)
 
-Edit `midori-be/src/main/resources/application-local.yml` (this file is gitignored):
+Add the key to `midori-be/.env`:
 
-```yaml
-ai:
-  provider: openrouter
-  openrouter:
-    api-key: your_openrouter_api_key_here
-    model: openrouter/free  # or specific model like "google/gemini-2.0-flash"
 ```
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+```
+
+The backend reads this automatically via `application.yml`.
 
 ## Configuring AI Provider
 

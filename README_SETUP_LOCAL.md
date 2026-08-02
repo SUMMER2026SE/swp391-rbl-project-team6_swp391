@@ -51,43 +51,34 @@ java -version
 mvn -v
 ```
 
-### 4.2. Tạo file config local
+### 4.2. Tạo file environment variables
 
 **File thật — không commit:**
 
 ```powershell
 cd midori-be
-Copy-Item src/main/resources/application-local.example.yml src/main/resources/application-local.yml
+copy-item .env.example .env
 ```
 
-**Mở `src/main/resources/application-local.yml`, thay các placeholder:**
+**Mở `midori-be/.env`, thay các placeholder (tất cả các biến đều có comment trong file):**
 
-```
-spring:
-  datasource:
-    url: jdbc:postgresql://YOUR_SUPABASE_HOST:5432/postgres?sslmode=require
-    username: YOUR_DB_USERNAME
-    password: YOUR_DB_PASSWORD
-
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: YOUR_GMAIL_ADDRESS@gmail.com
-    password: YOUR_GMAIL_APP_PASSWORD_16_CHARS
-
-app:
-  jwt:
-    secret: YOUR_OWN_SECRET_KEY_AT_LEAST_32_CHARS
-  google:
-    client-id: YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
-```
+| Variable | Thay bằng | Nguồn |
+|---------|-----------|--------|
+| `DATABASE_URL` | Connection string Supabase | Supabase Dashboard > Settings > Connection String |
+| `DATABASE_USERNAME` | `postgres.xxx` | Supabase Dashboard |
+| `DATABASE_PASSWORD` | Mật khẩu DB | Hỏi team leader |
+| `JWT_SECRET` | Secret key (tối thiểu 32 ký tự) | Tự tạo |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | Hỏi team leader |
+| `SPRING_MAIL_USERNAME` | Gmail gửi OTP | Dùng Gmail của team |
+| `SPRING_MAIL_PASSWORD` | Gmail App Password (16 ký tự) | Hỏi team leader hoặc tự tạo |
+| `APP_MAIL_FROM` | Cùng `SPRING_MAIL_USERNAME` | |
 
 ### 4.3. Cấu hình Gmail App Password
 
 1. Bật **2-Step Verification** trên Google Account.
 2. Vào **Google Account > Security > App passwords**.
 3. Chọn app: **Mail**, device: **Other (Custom name)**.
-4. Copy mật khẩu 16 ký tự, dán vào `spring.mail.password` trong `application-local.yml`.
+4. Copy mật khẩu 16 ký tự, dán vào `SPRING_MAIL_PASSWORD` trong `midori-be/.env`.
 
 > **Lưu ý:** Không dùng mật khẩu Gmail thường. App Password là bắt buộc.
 
@@ -101,7 +92,7 @@ Vào **Supabase Dashboard > Settings > Connection String**, lấy:
 - `password` — DB password
 - Thêm `?sslmode=require` vào cuối connection string
 
-> **Lưu ý:** Nếu gặp `HikariPool - Connection is not available`, giảm `maximum-pool-size` xuống **5** trong `application-local.yml` và restart backend.
+> **Lưu ý:** Nếu gặp `HikariPool - Connection is not available`, giảm `maximum-pool-size` xuống **5** trong `application.yml` và restart backend.
 
 ---
 
@@ -149,7 +140,7 @@ Không cần thêm redirect URI.
 
 ```powershell
 cd midori-be
-mvn spring-boot:run "-Dspring-boot.run.profiles=local"
+mvn spring-boot:run
 ```
 
 **Dấu hiệu chạy thành công:**
@@ -219,7 +210,7 @@ Frontend: **http://localhost:8081**
 **TUYỆT ĐỐI KHÔNG commit các file sau:**
 
 ```
-midori-be/src/main/resources/application-local.yml     # secret DB + Gmail + JWT
+midori-be/.env                                         # secret DB + Gmail + JWT + API keys
 midori-fe/.env.local                                   # API keys + Supabase keys
 get_otp.py                                             # file test tạm
 ```
@@ -233,7 +224,7 @@ git status --short
 **NÊN commit:**
 
 ```
-midori-be/src/main/resources/application-local.example.yml   # template placeholder
-midori-fe/.env.example                                       # template placeholder
-midori-be/src/main/resources/application.yml                 # chỉ active profile, không secret
+midori-be/.env.example                                  # template placeholder
+midori-fe/.env.example                                  # template placeholder
+midori-be/src/main/resources/application.yml              # chỉ có ${ENV_VAR}, không secret
 ```

@@ -11,17 +11,30 @@ This document describes how to set up the Midori Japanese learning platform.
 
 ## Backend Setup
 
-### 1. Database Configuration
+### 1. Environment Variables
 
-Create `midori-be/src/main/resources/application-local.yml`:
+Copy the environment variable template:
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/midori
-    username: your_username
-    password: your_password
+```powershell
+cd midori-be
+copy-item .env.example .env
 ```
+
+Open `midori-be/.env` and fill in all values. See `midori-be/.env.example` for the complete list of supported variables.
+
+Key required variables:
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL JDBC connection URL |
+| `DATABASE_USERNAME` | Database username |
+| `DATABASE_PASSWORD` | Database password |
+| `JWT_SECRET` | JWT signing secret (minimum 32 characters) |
+| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID |
+| `SPRING_MAIL_USERNAME` | Gmail sender address |
+| `SPRING_MAIL_PASSWORD` | Gmail App Password (16 characters) |
+
+> **Do not commit `midori-be/.env`** — it is gitignored.
 
 ### 2. External Resources
 
@@ -47,7 +60,21 @@ KANJIDIC2 provides Kanji information including:
 
 https://www.edrdg.org/wiki/index.php/KANJIDIC_Project
 
-### Instructions
+### Automated Download (Recommended)
+
+Use the provided script to download KANJIDIC2.xml:
+
+```powershell
+cd midori-be
+.\scripts\download-kanjidic.ps1
+```
+
+This script will:
+- Download the file from the official EDRDG source
+- Create the required directory structure
+- Verify the downloaded file is valid XML
+
+### Manual Download
 
 1. Visit https://www.edrdg.org/wiki/index.php/KANJIDIC_Project
 2. Download `KANJIDIC2.xml`
@@ -57,6 +84,20 @@ https://www.edrdg.org/wiki/index.php/KANJIDIC_Project
 midori-be/src/main/resources/dictionary/
 ```
 
+### Using a Custom Path
+
+You can specify a custom path using the `KANJIDIC2_PATH` environment variable:
+
+```powershell
+$env:KANJIDIC2_PATH = "C:\path\to\KANJIDIC2.xml"
+```
+
+Or in your `.env` file:
+
+```
+KANJIDIC2_PATH=C:\path\to\KANJIDIC2.xml
+```
+
 ### Final Structure
 
 ```
@@ -64,8 +105,16 @@ dictionary/
 ├── KANJIDIC2.xml
 ├── JMdict.xml
 ├── sudachi/
+│   ├── LEGAL
+│   └── LICENSE-2.0.txt
 └── kanjivg/
 ```
+
+### License and Attribution
+
+KANJIDIC2 is provided by the Electronic Dictionary Research and Development Group (EDRDG). See: https://www.edrdg.org/edrdg/licence.html
+
+Note: KANJIDIC2 is optional. If not present, Kanji Dictionary features will be disabled but the application will continue to run.
 
 ---
 
@@ -161,36 +210,87 @@ https://ffmpeg.org/download.html
 
 ### Windows
 
-1. Download FFmpeg release from https://www.gyan.dev/ffmpeg/builds/
-2. Extract to:
+FFmpeg is not bundled with the repository. Install FFmpeg using one of these methods:
 
-```
-midori-be/ffmpeg/
-```
-
-### Expected Structure
-
-```
-ffmpeg/
-└── bin/
-    ├── ffmpeg.exe
-    └── ffprobe.exe
+**Method 1: Winget (Recommended)**
+```powershell
+winget install ffmpeg
 ```
 
-### Alternative: Environment Variables
-
-You can also set environment variables instead:
-
+**Method 2: Chocolatey**
+```powershell
+choco install ffmpeg
 ```
-FFMPEG_PATH=C:\path\to\ffmpeg.exe
-FFPROBE_PATH=C:\path\to\ffprobe.exe
+
+**Method 3: Scoop**
+```powershell
+scoop install ffmpeg
 ```
+
+**Method 4: Manual Download**
+1. Download from https://www.gyan.dev/ffmpeg/builds/
+2. Extract to a folder (e.g., `C:\ffmpeg`)
+3. Add the `bin` folder to your system PATH:
+   ```powershell
+   # Add to PATH temporarily for current session
+   $env:PATH = "C:\ffmpeg\bin;$env:PATH"
+
+   # Or add permanently via System Properties > Environment Variables
+   ```
+4. Restart your terminal/IDE
+
+After installation, verify FFmpeg is working:
+```powershell
+ffmpeg -version
+ffprobe -version
+```
+
+### Linux / macOS
+
+Install FFmpeg using your package manager:
+
+```bash
+# Debian/Ubuntu
+sudo apt-get update && sudo apt-get install -y ffmpeg
+
+# macOS (with Homebrew)
+brew install ffmpeg
+
+# CentOS/RHEL
+sudo yum install -y ffmpeg
+```
+
+### Alternative: Environment Variables (All Platforms)
+
+You can also set environment variables to override system PATH:
+
+```bash
+# Linux/macOS (PowerShell)
+$env:FFMPEG_PATH = "/usr/local/bin/ffmpeg"
+$env:FFPROBE_PATH = "/usr/local/bin/ffprobe"
+
+# Windows (PowerShell)
+$env:FFMPEG_PATH = "C:\ffmpeg\bin\ffmpeg.exe"
+$env:FFPROBE_PATH = "C:\ffmpeg\bin\ffprobe.exe"
+```
+
+### Docker / Deployment
+
+For Docker-based deployment, add to your Dockerfile:
+
+```dockerfile
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+```
+
+Note: FFmpeg is optional. If not installed, shadowing video processing will be disabled but the application will continue to run.
 
 ---
 
 ## Graceful Degradation
 
-If any external resource is missing, the application will:
+All external resources are **optional**. The application will continue to run with reduced functionality if any resources are missing:
 
 | Resource Missing | Behavior |
 |------------------|----------|
@@ -199,7 +299,13 @@ If any external resource is missing, the application will:
 | kanjivg/ | Return HTTP 404 for SVG requests, frontend shows "Stroke animation is unavailable" |
 | FFmpeg | Log warning, disable Shadowing video processing |
 
-The application will NOT crash when resources are missing. It will continue to run with reduced functionality.
+The application will **NOT crash** when resources are missing. It will continue to run with reduced functionality.
+
+To download missing resources, use the provided scripts:
+```powershell
+# Download KANJIDIC2.xml
+.\midori-be\scripts\download-kanjidic.ps1
+```
 
 ---
 

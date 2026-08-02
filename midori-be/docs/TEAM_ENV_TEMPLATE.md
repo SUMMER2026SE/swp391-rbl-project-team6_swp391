@@ -6,13 +6,15 @@ This document lists all secret values team members need to obtain from the team 
 
 ---
 
-## Backend Secrets (`application-local.yml`)
+## Backend Secrets (`midori-be/.env`)
 
-| Variable Name | YAML Path | Description |
-|---------------|-----------|-------------|
-| `SUPABASE_DB_PASSWORD` | `spring.datasource.password` | Supabase PostgreSQL database password for local development |
-| `GMAIL_SENDER` | `spring.mail.username` | Gmail address used to send OTP and password reset emails |
-| `GMAIL_APP_PASSWORD` | `spring.mail.password` | Gmail App Password (16 characters, generated from Google Account > Security > App passwords) |
+| Variable Name | Description |
+|---------------|-------------|
+| `DATABASE_PASSWORD` | Supabase PostgreSQL database password for local development |
+| `JWT_SECRET` | JWT signing secret (minimum 32 characters) |
+| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID |
+| `SPRING_MAIL_USERNAME` | Gmail address used to send OTP and password reset emails |
+| `SPRING_MAIL_PASSWORD` | Gmail App Password (16 characters, generated from Google Account > Security > App passwords) |
 
 ---
 
@@ -31,10 +33,12 @@ Message the team leader privately with:
 ```
 Hi, I need the following secrets for local development:
 
-1. SUPABASE_DB_PASSWORD  — Supabase dev DB password
-2. GMAIL_SENDER          — Gmail address for OTP sending
-3. GMAIL_APP_PASSWORD    — Gmail App Password
-4. VITE_SUPABASE_PUBLISHABLE_KEY — Supabase anon key for frontend
+1. DATABASE_PASSWORD     — Supabase dev DB password
+2. JWT_SECRET          — JWT signing secret (min 32 characters)
+3. GOOGLE_CLIENT_ID    — Google OAuth 2.0 Client ID
+4. SPRING_MAIL_USERNAME — Gmail address for OTP sending
+5. SPRING_MAIL_PASSWORD — Gmail App Password (16 characters)
+6. VITE_SUPABASE_PUBLISHABLE_KEY — Supabase anon key for frontend
 ```
 
 > **Important:** Never share these values in group chats or commit them to the repository.
@@ -50,7 +54,7 @@ Hi, I need the following secrets for local development:
 5. Select app: "Mail", Select device: "Other (Custom name)"
 6. Enter "MIDORI Local Dev" and click **Generate**
 7. Copy the 16-character password shown
-8. Use this as `mail.password` in `application-local.yml`
+8. Paste it as `SPRING_MAIL_PASSWORD` in `midori-be/.env`
 
 ---
 

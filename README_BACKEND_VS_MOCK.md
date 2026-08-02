@@ -127,15 +127,15 @@ The user profile pages support:
 
 ### Option B: Manual Commands
 - **Backend Setup**:
-  1. Initialize config file:
+  1. Initialize env variables:
      ```bash
-     cp midori-be/src/main/resources/application-local.example.yml midori-be/src/main/resources/application-local.yml
+     cp midori-be/.env.example midori-be/.env
      ```
-  2. Edit credentials in `application-local.yml`.
+  2. Edit values in `midori-be/.env`.
   3. Start the application:
      ```bash
      cd midori-be
-     mvn spring-boot:run "-Dspring-boot.run.profiles=local"
+     mvn spring-boot:run
      ```
 - **Frontend Setup**:
   1. Initialize env parameters:

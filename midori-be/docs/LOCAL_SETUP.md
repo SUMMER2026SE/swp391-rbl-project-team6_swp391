@@ -30,33 +30,32 @@ cd swp391-rbl-project-team6_swp391
 
 ## 2. Backend Setup
 
-### 2a. Copy the config template
+### 2a. Copy the environment variable template
 
 ```powershell
-# Navigate to backend resources
-cd midori-be/src/main/resources
-
-# Copy example config to local config
-copy-item "application-local.example.yml" "application-local.yml"
+cd midori-be
+copy-item .env.example .env
 ```
 
 ### 2b. Fill in the secrets
 
-Open `application-local.yml` and replace these placeholders:
+Open `midori-be/.env` and replace the placeholder values. The complete list of supported variables and their descriptions is documented inline in the file.
 
-| Field | Replace With | Example |
-|-------|-------------|---------|
-| `spring.datasource.url` | Your Supabase connection URL | `jdbc:postgresql://YOUR_SUPABASE_HOST:5432/postgres?sslmode=require` |
-| `spring.datasource.username` | Your database username | `postgres.YOUR_PROJECT_REF` |
-| `spring.datasource.password` | Your database password | Ask team leader |
-| `spring.mail.username` | Gmail sender address | `your_email@gmail.com` |
-| `spring.mail.password` | Gmail App Password | Ask team leader |
-| `spring.mail.from` | Same as `spring.mail.username` | |
-| `app.jwt.secret` | JWT signing secret (≥32 chars) | `YOUR_JWT_SECRET_AT_LEAST_32_CHARS` |
-| `app.google.client-id` | Google OAuth Client ID | Ask team leader |
-| `app.admin.password` | Local admin password | `ChangeMe123!` (default) |
+Key required variables:
 
-> **Do not commit `application-local.yml`**. It is already in `.gitignore`.
+| Variable | Replace With | Example |
+|---------|-------------|---------|
+| `DATABASE_URL` | Your Supabase connection URL | `jdbc:postgresql://YOUR_SUPABASE_HOST:5432/postgres?sslmode=require` |
+| `DATABASE_USERNAME` | Your database username | `postgres.YOUR_PROJECT_REF` |
+| `DATABASE_PASSWORD` | Your database password | Ask team leader |
+| `JWT_SECRET` | JWT signing secret (min 32 chars) | `your-own-jwt-secret-at-least-32-characters` |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | Ask team leader |
+| `SPRING_MAIL_USERNAME` | Gmail sender address | `your_email@gmail.com` |
+| `SPRING_MAIL_PASSWORD` | Gmail App Password (16 chars) | Ask team leader |
+| `APP_MAIL_FROM` | Same as `SPRING_MAIL_USERNAME` | |
+| `ADMIN_BOOTSTRAP_PASSWORD` | Local admin password | Ask team leader |
+
+> **Do not commit `midori-be/.env`**. It is already in `.gitignore`.
 
 ---
 
@@ -188,10 +187,10 @@ Check your `.env.local`:
 
 ### OTP email not received
 
-1. Verify `mail.username` and `mail.password` in `application-local.yml`.
-2. The `mail.password` must be a **Gmail App Password** (16 characters), not your Gmail account password.
+1. Verify `SPRING_MAIL_USERNAME` and `SPRING_MAIL_PASSWORD` in `midori-be/.env`.
+2. The `SPRING_MAIL_PASSWORD` must be a **Gmail App Password** (16 characters), not your Gmail account password.
 3. Generate an App Password at [Google Account > Security > App passwords](https://myaccount.google.com/apppasswords).
-4. Restart the backend after fixing `application-local.yml`.
+4. Restart the backend after fixing `.env`.
 
 ### YAML — `DuplicateKeyException` or parsing error
 
@@ -207,7 +206,7 @@ This usually means wrong indentation. YAML is indentation-sensitive.
 
 **Never commit these files:**
 
-- `midori-be/src/main/resources/application-local.yml`
+- `midori-be/.env`
 - `midori-fe/.env.local`
 - Any file containing real passwords, tokens, or secrets
 
@@ -215,7 +214,7 @@ This usually means wrong indentation. YAML is indentation-sensitive.
 
 ```powershell
 git status --short
-git check-ignore -v midori-be/src/main/resources/application-local.yml
+git check-ignore -v midori-be/.env
 git check-ignore -v midori-fe/.env.local
 ```
 

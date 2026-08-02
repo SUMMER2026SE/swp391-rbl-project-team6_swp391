@@ -2,7 +2,8 @@
 # MIDORI - Run Frontend Locally
 # ============================================================
 # Usage: .\scripts\run-frontend.ps1
-# Requires: midori-fe/.env.local with real values configured
+# This script loads environment variables from midori-fe/.env.local
+# before running the frontend dev server.
 # ============================================================
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,25 @@ if (-not (Test-Path $FrontendDir)) {
     exit 1
 }
 
+# Check if .env.local exists
+$EnvLocal = Join-Path $FrontendDir ".env.local"
+if (Test-Path $EnvLocal) {
+    Write-Host "Loading environment variables from: $EnvLocal" -ForegroundColor Cyan
+    Get-Content $EnvLocal | ForEach-Object {
+        if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+            $key = $matches[1].Trim()
+            $value = $matches[2].Trim()
+            [Environment]::SetEnvironmentVariable($key, $value, "Process")
+        }
+    }
+    Write-Host "Environment variables loaded." -ForegroundColor Green
+} else {
+    Write-Host "WARNING: .env.local not found at $EnvLocal" -ForegroundColor Yellow
+    Write-Host "Please copy .env.example to .env.local and fill in your secrets:" -ForegroundColor Yellow
+    Write-Host "  copy-item '$FrontendDir\.env.example' '$EnvLocal'" -ForegroundColor Yellow
+    Write-Host ""
+}
+
 Push-Location $FrontendDir
 
 try {
@@ -27,6 +47,8 @@ try {
     Write-Host "Starting dev server..." -ForegroundColor Cyan
     Write-Host "Config:  .env.local" -ForegroundColor Cyan
     Write-Host "URL:     http://localhost:8081" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Press Ctrl+C to stop the server." -ForegroundColor Gray
     Write-Host ""
 
     npm run dev

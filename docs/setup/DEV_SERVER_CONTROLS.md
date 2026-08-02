@@ -95,8 +95,8 @@ Có thể Java/Maven chưa kịp giải phóng socket. Đợi vài giây rồi c
 ### Cửa sổ mới bật lên nhưng đóng ngay
 
 Kiểm tra:
-1. `application-local.yml` đã tồn tại trong `midori-be/src/main/resources/` chưa (xem [LOCAL_SETUP.md](../LOCAL_SETUP.md))
-2. Database Supabase còn live và các secret trong `application-local.yml` đúng
+1. `midori-be/.env` đã tồn tại chưa (xem [LOCAL_SETUP.md](../LOCAL_SETUP.md))
+2. Database Supabase còn live và các secret trong `.env` đúng
 3. Mở cửa sổ PowerShell thủ công và chạy lại `run-backend-local.ps1` để xem log chi tiết
 
 ### Frontend mở port khác (8082, 8083…)

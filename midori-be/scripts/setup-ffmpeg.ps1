@@ -1,14 +1,19 @@
 # ============================================================
-# MIDORI - Setup/validate FFmpeg for local development
+# MIDORI - Check FFmpeg Installation
 # ============================================================
+# Verifies FFmpeg is available in system PATH.
 # Usage: .\scripts\setup-ffmpeg.ps1
-# This script does NOT download FFmpeg.
+#
+# FFmpeg can be installed via:
+# - Windows: winget, chocolatey, scoop, or manual download
+# - Linux: apt-get, yum, dnf
+# - macOS: brew
 # ============================================================
 
 $ErrorActionPreference = "Stop"
 
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
-$DefaultFfmpegDir = Join-Path $ProjectRoot "ffmpeg\bin"
+$OS = [Environment]::OSVersion.Platform
+$IsWindows = ($OS -eq [PlatformID]::Win32NT) -or ($OS -eq [PlatformID]::Win32Windows)
 
 function Write-Header {
     param([string]$Text)
@@ -34,78 +39,92 @@ function Write-Fail {
     Write-Host "[FAIL] $Text" -ForegroundColor Red
 }
 
-function Resolve-FfmpegPath {
-    param(
-        [string]$EnvKey,
-        [string]$DefaultFile
-    )
-
-    $envValue = [Environment]::GetEnvironmentVariable($EnvKey)
-    if ($envValue) {
-        $resolved = $envValue
-    } else {
-        $resolved = Join-Path $DefaultFfmpegDir $DefaultFile
-    }
-
-    return $resolved
-}
-
 function Test-Binary {
     param(
         [string]$Name,
-        [string]$Path
+        [string]$Executable
     )
 
-    if (-not (Test-Path $Path -PathType Leaf)) {
-        Write-Fail "$Name not found: $Path"
-        return $false
+    # First try to find in PATH
+    $foundPath = Get-Command $Executable -ErrorAction SilentlyContinue
+    if ($foundPath) {
+        Write-Ok "$Name found: $($foundPath.Source)"
+        return $true
     }
 
-    try {
-        $proc = Start-Process -FilePath $Path -ArgumentList "-version" -NoNewWindow -Wait -PassThru -RedirectStandardOutput "$env:TEMP\midori-$Name-version.txt" -RedirectStandardError "$env:TEMP\midori-$Name-version.err"
-        $output = Get-Content "$env:TEMP\midori-$Name-version.txt" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($output) {
-            Write-Ok "$Name version: $output"
-        } else {
-            Write-Warn "$Name exists but `-version` produced no output."
+    # If not in PATH, try to run directly (Windows only)
+    if ($IsWindows) {
+        try {
+            $output = & $Executable -version 2>&1 | Select-Object -First 1
+            if ($output) {
+                Write-Ok "$Name: $output"
+                return $true
+            }
+        } catch {
+            Write-Fail "$Name not found in PATH and cannot execute directly."
+            return $false
         }
-        return $true
-    } catch {
-        Write-Warn "$Name exists at $Path but could not be executed: $($_.Exception.Message)"
-        return $false
     }
+
+    Write-Fail "$Name not found in PATH"
+    return $false
 }
 
 Write-Header "MIDORI FFmpeg Setup Check"
 
-$ffmpegPath = Resolve-FfmpegPath -EnvKey "FFMPEG_PATH" -DefaultFile "ffmpeg.exe"
-$ffprobePath = Resolve-FfmpegPath -EnvKey "FFPROBE_PATH" -DefaultFile "ffprobe.exe"
-
-Write-Host "Resolved paths:" -ForegroundColor Cyan
-Write-Host "  FFMPEG_PATH=$ffmpegPath"
-Write-Host "  FFPROBE_PATH=$ffprobePath"
+Write-Host "Checking FFmpeg installation..." -ForegroundColor White
 Write-Host ""
 
 $ok = $true
-$ok = Test-Binary -Name "ffmpeg" -Path $ffmpegPath -and $ok
-$ok = Test-Binary -Name "ffprobe" -Path $ffprobePath -and $ok
 
+# Test ffmpeg
+$ok = (Test-Binary -Name "ffmpeg" -Executable "ffmpeg") -and $ok
 Write-Host ""
+
+# Test ffprobe
+$ok = (Test-Binary -Name "ffprobe" -Executable "ffprobe") -and $ok
+Write-Host ""
+
 if (-not $ok) {
     Write-Fail "FFmpeg setup is incomplete."
     Write-Host ""
-    Write-Host "Installation instructions:" -ForegroundColor Yellow
-    Write-Host "1. Download FFmpeg from https://www.gyan.dev/ffmpeg/builds/" -ForegroundColor Yellow
-    Write-Host "2. Extract it into: $ProjectRoot\ffmpeg\" -ForegroundColor Yellow
-    Write-Host "3. Expected structure:" -ForegroundColor Yellow
-    Write-Host "   $ProjectRoot\ffmpeg\bin\ffmpeg.exe" -ForegroundColor Yellow
-    Write-Host "   $ProjectRoot\ffmpeg\bin\ffprobe.exe" -ForegroundColor Yellow
-    Write-Host "4. Or set environment variables before starting the backend:" -ForegroundColor Yellow
-    Write-Host '   $env:FFMPEG_PATH = "C:\path\to\ffmpeg.exe"' -ForegroundColor Yellow
-    Write-Host '   $env:FFPROBE_PATH = "C:\path\to\ffprobe.exe"' -ForegroundColor Yellow
-    Write-Host "5. Re-run this script to validate." -ForegroundColor Yellow
+    if ($IsWindows) {
+        Write-Host "To install FFmpeg on Windows, choose one method:" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "  Method 1: Winget (recommended if you have Windows Package Manager)" -ForegroundColor White
+        Write-Host "    winget install ffmpeg" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  Method 2: Chocolatey" -ForegroundColor White
+        Write-Host "    choco install ffmpeg" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  Method 3: Scoop" -ForegroundColor White
+        Write-Host "    scoop install ffmpeg" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  Method 4: Manual download" -ForegroundColor White
+        Write-Host "    1. Download from: https://www.gyan.dev/ffmpeg/builds/" -ForegroundColor Gray
+        Write-Host "    2. Extract to a folder" -ForegroundColor Gray
+        Write-Host "    3. Add the bin folder to your system PATH" -ForegroundColor Gray
+        Write-Host "    4. Restart your terminal/IDE" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "After installation, restart your terminal/IDE and run this script again." -ForegroundColor Yellow
+    } else {
+        Write-Host "To install FFmpeg:" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "  Debian/Ubuntu:" -ForegroundColor White
+        Write-Host "    sudo apt-get update && sudo apt-get install -y ffmpeg" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  macOS (with Homebrew):" -ForegroundColor White
+        Write-Host "    brew install ffmpeg" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  CentOS/RHEL:" -ForegroundColor White
+        Write-Host "    sudo yum install -y ffmpeg" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "After installation, restart your terminal and run this script again." -ForegroundColor Yellow
+    }
     exit 1
 }
 
-Write-Ok "FFmpeg is installed and validated."
+Write-Ok "FFmpeg is installed and available in PATH."
+Write-Host ""
+Write-Host "Note: If shadowing video features don't work, verify FFmpeg is in your system PATH." -ForegroundColor Gray
 exit 0

@@ -1,4 +1,4 @@
-﻿import type { ApiResponse } from "./types";
+import type { ApiResponse } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 const TOKEN_KEY = "midori_access_token";
@@ -32,7 +32,7 @@ function buildHeaders(isFormData = false): HeadersInit {
   return headers;
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   public readonly isApiError = true;
 
   constructor(
@@ -213,4 +213,3 @@ export const api = {
   TOKEN_KEY,
 };
 
-export { ApiError };
