@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { teacherQuestionsApi, type TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
+import { teacherQuestionsApi, type TeacherQuestionResponse, type TeacherQuestionPreviewResponse } from "@/lib/api/teacherQuestions";
 import { normalizeImportedQuestionType } from "@/lib/teacherHomeworkMapping";
 import { AiPdfImportWorkflow } from "@/components/admin/AiPdfImportWorkflow";
 import type { ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
@@ -310,7 +310,7 @@ function QuestionBankHW({
     }
   }, [lockedClass, classes, metadata.classId]);
 
-  const [preview, setPreview] = useState<TeacherQuestionResponse[] | null>(null);
+  const [preview, setPreview] = useState<TeacherQuestionPreviewResponse[] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
