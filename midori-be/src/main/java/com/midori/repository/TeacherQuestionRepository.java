@@ -113,4 +113,32 @@ public interface TeacherQuestionRepository extends JpaRepository<TeacherQuestion
     );
 
     List<TeacherQuestion> findByIdIn(List<UUID> ids);
+
+    @org.springframework.data.jpa.repository.Query(
+        value = "SELECT q FROM TeacherQuestion q LEFT JOIN FETCH q.teacher LEFT JOIN FETCH q.lesson " +
+                "WHERE q.lesson.id = :lessonId " +
+                "AND (:search IS NULL OR :search = '' OR LOWER(q.prompt) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+                "AND (:type IS NULL OR :type = '' OR UPPER(q.questionType) = UPPER(:type)) " +
+                "AND (:difficulty IS NULL OR :difficulty = '' OR UPPER(q.difficulty) = UPPER(:difficulty))",
+        countQuery = "SELECT count(q) FROM TeacherQuestion q WHERE q.lesson.id = :lessonId " +
+                "AND (:search IS NULL OR :search = '' OR LOWER(q.prompt) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+                "AND (:type IS NULL OR :type = '' OR UPPER(q.questionType) = UPPER(:type)) " +
+                "AND (:difficulty IS NULL OR :difficulty = '' OR UPPER(q.difficulty) = UPPER(:difficulty))"
+    )
+    org.springframework.data.domain.Page<TeacherQuestion> findByLessonIdWithFilters(
+        @org.springframework.data.repository.query.Param("lessonId") Integer lessonId,
+        @org.springframework.data.repository.query.Param("search") String search,
+        @org.springframework.data.repository.query.Param("type") String type,
+        @org.springframework.data.repository.query.Param("difficulty") String difficulty,
+        org.springframework.data.domain.Pageable pageable
+    );
+
+    @org.springframework.data.jpa.repository.Query("SELECT new map(" +
+            "COUNT(q) as total, " +
+            "SUM(CASE WHEN UPPER(q.questionType) = 'VOCABULARY' THEN 1 ELSE 0 END) as vocabulary, " +
+            "SUM(CASE WHEN UPPER(q.questionType) = 'GRAMMAR' THEN 1 ELSE 0 END) as grammar, " +
+            "SUM(CASE WHEN UPPER(q.questionType) = 'READING' THEN 1 ELSE 0 END) as reading, " +
+            "SUM(CASE WHEN UPPER(q.questionType) = 'LISTENING' THEN 1 ELSE 0 END) as listening) " +
+            "FROM TeacherQuestion q WHERE q.lesson.id = :lessonId")
+    java.util.Map<String, Long> getLessonStatistics(@org.springframework.data.repository.query.Param("lessonId") Integer lessonId);
 }

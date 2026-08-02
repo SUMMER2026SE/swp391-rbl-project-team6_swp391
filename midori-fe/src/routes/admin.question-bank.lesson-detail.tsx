@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useSearch } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { teacherQuestionsApi } from "../lib/api/teacherQuestions";
 import {
   Plus,
   Search,
@@ -12,26 +14,20 @@ import {
   Upload,
   FileSpreadsheet,
   Pencil,
-  ArrowLeft,
-  Filter,
   X,
-  Eye,
-  Edit3,
-  CheckCircle,
-  Music,
-  Clock,
-  Play,
-  Pause,
   ChevronDown,
   ChevronUp,
   XCircle,
+  Music,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
-  questionBankService,
-  useQuestionBank,
+  useAdminQuestionBankLessons,
+  useLessonQuestions,
+  useLessonStatistics,
   type Question,
 } from "../services/questionBankService";
-import { formatDuration } from "../services/questionBank.types";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -101,18 +97,21 @@ function QuestionBankLessonDetailPage() {
     lessonId?: string;
   };
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const level = (search.level?.toUpperCase() || "N5") as JLPTLevel;
   const lessonId = parseInt(search.lessonId || "1");
 
-  const { lessons, questions: allQuestions, isLoading, deleteQuestion } = useQuestionBank(level);
-
-  // Get lesson data from service
+  // Fetch lesson metadata
+  const { lessons } = useAdminQuestionBankLessons(level);
   const lesson = lessons.find((l) => l.id === lessonId);
   const lessonName = lesson?.lessonName || `Lesson ${lessonId}`;
 
-  // State
-  const [searchTerm, setSearchTerm] = useState("");
+  // State for pagination and filters
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+  const [rawSearchTerm, setRawSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<QuestionType | "">("");
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | "">("");
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; questionId: string | null }>({
@@ -121,22 +120,38 @@ function QuestionBankLessonDetailPage() {
   });
   const [collapsedSkills, setCollapsedSkills] = useState<Record<string, boolean>>({});
 
-  const questions = allQuestions.filter((q) => q.lesson === lessonId);
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(rawSearchTerm);
+      setPage(0); // Reset page on new search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [rawSearchTerm]);
 
-  const filteredQuestions = questions.filter((q) => {
-    const matchSearch = q.questionText.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchType = !typeFilter || q.type === typeFilter;
-    const matchDifficulty = !difficultyFilter || q.difficulty === difficultyFilter;
-    return matchSearch && matchType && matchDifficulty;
-  });
-
-  const byType = {
-    Vocabulary: questions.filter((q) => q.type === "Vocabulary").length,
-    Grammar: questions.filter((q) => q.type === "Grammar").length,
-    Reading: questions.filter((q) => q.type === "Reading").length,
-    Listening: questions.filter((q) => q.type === "Listening").length,
+  // Handle filter changes (reset page)
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTypeFilter(e.target.value as QuestionType | "");
+    setPage(0);
   };
 
+  const handleDifficultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setDifficultyFilter(e.target.value as Difficulty | "");
+    setPage(0);
+  };
+
+  // Fetch paginated questions and statistics
+  const { questions, pagination, isLoading: isLoadingQuestions } = useLessonQuestions(lessonId, {
+    page,
+    size,
+    search: debouncedSearch,
+    type: typeFilter,
+    difficulty: difficultyFilter,
+  });
+
+  const { data: stats } = useLessonStatistics(lessonId);
+
+  // Group current page questions by type
   const groupedQuestions = useMemo(() => {
     const groups: Record<QuestionType, Question[]> = {
       Vocabulary: [],
@@ -144,13 +159,28 @@ function QuestionBankLessonDetailPage() {
       Reading: [],
       Listening: [],
     };
-    filteredQuestions.forEach((q) => {
+    questions.forEach((q) => {
       if (groups[q.type]) {
         groups[q.type].push(q);
       }
     });
     return groups;
-  }, [filteredQuestions]);
+  }, [questions]);
+
+  const deleteQuestionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await teacherQuestionsApi.deleteQuestion(id);
+    },
+    onSuccess: () => {
+      toast.success("Question deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["lesson-questions"] });
+      queryClient.invalidateQueries({ queryKey: ["lesson-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["adminQuestionBankLessons"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to delete question");
+    }
+  });
 
   const handleDelete = (id: string) => {
     setDeleteConfirm({ open: true, questionId: id });
@@ -158,23 +188,20 @@ function QuestionBankLessonDetailPage() {
 
   const confirmDelete = async () => {
     if (deleteConfirm.questionId) {
-      try {
-        await deleteQuestion(deleteConfirm.questionId);
-        toast.success("Question deleted successfully");
-      } catch (err: any) {
-        toast.error(err?.message || "Failed to delete question");
-      }
+      deleteQuestionMutation.mutate(deleteConfirm.questionId);
     }
     setDeleteConfirm({ open: false, questionId: null });
   };
 
   const clearFilters = () => {
-    setSearchTerm("");
+    setRawSearchTerm("");
+    setDebouncedSearch("");
     setTypeFilter("");
     setDifficultyFilter("");
+    setPage(0);
   };
 
-  const hasFilters = searchTerm || typeFilter || difficultyFilter;
+  const hasFilters = debouncedSearch || typeFilter || difficultyFilter;
 
   return (
     <div className="space-y-6">
@@ -228,7 +255,7 @@ function QuestionBankLessonDetailPage() {
                     Total
                   </p>
                   <p className="font-display font-black text-xl text-primary-col">
-                    {questions.length}
+                    {stats?.total ?? 0}
                   </p>
                 </div>
               </div>
@@ -243,7 +270,7 @@ function QuestionBankLessonDetailPage() {
                     Vocabulary
                   </p>
                   <p className="font-display font-black text-xl text-primary-col">
-                    {byType.Vocabulary}
+                    {stats?.vocabulary ?? 0}
                   </p>
                 </div>
               </div>
@@ -258,7 +285,7 @@ function QuestionBankLessonDetailPage() {
                     Grammar
                   </p>
                   <p className="font-display font-black text-xl text-primary-col">
-                    {byType.Grammar}
+                    {stats?.grammar ?? 0}
                   </p>
                 </div>
               </div>
@@ -273,7 +300,7 @@ function QuestionBankLessonDetailPage() {
                     Reading
                   </p>
                   <p className="font-display font-black text-xl text-primary-col">
-                    {byType.Reading}
+                    {stats?.reading ?? 0}
                   </p>
                 </div>
               </div>
@@ -288,7 +315,7 @@ function QuestionBankLessonDetailPage() {
                     Listening
                   </p>
                   <p className="font-display font-black text-xl text-primary-col">
-                    {byType.Listening}
+                    {stats?.listening ?? 0}
                   </p>
                 </div>
               </div>
@@ -304,8 +331,8 @@ function QuestionBankLessonDetailPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={rawSearchTerm}
+              onChange={(e) => setRawSearchTerm(e.target.value)}
               placeholder="Search questions..."
               className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
             />
@@ -313,7 +340,7 @@ function QuestionBankLessonDetailPage() {
 
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as QuestionType | "")}
+            onChange={handleTypeChange}
             className="px-3 py-2 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
           >
             <option value="">All Types</option>
@@ -325,7 +352,7 @@ function QuestionBankLessonDetailPage() {
 
           <select
             value={difficultyFilter}
-            onChange={(e) => setDifficultyFilter(e.target.value as Difficulty | "")}
+            onChange={handleDifficultyChange}
             className="px-3 py-2 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
           >
             <option value="">All Difficulties</option>
@@ -347,7 +374,12 @@ function QuestionBankLessonDetailPage() {
       </div>
 
       {/* Question List Table */}
-      {filteredQuestions.length === 0 ? (
+      {isLoadingQuestions ? (
+        <div className="card-base p-16 flex flex-col items-center justify-center text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <h3 className="text-sm font-semibold text-primary-col">Loading Questions...</h3>
+        </div>
+      ) : questions.length === 0 ? (
         <div className="card-base p-16 flex flex-col items-center justify-center text-center">
           <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
             <BookOpen className="w-8 h-8 text-muted-foreground/40" />
@@ -376,6 +408,31 @@ function QuestionBankLessonDetailPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Pagination Controls - Top */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-2">
+              <p className="text-xs text-muted-col font-medium">
+                Showing page {pagination.page + 1} of {pagination.totalPages} ({pagination.totalElements} total)
+              </p>
+              <div className="flex gap-2">
+                <button
+                  disabled={pagination.page === 0}
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 transition"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  disabled={pagination.page >= pagination.totalPages - 1}
+                  onClick={() => setPage(p => Math.min(pagination.totalPages - 1, p + 1))}
+                  className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 transition"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {(["Vocabulary", "Grammar", "Reading", "Listening"] as QuestionType[]).map((skill) => {
             const list = groupedQuestions[skill];
             if (list.length === 0) return null;
@@ -398,7 +455,7 @@ function QuestionBankLessonDetailPage() {
                     )}>
                       {skill}
                     </span>
-                    <span className="text-xs text-muted-col font-medium">({list.length} questions)</span>
+                    <span className="text-xs text-muted-col font-medium">({list.length} questions this page)</span>
                   </div>
                   <span className="text-muted-col hover:text-primary transition-colors">
                     {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
@@ -432,7 +489,7 @@ function QuestionBankLessonDetailPage() {
                         >
                           <div className="col-span-1 flex items-center">
                             <span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-sm font-medium">
-                              {index + 1}
+                              {pagination.page * pagination.size + index + 1}
                             </span>
                           </div>
                           <div className="col-span-7 flex items-center">
@@ -484,6 +541,31 @@ function QuestionBankLessonDetailPage() {
               </div>
             );
           })}
+          
+          {/* Pagination Controls - Bottom */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-2 pt-2">
+              <p className="text-xs text-muted-col font-medium">
+                Showing page {pagination.page + 1} of {pagination.totalPages} ({pagination.totalElements} total)
+              </p>
+              <div className="flex gap-2">
+                <button
+                  disabled={pagination.page === 0}
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 transition"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  disabled={pagination.page >= pagination.totalPages - 1}
+                  onClick={() => setPage(p => Math.min(pagination.totalPages - 1, p + 1))}
+                  className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 transition"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
