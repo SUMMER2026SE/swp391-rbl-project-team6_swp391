@@ -23,7 +23,8 @@ import {
   Info,
   ArrowLeft,
   Loader2,
-  Check
+  Check,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -779,6 +780,49 @@ export function CreateShadowingLessonPage({
   const [activeTab, setActiveTab] = useState<"jp" | "vn">("jp");
   const itemsPerPage = 5;
 
+  // Inline editing state
+  const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
+  const [editJpText, setEditJpText] = useState("");
+  const [editVnText, setEditVnText] = useState("");
+
+  const handleEditClick = (seg: TranscriptSegment) => {
+    setEditingSegmentId(seg.id);
+    setEditJpText(seg.jpText);
+    setEditVnText(seg.vnText);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingSegmentId) return;
+    setNewLessonData((prev) => {
+      if (!prev || !prev.transcript) return prev;
+      return {
+        ...prev,
+        transcript: prev.transcript.map((s) =>
+          s.id === editingSegmentId
+            ? { ...s, jpText: editJpText, vnText: editVnText }
+            : s
+        ),
+      };
+    });
+    setEditingSegmentId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSegmentId(null);
+  };
+
+  const handleDeleteSegment = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this sentence?")) {
+      setNewLessonData((prev) => {
+        if (!prev || !prev.transcript) return prev;
+        return {
+          ...prev,
+          transcript: prev.transcript.filter((s) => s.id !== id),
+        };
+      });
+    }
+  };
+
   type StepStatus = "pending" | "processing" | "completed" | "failed";
 
   const [steps, setSteps] = useState<Array<{ id: string; label: string; status: StepStatus }>>([
@@ -1042,6 +1086,7 @@ export function CreateShadowingLessonPage({
         title: newLessonData.title,
         topic: newLessonData.topic,
         jlptLevel: newLessonData.level,
+        sentences: newLessonData.transcript
       });
       toast.success("Lesson published!", { id: toastId });
       onSave(videoId!);
@@ -1453,6 +1498,7 @@ export function CreateShadowingLessonPage({
                 ) : (
                   paginatedSegments.map((seg, idx) => {
                     const originalIndex = startIndex + idx + 1;
+                    const isEditing = editingSegmentId === seg.id;
                     return (
                       <tr 
                         key={seg.id} 
@@ -1468,43 +1514,96 @@ export function CreateShadowingLessonPage({
                           {formatDuration(seg.endTime)}
                         </td>
                         <td className="p-3 py-4 space-y-1 align-middle">
-                          {activeTab === "jp" ? (
-                            <>
-                              <div className="text-sm font-bold text-primary-col leading-relaxed">
-                                {seg.jpText}
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <div>
+                                <Label className="text-[10px] text-muted-foreground mb-1 block">Japanese</Label>
+                                <Input
+                                  value={editJpText}
+                                  onChange={(e) => setEditJpText(e.target.value)}
+                                  className="h-8 text-sm bg-background border-[var(--border)]"
+                                />
                               </div>
-                              {seg.romaji && (
-                                <div className="text-[10px] text-muted-foreground leading-relaxed font-semibold">
-                                  {seg.romaji}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="text-sm font-medium text-secondary-col leading-relaxed">
-                              {seg.vnText}
+                              <div>
+                                <Label className="text-[10px] text-muted-foreground mb-1 block">Vietnamese</Label>
+                                <Input
+                                  value={editVnText}
+                                  onChange={(e) => setEditVnText(e.target.value)}
+                                  className="h-8 text-sm bg-background border-[var(--border)]"
+                                />
+                              </div>
                             </div>
+                          ) : (
+                            activeTab === "jp" ? (
+                              <>
+                                <div className="text-sm font-bold text-primary-col leading-relaxed">
+                                  {seg.jpText}
+                                </div>
+                                {seg.romaji && (
+                                  <div className="text-[10px] text-muted-foreground leading-relaxed font-semibold">
+                                    {seg.romaji}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="text-sm font-medium text-secondary-col leading-relaxed">
+                                {seg.vnText}
+                              </div>
+                            )
                           )}
                         </td>
                         <td className="p-3 align-middle text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* Play Row Button */}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handlePreview}
-                              className="rounded-xl h-8 w-8 p-0 border-[var(--border)] hover:bg-accent text-secondary-col cursor-pointer transition flex items-center justify-center"
-                            >
-                              <Play className="w-3.5 h-3.5" />
-                            </Button>
-                            {/* View Row Button */}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handlePreview}
-                              className="rounded-xl h-8 w-8 p-0 border-[var(--border)] hover:bg-accent text-secondary-col cursor-pointer transition flex items-center justify-center"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </Button>
+                            {isEditing ? (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleSaveEdit}
+                                  className="rounded-xl h-8 w-8 p-0 border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 cursor-pointer transition flex items-center justify-center bg-emerald-500/10"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleCancelEdit}
+                                  className="rounded-xl h-8 w-8 p-0 border-[var(--border)] hover:bg-accent text-secondary-col cursor-pointer transition flex items-center justify-center"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                {/* Edit Row Button */}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditClick(seg)}
+                                  className="rounded-xl h-8 w-8 p-0 border-[var(--border)] hover:bg-blue-50 text-blue-600 cursor-pointer transition flex items-center justify-center"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                {/* Play Row Button */}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handlePreview}
+                                  className="rounded-xl h-8 w-8 p-0 border-[var(--border)] hover:bg-accent text-secondary-col cursor-pointer transition flex items-center justify-center"
+                                >
+                                  <Play className="w-3.5 h-3.5" />
+                                </Button>
+                                {/* Delete Row Button */}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteSegment(seg.id)}
+                                  className="rounded-xl h-8 w-8 p-0 border-[var(--border)] hover:bg-red-50 text-red-500 cursor-pointer transition flex items-center justify-center"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

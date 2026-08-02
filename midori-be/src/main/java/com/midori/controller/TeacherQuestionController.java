@@ -460,6 +460,38 @@ public class TeacherQuestionController {
         return ResponseEntity.ok(ApiResponse.success("Lesson deleted successfully", null));
     }
 
+    @GetMapping("/lessons/{lessonId}/questions")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<TeacherQuestionResponse>>> getLessonQuestions(
+            @PathVariable Integer lessonId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String difficulty) {
+        
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<TeacherQuestion> questionPage = teacherQuestionRepository.findByLessonIdWithFilters(
+            lessonId, search, type, difficulty, pageable
+        );
+        
+        org.springframework.data.domain.Page<TeacherQuestionResponse> responsePage = questionPage.map(this::mapToResponse);
+        return ResponseEntity.ok(ApiResponse.success(responsePage));
+    }
+
+    @GetMapping("/lessons/{lessonId}/statistics")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Long>>> getLessonStatistics(@PathVariable Integer lessonId) {
+        java.util.Map<String, Long> stats = teacherQuestionRepository.getLessonStatistics(lessonId);
+        if (stats == null || stats.isEmpty()) {
+            stats = new java.util.HashMap<>();
+            stats.put("total", 0L);
+            stats.put("vocabulary", 0L);
+            stats.put("grammar", 0L);
+            stats.put("reading", 0L);
+            stats.put("listening", 0L);
+        }
+        return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
     private TeacherQuestionResponse mapToResponse(TeacherQuestion question) {
         if (question == null) return null;
 

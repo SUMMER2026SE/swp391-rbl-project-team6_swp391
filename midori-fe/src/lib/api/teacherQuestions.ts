@@ -150,7 +150,7 @@ export const teacherQuestionsApi = {
   updateQuestion: (id: string, req: UpdateTeacherQuestionRequest) =>
     api.put<TeacherQuestionResponse>(`/teacher/questions/${id}`, req),
   deleteQuestion: (id: string) => api.delete<void>(`/teacher/questions/${id}`),
-  getQuestions: (level?: string) => api.get<TeacherQuestionResponse[]>(level ? `/teacher/questions?level=${level}` : "/teacher/questions"),
+  getQuestions: (level?: string) => api.get<TeacherQuestionResponse[]>(level ? `/teacher/questions?level=${level}&size=2000` : "/teacher/questions?size=2000"),
   getQuestionById: (id: string) => api.get<TeacherQuestionResponse>(`/teacher/questions/${id}`),
 
   // Lessons
@@ -182,10 +182,14 @@ export const teacherQuestionsApi = {
     difficulty: { easy: number; medium: number; hard: number };
     questionCount: number;
   }) => api.post<TeacherQuestionResponse[]>("/question-bank/randomize", req),
-  generatePreview: (req: {
-    level: string;
-    lessonIds: number[];
-    skills: string[];
-    difficulty: { easy: number; medium: number; hard: number };
-  }) => api.post<TeacherQuestionResponse[]>("/homework/question-bank/generate-preview", req),
+  // Lesson-specific questions and statistics
+  getLessonQuestions: (lessonId: number, params?: { page?: number; size?: number; search?: string; type?: string; difficulty?: string }) => {
+    let query = `?page=${params?.page || 0}&size=${params?.size || 20}`;
+    if (params?.search) query += `&search=${encodeURIComponent(params.search)}`;
+    if (params?.type) query += `&type=${encodeURIComponent(params.type)}`;
+    if (params?.difficulty) query += `&difficulty=${encodeURIComponent(params.difficulty)}`;
+    return api.get<{ content: TeacherQuestionResponse[], totalElements: number, totalPages: number, number: number, size: number }>(`/teacher/questions/lessons/${lessonId}/questions${query}`);
+  },
+  getLessonStatistics: (lessonId: number) =>
+    api.get<Record<string, number>>(`/teacher/questions/lessons/${lessonId}/statistics`),
 };

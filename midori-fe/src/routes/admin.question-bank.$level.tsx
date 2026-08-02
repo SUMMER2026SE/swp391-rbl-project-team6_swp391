@@ -264,7 +264,7 @@ function QuestionBankLessonListPage() {
         </div>
 
         {/* JLPT Level Tabs with Prefetching on Hover/Focus */}
-        <div className="flex items-center gap-2 border-b separator pb-3 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-[var(--border)] pb-3 overflow-x-auto">
           {JLPT_LEVELS.map((lvl) => {
             const isActive = level === lvl;
             return (
@@ -278,10 +278,10 @@ function QuestionBankLessonListPage() {
                 }
                 onMouseEnter={() => prefetchLessons(lvl)}
                 onFocus={() => prefetchLessons(lvl)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap outline-none border-none focus:outline-none focus:ring-0 ${
                   isActive
-                    ? "bg-[oklch(0.62_0.18_270)] text-white shadow-sm"
-                    : "bg-[var(--card)] text-muted-col hover:text-primary-col hover:bg-[var(--accent)]/50 border border-[var(--border)]"
+                    ? "bg-gradient-hero text-white shadow-md"
+                    : "text-muted-col hover:text-primary-col hover:bg-muted/50"
                 }`}
               >
                 {lvl} Question Bank
@@ -392,7 +392,7 @@ function QuestionBankLessonListPage() {
         <div className="card-base overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
-            <div className="col-span-4 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Lesson
             </div>
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
@@ -401,7 +401,7 @@ function QuestionBankLessonListPage() {
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Status
             </div>
-            <div className="col-span-4 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Actions
             </div>
           </div>

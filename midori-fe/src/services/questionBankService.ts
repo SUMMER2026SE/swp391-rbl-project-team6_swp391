@@ -57,7 +57,16 @@ export function mapBackendQuestionToFrontend(q: TeacherQuestionResponse): Questi
     id: q.id,
     level: (q.level || "N5") as JLPTLevel,
     lesson: q.lessonId || 0,
-    type: (q.questionType || "Vocabulary") as QuestionType,
+    type: (() => {
+      const raw = q.questionType || "Vocabulary";
+      const map: Record<string, QuestionType> = {
+        "VOCABULARY": "Vocabulary",
+        "GRAMMAR": "Grammar",
+        "READING": "Reading",
+        "LISTENING": "Listening"
+      };
+      return map[raw.toUpperCase()] || raw as QuestionType;
+    })(),
     difficulty: mapDifficultyToFrontend(q.difficulty),
     questionText: q.prompt,
     options: q.options || [],
@@ -435,7 +444,7 @@ export function useQuestionBank(level: JLPTLevel) {
 
   const questions = rawQuestions
     .map(mapBackendQuestionToFrontend)
-    .filter((q) => q.level === level)
+    .filter((q) => q.level.toUpperCase() === level.toUpperCase())
     // Backend returns questions ordered by createdAt DESC. We want oldest-first so that
     // the UI preserves insertion order (existing questions stay at the top, new ones
     // append at the bottom).
@@ -672,4 +681,41 @@ export function useQuestionBank(level: JLPTLevel) {
     deleteQuestion: (id: string) => deleteQuestionMutation.mutateAsync(id),
     getStats,
   };
+}
+
+export function useLessonQuestions(lessonId: number, params: { page: number; size: number; search?: string; type?: string; difficulty?: string }) {
+  const queryClient = useQueryClient();
+  const queryKey = ["lesson-questions", lessonId, params.page, params.size, params.search, params.type, params.difficulty];
+  
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => {
+      if (!lessonId) return { content: [], totalElements: 0, totalPages: 0, number: 0, size: params.size };
+      return await teacherQuestionsApi.getLessonQuestions(lessonId, params);
+    },
+    enabled: !!lessonId,
+    placeholderData: keepPreviousData,
+  });
+
+  return {
+    ...query,
+    questions: (query.data?.content || []).map(mapBackendQuestionToFrontend),
+    pagination: {
+      totalElements: query.data?.totalElements || 0,
+      totalPages: query.data?.totalPages || 0,
+      page: query.data?.number || 0,
+      size: query.data?.size || params.size,
+    }
+  };
+}
+
+export function useLessonStatistics(lessonId: number) {
+  return useQuery({
+    queryKey: ["lesson-statistics", lessonId],
+    queryFn: async () => {
+      if (!lessonId) return { total: 0, vocabulary: 0, grammar: 0, reading: 0, listening: 0 };
+      return await teacherQuestionsApi.getLessonStatistics(lessonId);
+    },
+    enabled: !!lessonId,
+  });
 }
