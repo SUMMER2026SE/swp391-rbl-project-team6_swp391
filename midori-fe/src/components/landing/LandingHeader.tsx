@@ -15,7 +15,7 @@ export function LandingHeader() {
       if (updatedUser && isStudentActive(updatedUser)) {
         router.navigate({ to: getDashboardPath(updatedUser) });
       } else {
-        alert("Bạn vẫn chưa được thêm vào lớp học nào. Vui lòng liên hệ giáo viên hoặc thử lại sau.");
+        alert("You have not been added to any class yet. Please contact your teacher or try again later.");
       }
     } catch (e) {
       console.error(e);
@@ -49,11 +49,11 @@ export function LandingHeader() {
 
         {/* Middle: Nav Links (Hidden on small screens) */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-muted-foreground">
-          <button onClick={() => handleScrollTo("hero")} className="hover:text-primary transition-colors">Trang chủ</button>
-          <button onClick={() => handleScrollTo("features")} className="hover:text-primary transition-colors">Tính năng</button>
-          <button onClick={() => handleScrollTo("guide")} className="hover:text-primary transition-colors">Hướng dẫn</button>
-          <button onClick={() => handleScrollTo("benefits")} className="hover:text-primary transition-colors">Lợi ích</button>
-          <button onClick={() => handleScrollTo("consultation")} className="hover:text-primary transition-colors">Liên hệ</button>
+          <button onClick={() => handleScrollTo("hero")} className="hover:text-primary transition-colors">Home</button>
+          <button onClick={() => handleScrollTo("features")} className="hover:text-primary transition-colors">Features</button>
+          <button onClick={() => handleScrollTo("guide")} className="hover:text-primary transition-colors">Guide</button>
+          <button onClick={() => handleScrollTo("benefits")} className="hover:text-primary transition-colors">Benefits</button>
+          <button onClick={() => handleScrollTo("consultation")} className="hover:text-primary transition-colors">Contact</button>
         </nav>
 
         {/* Right: Auth Buttons */}
@@ -63,7 +63,7 @@ export function LandingHeader() {
           : user ? (
             <div className="flex items-center gap-4">
               <span className="hidden sm:inline-block text-sm font-semibold text-foreground">
-                Chào mừng bạn, {user.name}
+                Welcome, {user.name}
               </span>
               {user.role === 'student' && !isStudentActive(user) ? (
                 <button
@@ -71,14 +71,14 @@ export function LandingHeader() {
                   disabled={checking}
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold shadow-md shadow-emerald-500/20 hover:shadow-lg hover:-translate-y-0.5 transition-all whitespace-nowrap disabled:opacity-70 disabled:pointer-events-none"
                 >
-                  {checking ? "Đang kiểm tra..." : "Kiểm tra trạng thái lớp học"}
+                  {checking ? "Checking..." : "Check Class Status"}
                 </button>
               ) : (
                 <Link
                   to={getDashboardPath(user)}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all whitespace-nowrap"
                 >
-                  Vào hệ thống
+                  Enter System
                 </Link>
               )}
             </div>
@@ -88,13 +88,13 @@ export function LandingHeader() {
                 to="/login"
                 className="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
               >
-                Đăng nhập
+                Sign In
               </Link>
               <Link
                 to="/register"
                 className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
               >
-                Đăng ký
+                Sign Up
               </Link>
             </>
           )}

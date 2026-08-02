@@ -1245,10 +1245,10 @@ export function DashboardLayout({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-rose-500 font-extrabold text-lg">
                 <Lock className="w-5 h-5 text-rose-500" />
-                Tính năng đã khóa
+                Feature Locked
               </DialogTitle>
               <DialogDescription className="text-slate-600 dark:text-slate-300 font-medium pt-2 text-sm">
-                Bạn chưa được phân vào lớp học. Sau khi giáo viên thêm bạn vào lớp, bạn sẽ có thể sử dụng tính năng này.
+                You have not been assigned to any class yet. Once your teacher adds you to a class, you will be able to access this feature.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-4">
@@ -1256,7 +1256,7 @@ export function DashboardLayout({
                 onClick={() => setShowLockedDialog(false)}
                 className="bg-primary hover:opacity-95 text-white font-bold w-full rounded-xl cursor-pointer"
               >
-                Đồng ý
+                Confirm
               </Button>
             </DialogFooter>
           </DialogContent>

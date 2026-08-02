@@ -296,13 +296,13 @@ function RegisterPage() {
 
   return (
     <AuthShell
-      title="Tạo tài khoản 🌸"
+      title="Sign Up 🌸"
       subtitle={subtitle}
       footer={
         <>
-          Đã có tài khoản?{" "}
+          Already have an account?{" "}
           <Link to="/login" search={{ redirect }} className="text-primary font-semibold">
-            Đăng nhập
+            Sign In
           </Link>
         </>
       }
@@ -578,7 +578,7 @@ function RegisterPage() {
               Creating account…
             </span>
           ) : (
-            "Create account"
+            "Sign Up"
           )}
         </PrimaryBtn>
 

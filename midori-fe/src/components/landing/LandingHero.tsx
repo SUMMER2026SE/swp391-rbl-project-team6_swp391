@@ -23,18 +23,18 @@ export function LandingHero() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-bold mb-6">
             <Sparkles className="w-4 h-4" />
-            Học tiếng Nhật thông minh hơn cùng MIDORI
+            Learn Japanese Smarter with MIDORI
           </div>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-display leading-[1.1] tracking-tight text-slate-900 dark:text-white mb-6">
-            Nền tảng học tiếng Nhật <br className="hidden sm:block" />
+            Japanese learning platform <br className="hidden sm:block" />
             <span className="bg-gradient-to-r from-primary via-indigo-500 to-purple-600 bg-clip-text text-transparent">
-              toàn diện
+              Comprehensive
             </span>
           </h1>
           
           <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 leading-relaxed max-w-lg">
-            Học từ vựng, ngữ pháp, đọc hiểu, nghe hiểu, luyện tập cùng AI Sensei và theo dõi tiến độ học tập cá nhân trên cùng một hệ thống duy nhất.
+            Study vocabulary, grammar, reading comprehension, listening comprehension, practice with AI Sensei, and track personal learning progress in a single system.
           </p>
           
           <div className="flex flex-wrap items-center gap-4">
@@ -42,13 +42,13 @@ export function LandingHero() {
               to="/register"
               className="px-8 py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 hover:opacity-95 text-white font-bold text-lg transition-all shadow-xl shadow-pink-500/25 flex items-center gap-2"
             >
-              Đăng ký miễn phí <ArrowRight className="w-5 h-5" />
+              Sign Up Free <ArrowRight className="w-5 h-5" />
             </Link>
             <button
               onClick={handleScrollToFeatures}
               className="px-8 py-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
             >
-              Khám phá tính năng
+              Explore Features
             </button>
           </div>
         </motion.div>
@@ -76,17 +76,17 @@ export function LandingHero() {
                
                <div className="flex gap-4 relative z-10">
                  <div className="flex-1 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Từ vựng mới</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">New Vocabulary</span>
                     <span className="text-4xl font-black text-primary font-japanese">先生</span>
-                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-2">Giáo viên (Sensei)</span>
+                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-2">Teacher (Sensei)</span>
                  </div>
                  <div className="w-24 bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center text-white">
                     <span className="text-3xl font-black mb-1">10</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-100 text-center">Từ vựng<br/>hôm nay</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-100 text-center">Today's<br/>Words</span>
                  </div>
                </div>
 
-               <div className="flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 relative z-10">
+               <div className="flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/70 dark:border-slate-700 shadow-sm p-4 relative z-10">
                  <div className="flex items-center gap-3 mb-4">
                     <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 font-bold">N5</div>
                     <div className="h-2 flex-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -99,15 +99,15 @@ export function LandingHero() {
                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
                      <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-xl">🎌</div>
                      <div className="flex-1">
-                       <h4 className="text-sm font-bold text-slate-800 dark:text-white">Ngữ pháp bài 1</h4>
-                       <p className="text-[10px] text-slate-500">12/15 cấu trúc</p>
+                       <h4 className="text-sm font-bold text-slate-800 dark:text-white">Grammar Lesson 1</h4>
+                       <p className="text-[10px] text-slate-500">12/15 patterns</p>
                      </div>
                    </div>
                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 opacity-60">
                      <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-xl">🎧</div>
                      <div className="flex-1">
-                       <h4 className="text-sm font-bold text-slate-800 dark:text-white">Luyện nghe Minna</h4>
-                       <p className="text-[10px] text-slate-500">Chưa bắt đầu</p>
+                       <h4 className="text-sm font-bold text-slate-800 dark:text-white">Minna Listening</h4>
+                       <p className="text-[10px] text-slate-500">Not started</p>
                      </div>
                    </div>
                  </div>
@@ -125,7 +125,7 @@ export function LandingHero() {
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-indigo-500 flex items-center justify-center text-white font-bold text-xs">AI</div>
               <div>
                 <p className="text-sm font-bold text-slate-800 dark:text-white">AI Sensei</p>
-                <p className="text-[10px] text-muted-foreground">Sẵn sàng hỗ trợ bạn!</p>
+                <p className="text-[10px] text-muted-foreground">Ready to support you!</p>
               </div>
             </div>
           </motion.div>
@@ -135,10 +135,10 @@ export function LandingHero() {
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
             className="absolute -left-12 bottom-32 bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-xl border border-slate-100 dark:border-white/5 hidden md:block"
           >
-            <div className="text-xs text-muted-foreground mb-1">Chuỗi ngày học</div>
+            <div className="text-xs text-muted-foreground mb-1">Daily Streak</div>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-black text-amber-500">12</span>
-              <span className="text-sm font-bold pb-1 text-slate-700 dark:text-slate-300">Ngày 🔥</span>
+              <span className="text-sm font-bold pb-1 text-slate-700 dark:text-slate-300">Days 🔥</span>
             </div>
           </motion.div>
 

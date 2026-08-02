@@ -39,7 +39,7 @@ const tabs = [
 ];
 
 const LANGUAGES = [
-  { value: "vi", label: "Vietnamese", native: "Tiếng Việt" },
+  { value: "vi", label: "Vietnamese", native: "Vietnamese" },
   { value: "en", label: "English", native: "English" },
   { value: "ja", label: "Japanese", native: "日本語" },
 ];

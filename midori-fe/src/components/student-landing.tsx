@@ -71,7 +71,7 @@ function getAvatarColor(id: string): string {
 function TeacherCard({ teacher, onClick }: { teacher: AdminTeacherResponse; onClick: () => void }) {
   const initials = getInitials(teacher.displayName);
   const color = getAvatarColor(teacher.id);
-  const bio = teacher.bio || "Giáo viên tại Midori Japanese Center với niềm đam mê giảng dạy tiếng Nhật.";
+  const bio = teacher.bio || "Teacher at Midori Japanese Center with a passion for teaching Japanese.";
 
   return (
     <motion.div
@@ -97,7 +97,7 @@ function TeacherCard({ teacher, onClick }: { teacher: AdminTeacherResponse; onCl
             <h3 className="font-extrabold text-slate-800 dark:text-white text-base group-hover:text-primary transition-colors">
               {teacher.displayName || teacher.email.split("@")[0]}
             </h3>
-            <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Giáo viên tiếng Nhật</p>
+            <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Japanese Teacher</p>
           </div>
         </div>
         
@@ -108,7 +108,7 @@ function TeacherCard({ teacher, onClick }: { teacher: AdminTeacherResponse; onCl
 
       <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] font-bold text-slate-500">
         <span className="flex items-center gap-1 text-primary">
-          Xem hồ sơ chi tiết →
+          View detailed profile →
         </span>
         <span className="flex items-center gap-0.5 text-amber-400">
           <Star className="w-3 h-3 fill-amber-400" />
@@ -164,7 +164,7 @@ export function TeacherList({ onSelectTeacher }: { onSelectTeacher: (teacher: Ad
   if (error || teachers.length === 0) {
     return (
       <div className="col-span-full text-center py-8 text-muted-foreground text-sm">
-        Hiện tại chưa có giáo viên nào hoạt động. Vui lòng quay lại sau.
+        No active teachers found. Please check back later.
       </div>
     );
   }
@@ -222,14 +222,14 @@ export function TeacherProfileModal({
             <h3 className="text-xl font-black text-slate-800 dark:text-white">
               {teacher.displayName || teacher.email.split("@")[0]}
             </h3>
-            <p className="text-xs text-primary font-bold mt-0.5">Giáo viên tiếng Nhật chính thức</p>
+            <p className="text-xs text-primary font-bold mt-0.5">Official Japanese Teacher</p>
           </div>
 
           {/* Bio section */}
           <div className="mt-4 space-y-2">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Giới thiệu bản thân</h4>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">About Me</h4>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-white/5">
-              {teacher.bio || "Giáo viên tiếng Nhật đầy nhiệt huyết tại Midori Japanese Center, cam kết đem lại phương pháp học chủ động, dễ hiểu nhất cho học viên."}
+              {teacher.bio || "Enthusiastic Japanese teacher at Midori Japanese Center, committed to providing the most active and easy-to-understand learning methods for students."}
             </p>
           </div>
 
@@ -238,7 +238,7 @@ export function TeacherProfileModal({
             <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-slate-800/20">
               <Mail className="w-4 h-4 text-slate-400 shrink-0" />
               <div className="min-w-0">
-                <p className="text-[9px] text-muted-foreground font-semibold uppercase">Email liên hệ</p>
+                <p className="text-[9px] text-muted-foreground font-semibold uppercase">Contact Email</p>
                 <p className="text-xs text-slate-800 dark:text-slate-200 font-bold truncate">{teacher.email}</p>
               </div>
             </div>
@@ -246,7 +246,7 @@ export function TeacherProfileModal({
               <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-slate-800/20">
                 <Phone className="w-4 h-4 text-slate-400 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[9px] text-muted-foreground font-semibold uppercase">Số điện thoại</p>
+                  <p className="text-[9px] text-muted-foreground font-semibold uppercase">Phone Number</p>
                   <p className="text-xs text-slate-800 dark:text-slate-200 font-bold truncate">{teacher.phone}</p>
                 </div>
               </div>
@@ -255,7 +255,7 @@ export function TeacherProfileModal({
               <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-slate-800/20 sm:col-span-2">
                 <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[9px] text-muted-foreground font-semibold uppercase">Khu vực giảng dạy</p>
+                  <p className="text-[9px] text-muted-foreground font-semibold uppercase">Teaching Location</p>
                   <p className="text-xs text-slate-800 dark:text-slate-200 font-bold truncate">{teacher.location}</p>
                 </div>
               </div>
@@ -266,7 +266,7 @@ export function TeacherProfileModal({
           <div className="mt-6 space-y-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Award className="w-4 h-4 text-amber-500" />
-              Bằng cấp & Chứng chỉ chuyên môn
+              Degrees & Professional Certificates
             </h4>
 
             {isLoading ? (
@@ -275,7 +275,7 @@ export function TeacherProfileModal({
               </div>
             ) : certificates.length === 0 ? (
               <div className="text-center py-6 text-xs text-muted-foreground bg-slate-50/50 dark:bg-slate-800/10 rounded-2xl border border-dashed border-slate-200/50 dark:border-white/5">
-                Chưa cập nhật thông tin chứng chỉ chuyên môn.
+                No certificates updated yet.
               </div>
             ) : (
               <div className="space-y-3">
@@ -287,7 +287,7 @@ export function TeacherProfileModal({
                     <div className="min-w-0 flex-1 space-y-1">
                       <h5 className="font-bold text-xs text-slate-800 dark:text-slate-200">{cert.title}</h5>
                       <p className="text-[10px] text-muted-foreground font-medium">
-                        Cấp bởi: <strong>{cert.issuer}</strong>
+                        Issued by: <strong>{cert.issuer}</strong>
                       </p>
                       {cert.description && (
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{cert.description}</p>
@@ -343,7 +343,7 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-pink-200"
           >
             <Sparkles className="w-4.5 h-4.5 text-pink-300 animate-pulse" />
-            Chào mừng {user?.name ?? "Học viên"} đến với Midori!
+            Welcome {user?.name ?? "Student"} to Midori!
           </motion.div>
           
           <motion.h1
@@ -352,8 +352,8 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl md:text-5xl font-display font-black leading-tight tracking-tight text-white"
           >
-            Hệ Thống Học Tiếng Nhật <br />
-            Thông Minh <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-rose-300 to-indigo-200 font-extrabold">MIDORI</span>
+            Smart Japanese <br />
+            Learning System <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-rose-300 to-indigo-200 font-extrabold">MIDORI</span>
           </motion.h1>
 
           <motion.div
@@ -363,10 +363,10 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
             className="space-y-3 border-l-4 border-pink-500 pl-4 bg-white/5 backdrop-blur-xs py-3 pr-3 rounded-r-xl max-w-2xl"
           >
             <p className="text-sm md:text-base font-semibold text-pink-100">
-              Bạn đã đăng nhập thành công nhưng hiện chưa được giáo viên xếp lớp.
+              You have successfully logged in but have not been assigned to a class yet.
             </p>
             <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-              Hãy liên hệ với giáo viên phụ trách của bạn để được thêm vào lớp học tương ứng. Sau khi được xếp lớp, toàn bộ tài liệu học tập, các bài luyện nói AI và thống kê tiến độ sẽ tự động mở khóa.
+              Please contact your teacher to be added to the corresponding class. Once assigned, all learning materials, AI speaking practices, and progress stats will automatically unlock.
             </p>
           </motion.div>
 
@@ -386,7 +386,7 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
               ) : (
                 <RefreshCw className="w-4.5 h-4.5" />
               )}
-              Kiểm tra lại lớp học
+              Recheck Class Assignment
             </Button>
           </motion.div>
         </div>
@@ -396,51 +396,51 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
       <section id="features" className="space-y-6">
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">
-            Hệ sinh thái học tập
+            Learning Ecosystem
           </span>
           <h2 className="text-2xl md:text-3xl font-display font-black text-slate-800 dark:text-white">
-            Các tính năng nổi bật trên MIDORI
+            Key Features on MIDORI
           </h2>
           <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-            Hệ thống tích hợp đa công cụ mạnh mẽ hỗ trợ tối ưu việc tự học và quản lý lớp học toàn diện.
+            A powerful integrated system of multi-tools to optimize self-study and comprehensive classroom management.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
           {[
             {
-              title: "Lớp Học Trực Tuyến",
-              desc: "Xem thông tin lớp học, theo dõi danh sách bài tập về nhà và các kỳ thi sắp tới do giáo viên của bạn giao.",
+              title: "Online Classes",
+              desc: "View class information, track homework lists, and upcoming exams assigned by your teacher.",
               icon: School,
               color: "text-blue-500 bg-blue-500/10 border-blue-500/20"
             },
             {
-              title: "Bài Học Ngữ Pháp & Kanji",
-              desc: "Học từ vựng qua Flashcard, luyện viết Hán tự trực quan và nắm chắc kiến thức ngữ pháp từ N5 đến N1.",
+              title: "Grammar & Kanji Lessons",
+              desc: "Learn vocabulary with Flashcards, practice visual Kanji writing, and master grammar from N5 to N1.",
               icon: BookOpen,
               color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
             },
             {
-              title: "Phòng Luyện Nói AI Shadowing",
-              desc: "Luyện phát âm theo các đoạn hội thoại thực tế, ghi âm và nhận điểm phân tích đánh giá giọng nói chi tiết từ AI.",
+              title: "AI Shadowing Practice Room",
+              desc: "Practice pronunciation with real conversations, record, and receive detailed speech analysis scores from AI.",
               icon: Sparkles,
               color: "text-pink-500 bg-pink-500/10 border-pink-500/20"
             },
             {
-              title: "Hành Trình Học Tập",
-              desc: "Lộ trình học trực quan giúp bạn nắm bắt những mục tiêu đã đạt được và các bước tiếp theo cần chinh phục.",
+              title: "Learning Journey",
+              desc: "Visual learning roadmap helps you track achieved goals and next steps to conquer.",
               icon: Map,
               color: "text-purple-500 bg-purple-500/10 border-purple-500/20"
             },
             {
-              title: "Thống Kê Tiến Độ Học",
-              desc: "Theo dõi số từ vựng, ngữ pháp đã học, duy trì Streak học tập hàng ngày và tích lũy điểm XP rank học tập.",
+              title: "Learning Progress Stats",
+              desc: "Track learned vocabulary and grammar, maintain daily learning Streaks, and earn XP to rank up.",
               icon: ChartColumn,
               color: "text-amber-500 bg-amber-500/10 border-amber-500/20"
             },
             {
-              title: "Hỏi Đáp Cùng AI Sensei",
-              desc: "Thực hành hội thoại tự do hoặc nhờ AI trợ lý ảo giải thích các cấu trúc ngữ pháp khó 24/7.",
+              title: "Q&A with AI Sensei",
+              desc: "Practice free conversation or ask the virtual AI assistant to explain difficult grammar structures 24/7.",
               icon: Bot,
               color: "text-violet-500 bg-violet-500/10 border-violet-500/20"
             }
@@ -473,13 +473,13 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
       <section id="teachers" className="space-y-6 scroll-mt-20">
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">
-            Đội Ngũ Giảng Viên
+            Our Teachers
           </span>
           <h2 className="text-2xl md:text-3xl font-display font-black text-slate-800 dark:text-white">
-            Gặp Gỡ Thầy Cô Tại Midori
+            Meet Our Teachers at Midori
           </h2>
           <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-            Học tập cùng đội ngũ giảng viên giàu kinh nghiệm. Hãy nhấp vào thẻ giáo viên để xem chi tiết bằng cấp và thông tin liên lạc.
+            Learn with our experienced teachers. Click on a teacher's card to view their certificates and contact details.
           </p>
         </div>
 
@@ -492,23 +492,23 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
       <section id="courses" className="space-y-6 scroll-mt-20">
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">
-            Lộ trình JLPT
+            JLPT Roadmap
           </span>
           <h2 className="text-2xl md:text-3xl font-display font-black text-slate-800 dark:text-white">
-            Các cấp độ học tập tiêu chuẩn
+            Standard Learning Levels
           </h2>
           <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-            Học tập và làm bài thi thử JLPT theo cấu trúc đề thi chính thức cho mọi cấp độ.
+            Study and practice JLPT mock exams according to the official exam structure for all levels.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-4">
           {[
-            { level: "N5", name: "Sơ cấp 1", desc: "Làm quen với bảng chữ cái Hiragana, Katakana, từ vựng và hội thoại cơ bản nhất." },
-            { level: "N4", name: "Sơ cấp 2", desc: "Nâng cao lượng từ vựng, ngữ pháp để giao tiếp tốt trong đời sống hàng ngày." },
-            { level: "N3", name: "Trung cấp", desc: "Đọc hiểu văn bản trung cấp, đàm thoại tự tin và nắm các mẫu câu phức tạp." },
-            { level: "N2", name: "Thượng cấp 1", desc: "Đọc báo chí, hiểu hội thoại ở tốc độ tự nhiên và làm việc trong môi trường Nhật." },
-            { level: "N1", name: "Thượng cấp 2", desc: "Làm chủ tiếng Nhật ở mức độ học thuật sâu sắc và đàm phán thương mại cao cấp." }
+            { level: "N5", name: "Beginner 1", desc: "Get familiar with Hiragana, Katakana alphabets, basic vocabulary, and daily conversations." },
+            { level: "N4", name: "Beginner 2", desc: "Enhance vocabulary and grammar to communicate effectively in daily life." },
+            { level: "N3", name: "Intermediate", desc: "Comprehend intermediate passages, converse confidently, and grasp complex sentence patterns." },
+            { level: "N2", name: "Advanced 1", desc: "Read newspapers, understand natural-speed conversations, and work in a Japanese environment." },
+            { level: "N1", name: "Advanced 2", desc: "Master Japanese at a deep academic level and engage in advanced business negotiations." }
           ].map((course, idx) => (
             <div key={idx} className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 rounded-2xl p-5 shadow-xs flex flex-col justify-between h-full relative group">
               <div className="space-y-4">
@@ -517,7 +517,7 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
                     JLPT {course.level}
                   </span>
                   <span className="text-[9px] font-bold text-red-500 bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-full">
-                    Khóa giới thiệu
+                    Introductory Course
                   </span>
                 </div>
                 
@@ -530,15 +530,13 @@ export function StudentLandingPage({ onRefresh, isRefreshing }: StudentLandingPa
               <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 space-y-3">
                 <div className="text-[9px] font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-950/20 px-2 py-1.5 rounded-lg flex items-center justify-center gap-1 select-none">
                   <ShieldAlert className="w-3.5 h-3.5" />
-                  Sẽ mở sau khi xếp lớp
+                  Will open after class assignment
                 </div>
               </div>
             </div>
           ))}
         </div>
       </section>
-
-
 
       {/* 6. Footer */}
       <footer className="pt-8 border-t border-slate-200 dark:border-white/5 text-center text-xs text-muted-foreground font-semibold">

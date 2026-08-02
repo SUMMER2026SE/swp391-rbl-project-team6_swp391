@@ -7,55 +7,55 @@ import { cn } from "@/lib/utils";
 
 const slides = [
   {
-    title: "Theo dõi hành trình học tập",
-    description: "Xem mục tiêu học tập hằng ngày, chuỗi ngày học, bài học gần đây và tiến độ tổng thể trên cùng một màn hình.",
-    benefit: "Giúp người học biết mình đã hoàn thành những gì và nên tiếp tục học nội dung nào.",
-    btnText: "Bắt đầu học",
+    title: "Track your learning journey",
+    description: "View daily learning goals, study streaks, recent lessons, and overall progress all on one screen.",
+    benefit: "Helps learners know what they have completed and what they should study next.",
+    btnText: "Start Learning",
     link: "/login?redirect=/student",
     imageClass: "bg-indigo-100 dark:bg-indigo-900/30",
     label: "Student Dashboard"
   },
   {
-    title: "Học từ vựng và ngữ pháp theo trình độ",
-    description: "Các bài học được sắp xếp theo cấp độ và chủ đề, giúp người học lựa chọn nội dung phù hợp.",
-    benefit: "Học có hệ thống, dễ ôn tập và tránh học lan man.",
-    btnText: "Khám phá bài học",
+    title: "Learn vocabulary & grammar by level",
+    description: "Lessons are organized by level and topic, helping learners choose the right content.",
+    benefit: "Systematic learning, easy review, and focused study path.",
+    btnText: "Explore Lessons",
     link: "/login?redirect=/student/vocabulary",
     imageClass: "bg-emerald-100 dark:bg-emerald-900/30",
     label: "Vocabulary & Grammar"
   },
   {
-    title: "Phát triển kỹ năng đọc và nghe",
-    description: "Luyện đọc hiểu, nghe hiểu và trả lời câu hỏi trực tiếp trên hệ thống MIDORI.",
-    benefit: "Giúp người học cải thiện khả năng hiểu tiếng Nhật thông qua các bài luyện tập thực tế.",
-    btnText: "Luyện tập ngay",
+    title: "Develop reading & listening skills",
+    description: "Practice reading, listening, and answering questions directly on the MIDORI system.",
+    benefit: "Improves Japanese comprehension through practical exercises.",
+    btnText: "Practice Now",
     link: "/login?redirect=/student/reading",
     imageClass: "bg-sky-100 dark:bg-sky-900/30",
     label: "Reading & Listening"
   },
   {
-    title: "Học tập cùng AI Sensei",
-    description: "Đặt câu hỏi, luyện hội thoại, giải thích từ vựng, ngữ pháp và tạo bài luyện tập theo nhu cầu.",
-    benefit: "Người học có một trợ lý hỗ trợ trong quá trình học tập.",
-    btnText: "Trải nghiệm AI Sensei",
+    title: "Learn with AI Sensei",
+    description: "Ask questions, practice conversations, explain vocabulary/grammar, and generate customized exercises.",
+    benefit: "Provides a dedicated assistant supporting you throughout the learning process.",
+    btnText: "Try AI Sensei",
     link: "/login?redirect=/student/ai-sensei",
     imageClass: "bg-pink-100 dark:bg-pink-900/30",
     label: "AI Sensei"
   },
   {
-    title: "Luyện tập và theo dõi sự tiến bộ",
-    description: "Thực hiện các bài kiểm tra, xem kết quả và nhận biết những kỹ năng cần cải thiện.",
-    benefit: "Giúp người học đánh giá khả năng và điều chỉnh kế hoạch học tập phù hợp.",
-    btnText: "Xem tiến độ",
+    title: "Practice and track progress",
+    description: "Take tests, view results, and identify skills that need improvement.",
+    benefit: "Helps learners evaluate capabilities and adjust their study plans accordingly.",
+    btnText: "View Progress",
     link: "/login?redirect=/student/progress",
     imageClass: "bg-amber-100 dark:bg-amber-900/30",
     label: "Quiz & Progress"
   },
   {
-    title: "Quản lý lớp học thuận tiện",
-    description: "Giáo viên có thể tạo lớp, quản lý học viên, giao bài tập, tạo đề kiểm tra và theo dõi kết quả.",
-    benefit: "Giảm thời gian quản lý thủ công và dễ dàng kiểm soát tiến độ của từng lớp học.",
-    btnText: "Dành cho giáo viên",
+    title: "Convenient classroom management",
+    description: "Teachers can create classes, manage students, assign homework, create tests, and track results.",
+    benefit: "Reduces manual management time and easily controls progress of each class.",
+    btnText: "For Teachers",
     link: "/login?redirect=/teacher",
     imageClass: "bg-purple-100 dark:bg-purple-900/30",
     label: "Teacher Dashboard"
@@ -106,13 +106,13 @@ export function FeatureSlideshow() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
           <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">
-            Khám Phá Giao Diện
+            Explore Interface
           </span>
           <h2 className="text-3xl md:text-4xl font-display font-extrabold text-slate-800 dark:text-white mt-4">
-            Mọi thứ bạn cần trên một nền tảng
+            Everything you need in one platform
           </h2>
           <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-            Vuốt hoặc sử dụng mũi tên để xem trước các màn hình chức năng của hệ thống.
+            Swipe or use arrows to preview the system's functional screens.
           </p>
         </div>
 
@@ -141,7 +141,7 @@ export function FeatureSlideshow() {
                         </p>
                         
                         <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-5 mb-8 border border-slate-100 dark:border-white/5">
-                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">💡 Lợi ích:</p>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">💡 Benefit:</p>
                           <p className="text-xs md:text-sm text-muted-foreground">{slide.benefit}</p>
                         </div>
                         
@@ -204,11 +204,11 @@ export function FeatureSlideshow() {
                                  <>
                                    <div className="h-1/2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-white/5 p-4 flex flex-col items-center justify-center">
                                       <span className="text-5xl font-japanese text-primary">学生</span>
-                                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300 mt-2">Học sinh (Gakusei)</span>
+                                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300 mt-2">Student (Gakusei)</span>
                                    </div>
                                    <div className="flex-1 grid grid-cols-2 gap-2">
                                       <div className="bg-primary/10 rounded-xl flex items-center justify-center text-primary font-bold text-xs border border-primary/20">Flashcard</div>
-                                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-white/5 flex items-center justify-center text-xs font-bold text-slate-400">Kiểm tra</div>
+                                      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-white/5 flex items-center justify-center text-xs font-bold text-slate-400">Quiz</div>
                                    </div>
                                  </>
                                )}
@@ -236,10 +236,10 @@ export function FeatureSlideshow() {
                                  <>
                                    <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-white/5 p-3 flex flex-col gap-2">
                                       <div className="self-end bg-primary text-white text-[10px] py-1.5 px-3 rounded-t-xl rounded-bl-xl max-w-[80%] shadow-sm">
-                                         Từ "Gakusei" nghĩa là gì ạ?
+                                         What does the word "Gakusei" mean?
                                       </div>
                                       <div className="self-start bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] py-1.5 px-3 rounded-t-xl rounded-br-xl max-w-[80%] shadow-sm">
-                                         "Gakusei" (学生) nghĩa là học sinh, sinh viên nhé!
+                                         "Gakusei" (学生) means pupil or student!
                                       </div>
                                    </div>
                                    <div className="h-10 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-white/5 flex items-center px-3 gap-2">

@@ -4,32 +4,32 @@ import { cn } from "@/lib/utils";
 const steps = [
   {
     num: "01",
-    title: "Tạo tài khoản",
-    description: "Đăng ký tài khoản bằng email và xác nhận thông tin cơ bản.",
+    title: "Create Account",
+    description: "Register an account with your email and verify basic details.",
     icon: UserPlus,
     color: "from-blue-500 to-cyan-500",
     bgClass: "bg-blue-50 dark:bg-blue-900/20"
   },
   {
     num: "02",
-    title: "Chọn nội dung phù hợp",
-    description: "Lựa chọn trình độ, kỹ năng hoặc bài học phù hợp với mục tiêu học tập.",
+    title: "Choose Content",
+    description: "Select levels, skills, or lessons that match your learning goals.",
     icon: LayoutList,
     color: "from-emerald-500 to-teal-500",
     bgClass: "bg-emerald-50 dark:bg-emerald-900/20"
   },
   {
     num: "03",
-    title: "Học và luyện tập",
-    description: "Học từ vựng, ngữ pháp, đọc hiểu, nghe hiểu và luyện tập cùng AI Sensei.",
+    title: "Study & Practice",
+    description: "Learn vocabulary, grammar, reading comprehension, listening comprehension, and practice with AI Sensei.",
     icon: BookOpenCheck,
     color: "from-purple-500 to-pink-500",
     bgClass: "bg-purple-50 dark:bg-purple-900/20"
   },
   {
     num: "04",
-    title: "Theo dõi kết quả",
-    description: "Xem điểm số, chuỗi ngày học và tiến độ theo từng kỹ năng.",
+    title: "Track Progress",
+    description: "View scores, learning streaks, and progress for each skill.",
     icon: LineChart,
     color: "from-amber-500 to-orange-500",
     bgClass: "bg-amber-50 dark:bg-amber-900/20"
@@ -42,10 +42,10 @@ export function GuideSteps() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
           <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-full">
-            Hướng Dẫn
+            Guide
           </span>
           <h2 className="text-3xl md:text-4xl font-display font-extrabold text-slate-800 dark:text-white mt-4">
-            Bắt đầu với MIDORI chỉ trong 4 bước
+            Get started with MIDORI in just 4 steps
           </h2>
         </div>
 

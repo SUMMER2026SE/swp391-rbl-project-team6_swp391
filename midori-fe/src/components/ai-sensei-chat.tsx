@@ -819,7 +819,7 @@ function MaterialSelector({
       .catch((err) => {
         if (!cancelled) {
           console.error("Failed to load AI materials", err);
-          setLoadError(err?.message || "Không tải được danh sách tài liệu.");
+          setLoadError(err?.message || "Could not load learning materials list.");
           setMaterials([]);
         }
       })
@@ -870,7 +870,7 @@ function MaterialSelector({
       setSearch("");
     } catch (err: any) {
       console.error("Failed to load material detail", err);
-      setDetailError(err?.message || "Không tải được chi tiết tài liệu.");
+      setDetailError(err?.message || "Could not load learning material details.");
     } finally {
       setDetailLoadingId(null);
     }
@@ -884,7 +884,7 @@ function MaterialSelector({
       >
         <TypeIcon className="w-4 h-4 text-primary" />
         <span className="font-medium">
-          {selected ? selected.title : "Chọn tài liệu học tập..."}
+          {selected ? selected.title : "Select learning material..."}
         </span>
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
@@ -909,7 +909,7 @@ function MaterialSelector({
                         : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600"
                     }`}
                   >
-                    {t === "ALL" ? "Tất cả" : t.charAt(0) + t.slice(1).toLowerCase()}
+                    {t === "ALL" ? "All" : t.charAt(0) + t.slice(1).toLowerCase()}
                   </button>
                 ))}
               </div>
@@ -918,7 +918,7 @@ function MaterialSelector({
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Tìm tài liệu..."
+                  placeholder="Search materials..."
                   className="w-full bg-transparent text-xs outline-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
                 />
               </div>
@@ -935,7 +935,7 @@ function MaterialSelector({
               {isLoading ? (
                 <div className="py-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                   <RefreshCw className="w-3 h-3 animate-spin" />
-                  Đang tải tài liệu...
+                  Loading materials...
                 </div>
               ) : loadError ? (
                 <div className="py-6 text-center text-xs text-red-600">
@@ -944,12 +944,12 @@ function MaterialSelector({
                     onClick={() => setTypeFilter((prev) => prev)}
                     className="block mx-auto mt-2 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-[11px]"
                   >
-                    Thử lại
+                    Retry
                   </button>
                 </div>
               ) : filteredMaterials.length === 0 ? (
                 <div className="py-6 text-center text-xs text-muted-foreground">
-                  Không tìm thấy tài liệu phù hợp.
+                  No matching materials found.
                 </div>
               ) : (
                 filteredMaterials.map((material) => {
@@ -984,7 +984,7 @@ function MaterialSelector({
                         <p className="text-sm font-medium truncate">{material.title}</p>
                         <p className="text-xs text-muted-foreground capitalize">
                           {material.type.toLowerCase()} · {material.level}
-                          {material.lessonNumber ? ` · Bài ${material.lessonNumber}` : ""}
+                          {material.lessonNumber ? ` · Lesson ${material.lessonNumber}` : ""}
                         </p>
                       </div>
                       {selected?.id === material.id && <Check className="w-4 h-4 text-primary" />}
@@ -1041,12 +1041,12 @@ function MaterialPreview({ material }: { material: MaterialContent | null }) {
             <p className="text-xs text-muted-foreground">Content (server-formatted)</p>
             {material.truncated && (
               <span className="text-[10px] text-amber-600 dark:text-amber-400">
-                Đã cắt bớt
+                Truncated
               </span>
             )}
           </div>
           <pre className="text-[11px] leading-relaxed whitespace-pre-wrap break-words font-sans text-slate-700 dark:text-slate-300 max-h-40 overflow-y-auto">
-            {material.content || "Đang tải nội dung..."}
+            {material.content || "Loading content..."}
           </pre>
         </div>
       </div>
@@ -1147,12 +1147,12 @@ function MessageBubble({
                 onEdit();
               }}
               data-testid="ai-edit-message-button"
-              aria-label="Sửa tin nhắn đã gửi"
+              aria-label="Edit sent message"
               className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-foreground transition-all"
-              title="Sửa tin nhắn đã gửi"
+              title="Edit sent message"
             >
               <Edit3 className="w-3 h-3" />
-              Sửa
+              Edit
             </button>
           )}
         </div>
@@ -1204,7 +1204,7 @@ function PracticeMode({
 
   const handleGenerate = async () => {
     if (!selectedMaterial) {
-      setError("Vui lòng chọn tài liệu để tạo quiz.");
+      setError("Please select a material to generate a quiz.");
       return;
     }
 
@@ -1274,7 +1274,7 @@ function PracticeMode({
             }
 
             if (normalized === "TRUE_FALSE") {
-              options = ["Đúng", "Sai"];
+              options = ["True", "False"];
             }
 
             if (normalized === "FILL_BLANK") {
@@ -1306,25 +1306,25 @@ function PracticeMode({
           });
 
         if (validQuestions.length === 0) {
-          setError("Không tạo được câu hỏi hợp lệ. Vui lòng thử lại.");
+          setError("Could not generate valid questions. Please try again.");
         } else {
           setQuizData(validQuestions);
           if (response.isFallback) setUsedFallback(true);
         }
       } else {
-        setError("Không tạo được câu hỏi. Vui lòng thử lại.");
+        setError("Could not generate questions. Please try again.");
       }
     } catch (err: any) {
       console.error("Quiz generation error:", err);
       const errorMsg = err?.response?.data?.errorMessage || err?.message || "";
       if (errorMsg.includes("not configured") || errorMsg.includes("OPENROUTER_API_KEY")) {
-        setError("AI provider chưa được cấu hình. Vui lòng cấu hình OpenRouter API key.");
+        setError("AI provider is not configured. Please configure OpenRouter API key.");
       } else if (errorMsg.includes("quota") || errorMsg.includes("429")) {
-        setError("AI đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
+        setError("AI is overloaded. Please try again in about 1 minute.");
       } else if (errorMsg.includes("401") || errorMsg.includes("403")) {
-        setError("API key AI không hợp lệ. Vui lòng liên hệ quản trị viên.");
+        setError("Invalid AI API key. Please contact administrator.");
       } else {
-        setError("Tạo quiz thất bại: " + (errorMsg || "Vui lòng thử lại."));
+        setError("Quiz generation failed: " + (errorMsg || "Please try again."));
       }
     } finally {
       setIsGenerating(false);
@@ -1403,13 +1403,13 @@ function PracticeMode({
     if (!quizData) return;
     if (hasUnsupportedQuestions) {
       setError(
-        `Bộ câu hỏi chứa ${unsupportedCount} câu không hỗ trợ. Vui lòng tạo lại bộ câu hỏi để tiếp tục.`
+        `The quiz contains ${unsupportedCount} unsupported questions. Please regenerate to continue.`
       );
       return;
     }
     if (!allQuestionsAnswered) {
       const unanswered = quizData.length - answeredCount;
-      setError(`Vui lòng trả lời tất cả câu hỏi trước khi nộp. Còn ${unanswered} câu chưa trả lời.`);
+      setError(`Please answer all questions before submitting. ${unanswered} question(s) remaining.`);
       return;
     }
     setError(null);
@@ -1476,16 +1476,16 @@ function PracticeMode({
     : false;
 
   const typeOptions = [
-    { value: "MULTIPLE_CHOICE", label: "Trắc nghiệm" },
-    { value: "FILL_BLANK", label: "Điền từ" },
-    { value: "TRUE_FALSE", label: "Đúng/Sai" },
-    { value: "MIXED", label: "Hỗn hợp" },
+    { value: "MULTIPLE_CHOICE", label: "Multiple Choice" },
+    { value: "FILL_BLANK", label: "Fill in the Blank" },
+    { value: "TRUE_FALSE", label: "True/False" },
+    { value: "MIXED", label: "Mixed" },
   ];
 
   const difficultyOptions = [
-    { value: "EASY", label: "Dễ" },
-    { value: "MEDIUM", label: "Trung bình" },
-    { value: "HARD", label: "Khó" },
+    { value: "EASY", label: "Easy" },
+    { value: "MEDIUM", label: "Medium" },
+    { value: "HARD", label: "Hard" },
   ];
 
   // Determine if an option is correct/wrong for display
@@ -1512,7 +1512,7 @@ function PracticeMode({
               </div>
               <div>
                 <h2 className="text-lg font-bold">Practice Quiz</h2>
-                <p className="text-xs text-muted-foreground">Tạo câu hỏi từ tài liệu</p>
+                <p className="text-xs text-muted-foreground">Generate questions from materials</p>
               </div>
             </div>
 
@@ -1520,13 +1520,13 @@ function PracticeMode({
               <div className="text-center py-8">
                 <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">
-                  Vui lòng chọn tài liệu ở panel bên trái để tạo quiz.
+                  Please select a material from the left panel to generate a quiz.
                 </p>
               </div>
             ) : (
               <>
                 <div className="mb-4 p-3 bg-primary/5 rounded-xl border border-primary/20">
-                  <p className="text-xs text-muted-foreground">Tài liệu đã chọn</p>
+                  <p className="text-xs text-muted-foreground">Selected Material</p>
                   <p className="text-sm font-medium">{selectedMaterial.title}</p>
                   <p className="text-xs text-muted-foreground capitalize">
                     {selectedMaterial.type.toLowerCase()} · {selectedMaterial.level}
@@ -1535,7 +1535,7 @@ function PracticeMode({
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block">Số câu hỏi</label>
+                    <label className="text-xs text-muted-foreground mb-2 block">Number of Questions</label>
                     <div className="flex gap-2">
                       {[5, 10, 15].map((n) => (
                         <button
@@ -1554,7 +1554,7 @@ function PracticeMode({
                   </div>
 
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block">Loại câu hỏi</label>
+                    <label className="text-xs text-muted-foreground mb-2 block">Question Type</label>
                     <div className="flex flex-wrap gap-2">
                       {typeOptions.map((opt) => (
                         <button
@@ -1573,7 +1573,7 @@ function PracticeMode({
                   </div>
 
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block">Độ khó</label>
+                    <label className="text-xs text-muted-foreground mb-2 block">Difficulty</label>
                     <div className="flex gap-2">
                       {difficultyOptions.map((opt) => (
                         <button
@@ -1606,7 +1606,7 @@ function PracticeMode({
                   {isGenerating ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      Đang tạo quiz...
+                      Generating quiz...
                     </>
                   ) : (
                     <>
@@ -1628,7 +1628,7 @@ function PracticeMode({
           {usedFallback && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 flex items-center gap-2 flex-shrink-0">
               <Info className="w-4 h-4 flex-shrink-0" />
-              <span>Quiz được tạo từ dữ liệu bài học (local fallback).</span>
+              <span>Quiz generated from lesson data (local fallback).</span>
             </div>
           )}
 
@@ -1668,11 +1668,11 @@ function PracticeMode({
                 {score}/{(() => {
                   const skippedCount = quizData.filter((q) => q.type === UNSUPPORTED).length;
                   return quizData.length - skippedCount;
-                })()} câu đúng
+                })()} correct
                 {(() => {
                   const skippedCount = quizData.filter((q) => q.type === UNSUPPORTED).length;
                   if (skippedCount > 0) {
-                    return <span className="text-xs text-muted-foreground ml-1">({skippedCount} không hỗ trợ)</span>;
+                    return <span className="text-xs text-muted-foreground ml-1">({skippedCount} unsupported)</span>;
                   }
                   return null;
                 })()}
@@ -1686,7 +1686,7 @@ function PracticeMode({
                       : "text-red-700 dark:text-red-300"
                 }`}
               >
-                {percent >= 75 ? "Xuất sắc!" : percent >= 50 ? "Khá tốt!" : "Cố gắng hơn nhé!"}
+                {percent >= 75 ? "Excellent!" : percent >= 50 ? "Pretty Good!" : "Keep trying!"}
               </p>
             </motion.div>
           )}
@@ -1695,15 +1695,15 @@ function PracticeMode({
           <div className="flex-shrink-0">
             <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>
-                Câu {currentIndex + 1}/{quizData.length} ·{" "}
+                Question {currentIndex + 1}/{quizData.length} ·{" "}
                 <span className="font-medium">{(() => {
                   const t = currentQuestion.type;
-                  if (t === UNSUPPORTED) return "không hỗ trợ";
+                  if (t === UNSUPPORTED) return "unsupported";
                   return t.replace("_", " ");
                 })()}</span>
               </span>
               <span>
-                {answeredCount}/{quizData.length} đã trả lời
+                {answeredCount}/{quizData.length} answered
               </span>
             </div>
             <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -1814,13 +1814,13 @@ function PracticeMode({
                 <div data-testid="practice-fill-blank-block">
                   {hasMarker && (
                     <p className="text-xs text-muted-foreground mb-2">
-                      Gợi ý: điền vào chỗ trống <span className="font-mono">____</span> trong câu hỏi.
+                      Hint: fill in the blank <span className="font-mono">____</span> in the question.
                     </p>
                   )}
                   <input
                     key={currentQuestion.id}
                     data-testid="practice-fill-blank-input"
-                    aria-label="Nhập đáp án điền từ"
+                    aria-label="Enter fill-in answer"
                     type="text"
                     value={typed}
                     onChange={(e) => handleFillBlankAnswer(currentQuestion.id, e.target.value)}
@@ -1831,7 +1831,7 @@ function PracticeMode({
                       }
                     }}
                     disabled={submitted}
-                    placeholder="Nhập đáp án..."
+                    placeholder="Enter your answer..."
                     autoComplete="off"
                     spellCheck={false}
                     className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400 ${
@@ -1854,7 +1854,7 @@ function PracticeMode({
                         <AlertCircle className="w-4 h-4 text-amber-500" />
                       )}
                       <span className="text-xs">
-                        Đáp án đúng: <strong>{currentQuestion.correctAnswer}</strong>
+                        Correct answer: <strong>{currentQuestion.correctAnswer}</strong>
                       </span>
                     </div>
                   )}
@@ -1873,11 +1873,11 @@ function PracticeMode({
                   <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                      Không thể hiển thị loại câu hỏi này. Vui lòng tạo lại bộ câu hỏi.
+                      Cannot display this question type. Please regenerate questions.
                     </p>
                     {currentQuestion.type && typeof currentQuestion.type === "string" && currentQuestion.type !== UNSUPPORTED && (
                       <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-1 break-all">
-                        Loại câu hỏi: <span className="font-mono">{currentQuestion.type}</span>
+                        Question type: <span className="font-mono">{currentQuestion.type}</span>
                       </p>
                     )}
                     <button
@@ -1886,7 +1886,7 @@ function PracticeMode({
                       className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
-                      Tạo lại câu hỏi
+                      Regenerate question
                     </button>
                   </div>
                 </div>
@@ -1896,7 +1896,7 @@ function PracticeMode({
             {/* Explanation after submit */}
             {submitted && currentQuestion.explanation && (
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                <p className="text-xs font-medium text-blue-700 mb-1">Giải thích:</p>
+                <p className="text-xs font-medium text-blue-700 mb-1">Explanation:</p>
                 <p className="text-xs text-blue-600">{currentQuestion.explanation}</p>
               </div>
             )}
@@ -1949,13 +1949,13 @@ function PracticeMode({
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-4">
-            Quiz không có câu hỏi hợp lệ. Vui lòng tạo lại.
+            Quiz does not contain valid questions. Please regenerate.
           </p>
           <button
             onClick={handleRetry}
             className="px-4 py-2 text-sm bg-primary text-white rounded-xl hover:bg-primary/90 transition"
           >
-            Thử lại
+            Retry
           </button>
         </div>
       )}
@@ -1965,9 +1965,9 @@ function PracticeMode({
 
 function WelcomeState({ onExampleClick }: { onExampleClick: (q: string) => void }) {
   const examples = [
-    { q: "食べる nghĩa là gì?", icon: BookOpen },
-    { q: "Giải thích ～です", icon: GraduationCap },
-    { q: "Cho ví dụ về 行く", icon: Headphones },
+    { q: "What does 食べる mean?", icon: BookOpen },
+    { q: "Explain ～です", icon: GraduationCap },
+    { q: "Give an example of 行く", icon: Headphones },
   ];
 
   return (
@@ -1982,21 +1982,21 @@ function WelcomeState({ onExampleClick }: { onExampleClick: (q: string) => void 
 
       <h2 className="text-xl font-bold mb-2">AI Sensei</h2>
       <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-        Trợ lý học tập Nhật ngữ. Bạn có thể chọn tài liệu để AI trả lời đúng trọng tâm bài học.
+        Japanese learning assistant. You can select materials for the AI to answer with a focus on the lesson content.
       </p>
 
       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3 mb-6 max-w-sm">
         <div className="flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-amber-700 dark:text-amber-300 text-left">
-            <strong>Lưu ý:</strong> Bạn có thể chọn tài liệu để AI trả lời đúng trọng tâm bài học.
-            Nếu câu hỏi không có trong tài liệu đã chọn, AI sẽ thông báo cho bạn.
+            <strong>Note:</strong> You can select a learning material so the AI can answer focusing on that document.
+            If the question is not found in the selected material, the AI will notify you.
           </p>
         </div>
       </div>
 
       <div className="space-y-2 w-full max-w-xs">
-        <p className="text-xs text-muted-foreground mb-2">Thử hỏi:</p>
+        <p className="text-xs text-muted-foreground mb-2">Try asking:</p>
         {examples.map((ex, i) => (
           <button
             key={i}
@@ -2080,7 +2080,7 @@ export function AISenseiPage() {
       await refetchConversations();
     } catch (error) {
       console.error("Failed to load conversations", error);
-      setApiError("Không tải được danh sách conversation.");
+      setApiError("Could not load conversations list.");
     }
   }, [refetchConversations]);
 
@@ -2095,7 +2095,7 @@ export function AISenseiPage() {
           rawContent === "null" ||
           rawContent === "undefined" ||
           rawContent.trim() === ""
-            ? "Xin lỗi, câu trả lời này không hợp lệ. Vui lòng thử lại."
+            ? "Sorry, this response is invalid. Please try again."
             : rawContent;
         return {
           id: msg.id,
@@ -2109,7 +2109,7 @@ export function AISenseiPage() {
       return true;
     } catch (error) {
       console.error("Failed to load messages", error);
-      setApiError("Không tải được tin nhắn của conversation.");
+      setApiError("Could not load conversation messages.");
       setActiveConversationId(null);
       sessionStorage.removeItem("midori_ai_active_conversation_id");
       setMessages([]);
@@ -2143,7 +2143,7 @@ export function AISenseiPage() {
   const handleDeleteConversation = useCallback(
     async (conversationId: string) => {
       const confirmed = window.confirm(
-        "Bạn có chắc muốn xóa đoạn chat này không? Hành động này không thể hoàn tác.",
+        "Are you sure you want to delete this chat? This action cannot be undone.",
       );
       if (!confirmed) return;
 
@@ -2162,14 +2162,14 @@ export function AISenseiPage() {
         }
       } catch (error) {
         console.error("Failed to delete conversation", error);
-        setApiError("Không xóa được conversation.");
+        setApiError("Could not delete conversation.");
       }
     },
     [activeConversationId],
   );
 
   const handleRenameConversation = useCallback(async (conversation: AiConversation) => {
-    const newTitle = window.prompt("Nhập tên mới cho đoạn chat:", conversation.title);
+    const newTitle = window.prompt("Enter new name for the chat:", conversation.title);
     if (newTitle === null) return;
     const trimmed = newTitle.trim();
     if (!trimmed) return;
@@ -2182,7 +2182,7 @@ export function AISenseiPage() {
       );
     } catch (error) {
       console.error("Failed to rename conversation", error);
-      setApiError("Không đổi được tên conversation.");
+      setApiError("Could not rename conversation.");
     }
   }, []);
 
@@ -2208,7 +2208,7 @@ export function AISenseiPage() {
 
     const userIndex = messages.findIndex((m) => m.id === editingMessage.id);
     if (userIndex < 0) {
-      setApiError("Không tìm thấy tin nhắn cần sửa.");
+      setApiError("Could not find the message to edit.");
       setSavingEdit(false);
       return;
     }
@@ -2227,7 +2227,7 @@ export function AISenseiPage() {
     setEditingMessage(null);
     setEditInput("");
     setIsTyping(true);
-    setChatLoadingText("Đang tạo câu trả lời...");
+    setChatLoadingText("Generating response...");
 
     try {
       const data = await aiApi.updateUserMessage(activeConversationId, editingMessage.id, {
@@ -2242,7 +2242,7 @@ export function AISenseiPage() {
           rawContent === "null" ||
           rawContent === "undefined" ||
           rawContent.trim() === ""
-            ? "Xin lỗi, câu trả lời này không hợp lệ. Vui lòng thử lại."
+            ? "Sorry, this response is invalid. Please try again."
             : rawContent;
         return {
           id: msg.id,
@@ -2257,7 +2257,7 @@ export function AISenseiPage() {
       await loadConversations();
     } catch (error: any) {
       console.error("Failed to regenerate message", error);
-      setApiError("Không thể tạo lại câu trả lời. Vui lòng thử lại.");
+      setApiError("Could not regenerate response. Please try again.");
     } finally {
       setSavingEdit(false);
       setIsTyping(false);
@@ -2274,11 +2274,11 @@ export function AISenseiPage() {
 
   const [chatLoadingText, setChatLoadingText] = useState<string | null>(null);
   const aiLoadingMessages = [
-    "AI Sensei đang phân tích câu hỏi...",
+    "AI Sensei is analyzing your question...",
     selectedMaterial
-      ? "Đang tham chiếu tài liệu đã chọn..."
-      : "Đang tổng hợp kiến thức liên quan...",
-    "Đang soạn câu trả lời...",
+      ? "Referencing the selected material..."
+      : "Gathering relevant knowledge...",
+    "Drafting response...",
   ];
 
   const handleSend = useCallback(
@@ -2415,8 +2415,8 @@ export function AISenseiPage() {
   const showBootLoading = chatBootState === "loading";
 
   const materialHelper = selectedMaterial
-    ? "AI Sensei sẽ ưu tiên giải thích theo tài liệu đã chọn."
-    : "Bạn có thể chọn tài liệu để AI trả lời đúng trọng tâm bài học.";
+    ? "AI Sensei will prioritize explanations based on the selected material."
+    : "You can select materials for the AI to focus its answers on.";
 
   return (
     <div className="h-[calc(100dvh-7rem)] md:h-[calc(100vh-7rem)] min-h-0 flex flex-col lg:flex-row gap-3 lg:gap-4 min-w-0 max-w-full overflow-x-hidden">
@@ -2473,7 +2473,7 @@ export function AISenseiPage() {
                       handleRenameConversation(conversation);
                     }}
                     className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all"
-                    title="Đổi tên"
+                    title="Rename"
                   >
                     <Pencil className="w-3 h-3" />
                   </button>
@@ -2483,7 +2483,7 @@ export function AISenseiPage() {
                       handleDeleteConversation(conversation.id);
                     }}
                     className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                    title="Xóa đoạn chat"
+                    title="Delete chat"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -2501,9 +2501,9 @@ export function AISenseiPage() {
               <button
                 onClick={() => setSelectedMaterial(null)}
                 className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
-                title="Bỏ chọn tài liệu"
+                title="Deselect material"
               >
-                <X className="w-3 h-3" /> Bỏ chọn
+                <X className="w-3 h-3" /> Deselect
               </button>
             )}
           </div>
@@ -2524,10 +2524,10 @@ export function AISenseiPage() {
           <div className="bg-primary/5 dark:bg-primary/10 rounded-xl p-3 border border-primary/20 flex-shrink-0">
             <div className="flex items-center gap-2 text-xs">
               <CheckCircle2 className="w-3 h-3 text-primary" />
-              <span className="font-medium">Chế độ nguồn ưu tiên</span>
+              <span className="font-medium">Prioritized Source Mode</span>
             </div>
             <p className="text-[10px] text-muted-foreground mt-1">
-              Các câu trả lời sẽ ưu tiên dựa trên: {selectedMaterial.title}
+              Answers will prioritize content from: {selectedMaterial.title}
             </p>
           </div>
         )}
@@ -2586,7 +2586,7 @@ export function AISenseiPage() {
                   <div className="w-8 h-8 rounded-xl bg-gradient-hero flex items-center justify-center mb-3 animate-pulse">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
-                  <p className="text-sm text-muted-foreground">Đang tải đoạn chat...</p>
+                  <p className="text-sm text-muted-foreground">Loading chat...</p>
                 </div>
               )}
 
@@ -2671,7 +2671,7 @@ export function AISenseiPage() {
                     <div className="flex items-center gap-2">
                       <Edit3 className="w-3 h-3 text-amber-500" />
                       <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                        Đang sửa tin nhắn đã gửi
+                        Editing sent message
                       </span>
                     </div>
                     <button
@@ -2683,7 +2683,7 @@ export function AISenseiPage() {
                   </div>
                   <textarea
                     data-testid="ai-edit-textarea"
-                    aria-label="Sửa nội dung tin nhắn"
+                    aria-label="Edit message content"
                     value={editInput}
                     onChange={(e) => setEditInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -2692,7 +2692,7 @@ export function AISenseiPage() {
                         handleSaveEdit();
                       }
                     }}
-                    placeholder="Sửa tin nhắn của bạn..."
+                    placeholder="Edit your message..."
                     className="w-full resize-none rounded-lg bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800/50 px-3 py-2 text-sm outline-none focus:border-amber-400 placeholder:text-slate-500 dark:placeholder:text-slate-400 min-w-0 break-words overflow-wrap-anywhere"
                     rows={2}
                     autoFocus
@@ -2702,7 +2702,7 @@ export function AISenseiPage() {
                       onClick={handleCancelEdit}
                       className="px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
                     >
-                      Hủy
+                      Cancel
                     </button>
                     <button
                       data-testid="ai-edit-save-button"
@@ -2710,7 +2710,7 @@ export function AISenseiPage() {
                       disabled={!editInput.trim() || isSavingEdit}
                       className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition"
                     >
-                      {isSavingEdit ? "Đang lưu..." : "Lưu và gửi lại"}
+                      {isSavingEdit ? "Saving..." : "Save & Resend"}
                     </button>
                   </div>
                 </div>
@@ -2729,8 +2729,8 @@ export function AISenseiPage() {
                   }}
                   placeholder={
                     selectedMaterial
-                      ? `Hỏi về ${selectedMaterial.title}...`
-                      : "Hỏi AI Sensei về tiếng Nhật..."
+                      ? `Ask about ${selectedMaterial.title}...`
+                      : "Ask AI Sensei about Japanese..."
                   }
                   rows={1}
                   className="flex-1 resize-none rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-600 px-4 py-3 text-sm outline-none focus:border-primary/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 min-w-0 break-words overflow-wrap-anywhere"
@@ -2740,7 +2740,7 @@ export function AISenseiPage() {
                   disabled={!input.trim() || isSendingMessage || !!editingMessage}
                   className="px-4 py-3 rounded-xl bg-gradient-hero text-white disabled:opacity-50 hover:opacity-90 transition shadow-md"
                   title={
-                    editingMessage ? "Lưu hoặc hủy sửa tin nhắn trước" : "Gửi tin nhắn (Enter)"
+                    editingMessage ? "Save or cancel message edit first" : "Send message (Enter)"
                   }
                 >
                   <Send className="w-4 h-4" />
@@ -2749,8 +2749,7 @@ export function AISenseiPage() {
 
               <p className="text-[10px] text-muted-foreground text-center mt-2">
                 <Sparkles className="w-3 h-3 inline mr-1" />
-                Enter gửi · Shift+Enter xuống dòng · AI Sensei có thể ưu tiên tài liệu đã chọn khi
-                trả lời.
+                Enter to send · Shift+Enter for new line · AI Sensei may prioritize selected material when answering.
               </p>
             </div>
           </>

@@ -263,10 +263,10 @@ function StudentDashboard() {
             Welcome back
           </span>
           <h2 className="font-display font-black text-2xl sm:text-3xl mt-1 text-white">
-            Xin chào{firstName ? `, ${firstName}` : ""}
+            Hello{firstName ? `, ${firstName}` : ""}
           </h2>
           <p className="mt-1.5 text-sm text-white/75">
-            Sẵn sàng tiếp tục hành trình học tiếng Nhật của bạn hôm nay chưa?
+            Ready to continue your Japanese learning journey today?
           </p>
         </div>
         {/* Decorative gradient orbs (pure CSS, no asset deps). */}
@@ -300,10 +300,10 @@ function StudentDashboard() {
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {statsError
-                ? "Không thể tải dữ liệu streak."
+                ? "Could not load streak data."
                 : streak && streak > 0
-                  ? "Tuyệt vời! Hãy duy trì hôm nay để giữ chuỗi ngày học."
-                  : "Hãy bắt đầu một ngày học để tạo chuỗi mới."}
+                  ? "Great job! Keep learning today to maintain your streak."
+                  : "Start learning today to build a new streak."}
             </p>
           </div>
           {statsError && (
@@ -348,7 +348,7 @@ function StudentDashboard() {
                 <School className="w-8 h-8 text-muted-foreground/40" />
                 <p className="text-sm font-bold text-secondary-col">No classes yet</p>
                 <p className="text-xs text-muted-foreground max-w-[26ch]">
-                  Hãy tham gia lớp đầu tiên để bắt đầu hành trình học của bạn.
+                  Join your first class to start your learning journey.
                 </p>
                 <Link
                   to="/student/classes"
@@ -378,8 +378,8 @@ function StudentDashboard() {
                             {cls.name}
                           </p>
                           <p className="text-[11px] text-muted-foreground truncate">
-                            {cls.teacherName ? `GV: ${cls.teacherName}` : "Chưa có giáo viên"}
-                            {homeworkForClass > 0 ? ` · ${homeworkForClass} bài tập` : ""}
+                            {cls.teacherName ? `Teacher: ${cls.teacherName}` : "No teacher assigned"}
+                            {homeworkForClass > 0 ? ` · ${homeworkForClass} assignments` : ""}
                           </p>
                         </div>
                       </div>
@@ -424,7 +424,7 @@ function StudentDashboard() {
                   <ClipboardList className="w-8 h-8 text-muted-foreground/40" />
                   <p className="text-sm font-bold text-secondary-col">No assignments yet</p>
                   <p className="text-xs text-muted-foreground max-w-[26ch]">
-                    Khi giáo viên giao bài tập, chúng sẽ xuất hiện tại đây.
+                    When your teacher assigns homework, it will appear here.
                   </p>
                 </div>
               ) : (
@@ -483,7 +483,7 @@ function StudentDashboard() {
               <CalendarDays className="w-8 h-8 text-muted-foreground/40" />
               <p className="text-sm font-bold text-secondary-col">No upcoming deadlines</p>
               <p className="text-xs text-muted-foreground max-w-[28ch]">
-                Bạn đã hoàn thành — không có bài tập nào sắp đến hạn.
+                You're all caught up! No upcoming deadlines.
               </p>
             </div>
           ) : (
@@ -592,10 +592,10 @@ function DeadlinePill({
     daysLeft === null
       ? "—"
       : daysLeft === 0
-        ? "Hôm nay"
+        ? "Today"
         : daysLeft === 1
-          ? "1 ngày"
-          : `${daysLeft} ngày`;
+          ? "1 day"
+          : `${daysLeft} days`;
   return (
     <span
       className={`shrink-0 px-2.5 py-1 rounded-full border text-[11px] font-bold whitespace-nowrap ${styles}`}

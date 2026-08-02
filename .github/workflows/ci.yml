@@ -26,11 +26,12 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Install FFmpeg (for shadowing feature validation)
+      - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          rm -rf /var/lib/apt/lists/*
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version
+          ffprobe -version
 
       - name: Build backend with Maven
         run: mvn clean package -DskipTests
